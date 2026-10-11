@@ -1,0 +1,8 @@
+.pio/
+.venv/
+include/secrets.h
+.env*
+!*.example
+artifacts/
+__pycache__/
+.DS_Store

@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "generatedAt": 1791030107985,
+  "stops": [
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:ok",
+      "name": "Estació de prova",
+      "status": "ok",
+      "groups": [
+        {
+          "line": "R2",
+          "lineColor": "#FFCC00",
+          "destination": "Aeroport",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030166985,
+              "provenance": "realtime"
+            },
+            {
+              "arrivalAt": 1791030227985
+            }
+          ]
+        }
+      ],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:empty",
+      "name": "Estació de prova",
+      "status": "empty",
+      "groups": [],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:partial",
+      "name": "Estació de prova",
+      "status": "partial",
+      "groups": [
+        {
+          "line": "R2",
+          "lineColor": "#FFCC00",
+          "destination": "Aeroport",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030166985,
+              "provenance": "realtime"
+            },
+            {
+              "arrivalAt": 1791030227985
+            }
+          ]
+        }
+      ],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:scheduled",
+      "name": "Estació de prova",
+      "status": "scheduled",
+      "groups": [
+        {
+          "line": "R2",
+          "lineColor": "#FFCC00",
+          "destination": "Aeroport",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030166985,
+              "provenance": "scheduled"
+            },
+            {
+              "arrivalAt": 1791030227985
+            }
+          ]
+        }
+      ],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:unknown",
+      "name": "Estació de prova",
+      "status": "unknown",
+      "groups": [],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:unavailable",
+      "name": "Estació de prova",
+      "status": "unavailable",
+      "groups": [],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:upstream_error",
+      "name": "Estació de prova",
+      "status": "upstream_error",
+      "groups": [],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:stale",
+      "name": "Estació de prova",
+      "status": "stale",
+      "groups": [
+        {
+          "line": "R2",
+          "lineColor": "#FFCC00",
+          "destination": "Aeroport",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030166985,
+              "provenance": "realtime"
+            },
+            {
+              "arrivalAt": 1791030227985
+            }
+          ]
+        }
+      ],
+      "extra": {
+        "future": "ignored"
+      }
+    },
+    {
+      "mode": "rail-demo",
+      "stop": "opaque:future_status",
+      "name": "Estació de prova",
+      "status": "future_status",
+      "groups": [
+        {
+          "line": "R2",
+          "lineColor": "#FFCC00",
+          "destination": "Aeroport",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030166985,
+              "provenance": "realtime"
+            },
+            {
+              "arrivalAt": 1791030227985
+            }
+          ]
+        }
+      ],
+      "extra": {
+        "future": "ignored"
+      }
+    }
+  ],
+  "futureField": true
+}

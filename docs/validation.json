@@ -1,0 +1,167 @@
+{
+  "verifiedAtUtc": "2026-10-11T07:55:05.739749+00:00",
+  "verifiedAtLocal": "2026-10-11T09:55:05.740968+02:00",
+  "method": "Offline native tests, formatting/fixture checks, actual C++ raster previews, ESP32-S3 compile/link; no hardware or live feed requests",
+  "commands": [
+    "make check",
+    "python3 -m py_compile tools/*.py",
+    "make preview"
+  ],
+  "hostTests": {
+    "passed": 20,
+    "failed": 0
+  },
+  "buildEnvironments": {
+    "esp32s3": {
+      "status": "success",
+      "staticRamBytes": 44848,
+      "applicationFlashBytes": 713237,
+      "artifactPath": "artifacts/firmware/esp32s3",
+      "artifacts": {
+        "firmware.bin": {
+          "bytes": 713600,
+          "sha256": "4063bb9c26595eb68388e4ab949ddfdfa17417b8c8e920f22c392aefbb492d0c"
+        },
+        "firmware.elf": {
+          "bytes": 14356756,
+          "sha256": "6297bebf02a1212af9441deb73b41a77a8b41ec234d6d37a9654b0284e392cf6"
+        },
+        "bootloader.bin": {
+          "bytes": 15104,
+          "sha256": "2a71d69b471e20c2bac7fb469f3c6a807b3ebee780e348e5889db0da849ca363"
+        },
+        "partitions.bin": {
+          "bytes": 3072,
+          "sha256": "efae30c07e09c598c9ada47d504cc6758d760fd947178f036757b42995355ecb"
+        }
+      }
+    },
+    "diagnostic": {
+      "status": "success",
+      "staticRamBytes": 18932,
+      "applicationFlashBytes": 279577,
+      "artifactPath": "artifacts/firmware/diagnostic",
+      "artifacts": {
+        "firmware.bin": {
+          "bytes": 279936,
+          "sha256": "7a1d525b22266944f69bd7a40d94ab0d074af82e6e8619c5a17f6059fca662e1"
+        },
+        "firmware.elf": {
+          "bytes": 9146132,
+          "sha256": "385f76d311ac1b111831054ffe0cdbc62c61e21a058dbaa65f995488a4293232"
+        },
+        "bootloader.bin": {
+          "bytes": 15104,
+          "sha256": "2a71d69b471e20c2bac7fb469f3c6a807b3ebee780e348e5889db0da849ca363"
+        },
+        "partitions.bin": {
+          "bytes": 3072,
+          "sha256": "efae30c07e09c598c9ada47d504cc6758d760fd947178f036757b42995355ecb"
+        }
+      }
+    },
+    "fixture": {
+      "status": "success",
+      "staticRamBytes": 18940,
+      "applicationFlashBytes": 295629,
+      "artifactPath": "artifacts/firmware/fixture",
+      "artifacts": {
+        "firmware.bin": {
+          "bytes": 296000,
+          "sha256": "d602f13e6bc4082d83bb01175612ccc1371b82a8cd1680bfaf5cfd4b58ba9ffe"
+        },
+        "firmware.elf": {
+          "bytes": 9579308,
+          "sha256": "429e9620629097f9613e1c38d3e82914d24b4b08e03aee1da6e43e6457db7fdd"
+        },
+        "bootloader.bin": {
+          "bytes": 15104,
+          "sha256": "2a71d69b471e20c2bac7fb469f3c6a807b3ebee780e348e5889db0da849ca363"
+        },
+        "partitions.bin": {
+          "bytes": 3072,
+          "sha256": "efae30c07e09c598c9ada47d504cc6758d760fd947178f036757b42995355ecb"
+        }
+      }
+    },
+    "hub75-diagnostic": {
+      "status": "success",
+      "staticRamBytes": 18960,
+      "applicationFlashBytes": 288629,
+      "artifactPath": "artifacts/firmware/hub75-diagnostic",
+      "artifacts": {
+        "firmware.bin": {
+          "bytes": 288992,
+          "sha256": "38a59ff20ff2264b9e5db9bf7189471050545501cd2a72c0964b49c28c15d37d"
+        },
+        "firmware.elf": {
+          "bytes": 9257868,
+          "sha256": "ddd3af5596cb837fd04409b1a3e6b7c0a36bb52feb913201dadb414a189233e7"
+        },
+        "bootloader.bin": {
+          "bytes": 15104,
+          "sha256": "2a71d69b471e20c2bac7fb469f3c6a807b3ebee780e348e5889db0da849ca363"
+        },
+        "partitions.bin": {
+          "bytes": 3072,
+          "sha256": "efae30c07e09c598c9ada47d504cc6758d760fd947178f036757b42995355ecb"
+        }
+      }
+    }
+  },
+  "feedRepository": {
+    "head": "c6aabc8b96076eda4bbe31bdd87a85d0f1902965",
+    "unchanged": true
+  },
+  "toolchain": {
+    "platformio": "6.1.18",
+    "platform": "espressif32 6.12.0",
+    "arduino": "2.0.17 / package 3.20017.241212+sha.dcc1105b",
+    "compiler": "Xtensa ESP32-S3 GCC 8.4.0+2021r2-patch5",
+    "hub75": "3.0.14 / f17fb7fe9d487e9643f919eb5aeedea8d9d1f8d7",
+    "ArduinoJson": "6.21.5",
+    "Unity": "2.6.1",
+    "clang-format": "18.1.8"
+  },
+  "limitations": [
+    "No physical pin/electrical/timing validation",
+    "No ESP32 Wi-Fi/SNTP/TLS runtime validation",
+    "Static sizes exclude dynamic heap, task stacks, TLS and DMA buffers"
+  ],
+  "sourceFiles": {
+    "src/display_driver.cpp": "0768b11e5676e3dfc620f82e85bdcac8409c49edd49e9cee0aea52aef49b48b8",
+    "src/display_driver.h": "0e47e3df0b8ae069e0d75f9d4a7246c7cd3d26a1d001b01f5a0ebb753c39045c",
+    "src/feed_client.cpp": "c352c8f32c08fc2017e49728f7b794d365a34c1cd60e859a5d41255b4cc9dde1",
+    "src/feed_client.h": "56659e2ca01cd1607b44d90f4768fad971046b049906ddf68716bad87d089f02",
+    "src/main.cpp": "1f974887fcddd3e9f804fddbadbcc0b71b28c820d77af198c6a6057a912c771f",
+    "include/app_config.h": "04c4b90bf64981d96231a7b9dfe0f3def1b4ec715932263ed4f0b093703a27c2",
+    "include/fixture.h": "d49ea63d1febbba9840b3ba7e976d1d4d5af8222f4b1cf7856cc038bccbdf7cc",
+    "include/panel_config.h": "83a06bff21eb06925e3e948c215bc63910bc6018d1de7d62916168702e80cf0a",
+    "include/secrets.h.example": "779e42c45047d41a1fc9125fbb2408ec2e2973797f39cc42373a076f6926eee3",
+    "lib/transit/library.json": "8856cd08a5ca9504cc3fc300a90bb26a42c436f78fbf8f0b0da1d1a8cff9fa02",
+    "lib/transit/src/feed_parser.cpp": "f3a9b468ee523bbd25f6c15bd9004337acc3c6cc557ecfc37b3abb144e3df27a",
+    "lib/transit/src/feed_parser.h": "9c90244a7c13446b85ce13069a03077f9d0f0f17a153cd1259c4d453faaedd53",
+    "lib/transit/src/feed_request.cpp": "50dcdb484279fae4703696df241d90297419d913fd5a99702ae81342dcf45844",
+    "lib/transit/src/feed_request.h": "a098f18850591428d8047b0d352f3e2ebd1e17a4c1db12b4394f49d8c2cd284e",
+    "lib/transit/src/font.h": "5333b3723ebc2395c84bb72ef468d9319ac72a9a0eedbcc33cd8cc917e4ac947",
+    "lib/transit/src/framebuffer.cpp": "73ac02390e5aac0f9fa58e90c32163c83392935eed7ae5df74df0ef08b85546e",
+    "lib/transit/src/framebuffer.h": "de0cdde281e0732784106b01b0696cf5c27172c54b7c71fc59698f1b6f433e32",
+    "lib/transit/src/model.h": "0445c2b519438c8de31ea5596611084300fc48dea8cf7f0ef420c32dcf8bb540",
+    "lib/transit/src/renderer.cpp": "9e4fc62d108262f0b9ae0dfdd9796cd793f24fdc786b9421b95968dec11aa808",
+    "lib/transit/src/renderer.h": "2f260e9a1d3d592ccc0ee0d613d06b218a71b9f672279e92995242f43beb746b",
+    "lib/transit/src/state.cpp": "99893ecddcf22911e52beb80dc8bc529d0cd166bf2b8351b8d85d8bccbf26ce0",
+    "lib/transit/src/state.h": "303c376e97cada256d559c063f3079acb647bec591e0eb653ff88b35046d67c0",
+    "test/test_core/test_main.cpp": "71f2970bebcb313f9f53f9178036a9a0035ee9828a90adf784411305edcb5d98",
+    "fixtures/feed-v1.json": "a789ad92c1627d15a0f05140c7dcdce9eb7f4d0f49ebcd5440ce9ccbaf5233e3",
+    "fixtures/states.json": "7e1d8388df16c98d204721c1a1b1edae8e8e5dae4ade4a30e017f985e914cbc2",
+    "tools/format.py": "432b0883b3d2cf9ba9cd09ecc239700de3d6a2bd54097cf4798a59f7dd240d45",
+    "tools/generate_fixtures.py": "beca8e64ddabef292dd560bf42a531af83ab126a87e50dc1469399e9e8c8f77e",
+    "tools/preview.py": "e10427d888f28d4c78a6ae263674c22e2bc3c8f950c0f35289f196f96f24bcf3",
+    "tools/render_preview.cpp": "72a0cada793b029fd37f88d834f0d7b5b152628c957240ee48fc79a265113520",
+    "platformio.ini": "de3bca7fccd0b8bfc7ef064a3b6a5a105d0421fdcbc896b616dfea64cc1cda0a",
+    "partitions.csv": "4911a8422e6f69c1b0d23b91da6e70ee07bbe523df34ca945544b688a738df6c",
+    "Makefile": "8081c675440c48bd2dd4fe6a0399a7d2ca1fe0bfe8e830f62359ad1f48be25b3",
+    "requirements-dev.txt": "0aadcfff330827092950e228baf9fffaa7f7f02b28f6bcb0955b279bbf411399",
+    ".clang-format": "edefa187e9b0a5810764e823abeee2da5b0ab19920741d1d195e963174703cd1"
+  }
+}
