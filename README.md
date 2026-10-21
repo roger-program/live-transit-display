@@ -104,3 +104,12 @@ s advances paused reveal positions, r resets the reveal and i reports the state.
 Normal badge typography and colours remain unchanged. See
 [build/upload controls and browser differences](docs/typography.md).
 No device upload is performed by the build/test commands.
+
+### Focused C2 trial
+
+In `hub75-typography`, select samples **6–9** and switch directly with `a` (A),
+`c` (original C), `e` (C2). C2 manually widens a 13-capital geometric subset to
+mostly 4×5 with five-pixel advances and a three-pixel space advance. Focused
+samples retain identical operational countdown pixels, badges and brightness 16.
+Original samples 0–5 and C glyphs remain unchanged. `s` steps paused reveal phases,
+`r` resets and `i` reports. See [C2 dimensions and limits](docs/typography.md).

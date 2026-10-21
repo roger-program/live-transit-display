@@ -14,7 +14,11 @@ void report() {
   Serial.printf("Typography: %s; sample=%u; %s / %s / %s; phase=%llu ms; brightness=16/255\n",
                 typography::faceName(selected.face), selected.sample, sample.stop, sample.line,
                 sample.destination, static_cast<unsigned long long>(selected.phase()));
-  Serial.println("a/b/c/d: face; 0-5 or n/p: sample; s: reveal step; r: initial hold; i/?: report");
+  if (selected.face == typography::Face::C2 &&
+      (!typography::c2Supports(sample.stop) || !typography::c2Supports(sample.destination)))
+    Serial.println("C2 subset: unsupported label characters render as ?; use focused samples 6-9");
+  Serial.println("a: A; c: C; e: C2 (b/d retained); 0-9 or n/p: sample; s: reveal step; r: initial "
+                 "hold; i/?: report");
 }
 void show() {
   typography::render(frame, selected.face, selected.sample, selected.phase());

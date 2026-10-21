@@ -1,11 +1,12 @@
 #pragma once
 #include "renderer.h"
+#include "typography_c2.h"
 #include "typography_glyphs.h"
 #include <algorithm>
 #include <cstring>
 
 namespace typography {
-enum class Face { A, B, C, D };
+enum class Face { A, B, C, D, C2 };
 struct Sample {
   const char *mode;
   const char *stop;
@@ -13,6 +14,7 @@ struct Sample {
   const char *destination;
   const char *background;
   const char *foreground;
+  bool labelsOnly = false;
 };
 // Offline inputs only: existing reviewed Metro/API and TMB bus design palette.
 // These synthetic predictions and name pairings are not verified live services.
@@ -23,6 +25,12 @@ inline constexpr Sample Samples[] = {
     {"bus", "Plaça d'Espanya", "H8", "Parc de la Vall d'Hebron", "#2D4191", "#FFFFFF"},
     {"bus", "Pg. Marítim - Hospital del Mar", "V23", "Can Marcet - Horta", "#547B31", "#FFFFFF"},
     {"bus", "Gran Via - Balmes", "6", "Pg. Manuel Girona", "#C62A0F", "#FFFFFF"},
+    // Focused label trials: fixed badge/header, identical operational countdowns.
+    // Destination strings are reading stimuli, not claimed L3 service patterns.
+    {"metro", "Lesseps", "L3", "Lesseps", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "La Pau", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Trinitat Nova", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Zona Universitària", "#1EB53A", "#FFFFFF", true},
 };
 inline constexpr unsigned SampleCount = sizeof(Samples) / sizeof(Samples[0]);
 inline constexpr int64_t Now = 1800000000000LL;
@@ -58,6 +66,8 @@ inline const char *faceName(Face face) {
     return "C browser geometric";
   case Face::D:
     return "D browser condensed";
+  case Face::C2:
+    return "C2 geometric 4x5 subset";
   }
   return "A operational 5x5";
 }
@@ -89,6 +99,8 @@ inline int glyphWidth(Face face, char character, bool wide) {
 inline int width(Face face, const std::string &text, bool arrivals = false) {
   if (face == Face::A)
     return transit::textWidth(text);
+  if (face == Face::C2)
+    return arrivals ? transit::textWidth(text) : c2Width(text);
   int result = -1;
   bool first = arrivals;
   for (char character : transit::pixelText(text)) {
@@ -100,7 +112,11 @@ inline int width(Face face, const std::string &text, bool arrivals = false) {
 }
 inline void draw(transit::Framebuffer &frame, Face face, const std::string &text, int x, int y,
                  transit::Color color, int left, int right, int offset = 0, bool arrivals = false) {
-  if (face == Face::A) {
+  if (face == Face::C2 && !arrivals) {
+    drawC2(frame, text, x, y, color, left, right, offset);
+    return;
+  }
+  if (face == Face::A || face == Face::C2) {
     transit::drawText(frame, text, x, y, color, left, right, offset);
     return;
   }
@@ -132,11 +148,15 @@ inline void render(transit::Framebuffer &frame, Face face, unsigned sample, uint
   frame.rect(10, 2, 53, 5, 0);
   frame.rect(2, 21, 61, 5, 0);
   const int slotLeft = 1 + std::min(30, transit::textWidth(group.line) + 2) + 2;
-  frame.rect(slotLeft, 12, 63 - slotLeft, 5, 0);
+  if (!Samples[sample % SampleCount].labelsOnly && face != Face::C2)
+    frame.rect(slotLeft, 12, 63 - slotLeft, 5, 0);
   draw(frame, face, stop.name, 10, 2, 0xe8eee8, 10, 63,
        transit::overflowOffset(width(face, stop.name), 53, phase));
   draw(frame, face, group.destination, 2, 21, 0xe8eee8, 2, 63,
        transit::overflowOffset(width(face, group.destination), 61, phase));
+  // Focused samples leave the operational countdown raster entirely untouched.
+  if (Samples[sample % SampleCount].labelsOnly || face == Face::C2)
+    return;
   // Same immutable arrival content and operational right edge; first number uses
   // the browser's 5-column master, second uses its compact label digit.
   const std::string arrivals =
@@ -146,13 +166,15 @@ inline void render(transit::Framebuffer &frame, Face face, unsigned sample, uint
 }
 struct Selection {
   Face face = Face::A;
-  unsigned sample = 0;
+  unsigned sample = 6;
   unsigned step = 0;
   static constexpr uint64_t Phases[] = {0, 1000, 1600, 2300};
   uint64_t phase() const { return Phases[step]; }
   bool command(int key) {
     if (key >= 'a' && key <= 'd')
       face = static_cast<Face>(key - 'a');
+    else if (key == 'e')
+      face = Face::C2;
     else if (key >= '0' && key < '0' + int(SampleCount))
       sample = key - '0';
     else if (key == 'n')

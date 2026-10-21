@@ -224,3 +224,61 @@ bloom, stroke loss, confusions and preference/tie. Current tests establish digit
 raster isolation, not physical legibility. Ordinary transport data, colours and
 configuration remain backend-owned; this isolated firmware rendering capability
 experiment creates no new requirement to flash ordinary configuration changes.
+
+
+## Focused geometric C2 diagnostic — 22 October 2026
+
+**User-reported context:** original B/C/D looked more elegant/contemporary on the
+physical P2.5 64×32 panel but were thinner/narrower and harder to read around 3 m.
+The sibling measurement report identified horizontal compression and reduced
+word separation; all original capitals remained five rows high. Inspected that
+report, original glyphs/advances, renderer, diagnostic and tests before C2 work.
+
+**Implementation facts:** added manually drawn `include/typography_c2.h` with
+13 capitals A/E/I/L/N/O/P/R/S/T/U/V/Z. All are five rows tall; 12 are four columns
+wide with five-pixel advances, barred I is three columns/four advance. Spaces
+advance three pixels. Stems/crossbars are one pixel; square O counter is 2×3,
+P/R counters 2×1. No solid 2×2 glyph blocks, horizontal scaling, dilation or uniform
+bolding. Even-width T/V have deliberately asymmetric axis/taper compromises.
+Other label characters use a visible three-column '?' fallback with a serial
+warning; no narrow-font substitution. Existing uppercase/accent folding applies.
+Full UTF-8 labels remain in sample data. This is not a complete production font.
+
+**Controlled comparison:** original A remains a direct call to ArrivalRenderer;
+imported C masks and complete original C frames for samples 0–5 are unchanged.
+Added samples 6–9 (LESSEPS, LA PAU, TRINITAT NOVA, ZONA UNIVERSITARIA), each with
+fixed Lesseps header/L3 badge and synthetic 2M/9M arrivals. These are reading
+stimuli, not claims of actual L3 service patterns. Focused samples retain the
+exact operational countdown pixels in A/C/C2 (also B/D), so only name/destination
+text differs. Original samples retain their prior compact arrival rendering.
+No production renderer, regular badge typography, stable palette, GPIO, HUB75
+adapter, timing, brightness 16/255, PlatformIO environment or feed code changed.
+
+**Serial:** a=A, c=C, e=C2; b/d retained. 6–9 select focused samples, 0–5 original
+samples; n/p navigate all, s steps paused 0/1000/1600/2300 ms reveal, r resets and
+i/? reports. Startup A/sample 6. Face switches retain content and reveal phase.
+Legacy labels outside C2's subset produce '?' and a warning; use 6–9 for C2.
+
+**Actual full ink widths, A/C/C2:** LESSEPS 41/27/34; LA PAU 35/20/27;
+TRINITAT NOVA 77/44/60; ZONA UNIVERSITARIA 107/62/84 native pixels. C2's long
+phrase needs 23 pixels of reveal in the existing 61-pixel destination slot.
+Short samples 6/7 fit all three; use these first to remove scrolling as a confound.
+The header remains in its 53-pixel slot. C2 combines width and word-space changes
+as requested, so a preference cannot isolate their separate effects.
+
+**Observed validation:** 39 native tests pass (29 core + 10 typography).
+New coverage includes 24 golden original-C frames, C2 subset/dimensions/open
+counters/no 2×2 blocks, actual drawn-vs-measured widths, normalization/fallback,
+full reveal/clipping and exact focused-countdown equality. Existing tests verify
+true operational A equality, unchanged non-text/badge pixels, palette parity
+and direct serial switching. Browser import parity, fixture consistency, C++
+formatting and whitespace checks pass. Native visual raster inspection also
+confirmed the intended A/C/C2 label proportions and identical countdowns.
+
+All five hardware builds pass: esp32s3, hub75-diagnostic, hub75-fixture,
+hub75-badge-contrast and hub75-typography. New diagnostic: 299857 bytes flash,
+19212 bytes static RAM (build reports, not runtime heap measurements).
+No device upload, monitor connection or physical C2 observation ran. Upload
+instructions and full limits are in `docs/typography.md`. No dependency or
+external font resource added. Ordinary data, colours and configuration remain
+backend responsibilities; this adds only isolated diagnostic rendering capability.
