@@ -10,11 +10,13 @@ PrototypeDisplay display;
 transit::Framebuffer frame(64, 32);
 unsigned selected = 0;
 bool swapped = false;
+badgecontrast::Comparison comparison = badgecontrast::Comparison::BlackWhite;
 void report() {
   Serial.printf("Badge contrast %u: %s #%06lx; left=%s right=%s; brightness=16\n", selected,
                 badgecontrast::Samples[selected].label,
                 static_cast<unsigned long>(badgecontrast::Samples[selected].background),
-                swapped ? "white" : "black", swapped ? "black" : "white");
+                badgecontrast::faceName(badgecontrast::faceFor(comparison, 0, swapped)),
+                badgecontrast::faceName(badgecontrast::faceFor(comparison, 1, swapped)));
 }
 } // namespace
 void setup() {
@@ -39,13 +41,19 @@ void loop() {
       selected = (selected + 1) % badgecontrast::Count;
     else if (key == 'p')
       selected = (selected + badgecontrast::Count - 1) % badgecontrast::Count;
+    else if (key == 'a')
+      comparison = badgecontrast::Comparison::BlackWhite;
+    else if (key == 'b')
+      comparison = badgecontrast::Comparison::BlackBold;
+    else if (key == 'c')
+      comparison = badgecontrast::Comparison::WhiteBold;
     else if (key == 's')
       swapped = !swapped;
     else if (key != 'i')
       continue;
     report();
   }
-  badgecontrast::render(frame, selected, swapped);
+  badgecontrast::render(frame, selected, swapped, comparison);
   display.present(frame, appcfg::Brightness);
   delay(50);
 }

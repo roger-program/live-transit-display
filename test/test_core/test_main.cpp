@@ -370,6 +370,68 @@ void badge_contrast_pairs() {
     }
   }
 }
+void badge_typography_comparisons() {
+  using namespace badgecontrast;
+  Framebuffer frame(64, 32), regular(64, 32);
+  constexpr Comparison pairs[] = {Comparison::BlackWhite, Comparison::BlackBold,
+                                  Comparison::WhiteBold};
+  constexpr Face expected[][2] = {{Face::BlackRegular, Face::WhiteRegular},
+                                  {Face::BlackRegular, Face::WhiteBold},
+                                  {Face::WhiteRegular, Face::WhiteBold}};
+  for (unsigned index = 0; index < Count; ++index) {
+    for (unsigned pair = 0; pair < 3; ++pair) {
+      render(regular, index);
+      for (bool swapped : {false, true}) {
+        render(frame, index, swapped, pairs[pair]);
+        for (int side = 0; side < 2; ++side) {
+          const Face face = expected[pair][swapped ? 1 - side : side];
+          TEST_ASSERT_TRUE(faceFor(pairs[pair], side, swapped) == face);
+          const int x = side ? 34 : 1;
+          unsigned inkPixels = 0, regularPixels = 0;
+          for (int y = 10; y < 21; ++y)
+            for (int dx = 0; dx < 29; ++dx) {
+              const auto pixel = frame.pixel(x + dx, y);
+              const bool regularInk = regular.pixel(34 + dx, y) == 0xffffff;
+              if (regularInk)
+                ++regularPixels;
+              if (face != Face::WhiteBold)
+                TEST_ASSERT_EQUAL_HEX32(regularInk ? (face == Face::BlackRegular ? 0 : 0xffffff)
+                                                   : Samples[index].background,
+                                        pixel);
+              TEST_ASSERT_TRUE(pixel == Samples[index].background ||
+                               pixel == (face == Face::BlackRegular ? 0 : 0xffffff));
+              if (pixel != Samples[index].background)
+                ++inkPixels;
+            }
+          TEST_ASSERT_TRUE(inkPixels > 0);
+          if (face == Face::WhiteBold) {
+            TEST_ASSERT_TRUE(inkPixels > regularPixels);
+            TEST_ASSERT_TRUE(boldWidth(Samples[index].label) <= 29);
+          }
+          for (int dx = 0; dx < 29; ++dx) {
+            TEST_ASSERT_EQUAL_HEX32(Samples[index].background, frame.pixel(x + dx, 10));
+            TEST_ASSERT_EQUAL_HEX32(Samples[index].background, frame.pixel(x + dx, 20));
+          }
+        }
+        for (int y = 0; y < 32; ++y) {
+          TEST_ASSERT_EQUAL(0, frame.pixel(0, y));
+          TEST_ASSERT_EQUAL(0, frame.pixel(63, y));
+          if (y >= 10 && y < 21)
+            TEST_ASSERT_EQUAL(0, frame.pixel(31, y));
+        }
+      }
+    }
+  }
+  // The bold zero retains a two-pixel-wide open counter rather than filling it in.
+  frame.clear(0xfb712b);
+  drawBold(frame, "0", 1, 12);
+  for (int y = 13; y <= 17; ++y) {
+    TEST_ASSERT_EQUAL_HEX32(0xfb712b, frame.pixel(3, y));
+    TEST_ASSERT_EQUAL_HEX32(0xfb712b, frame.pixel(4, y));
+    TEST_ASSERT_EQUAL_HEX32(0xffffff, frame.pixel(1, y));
+    TEST_ASSERT_EQUAL_HEX32(0xffffff, frame.pixel(6, y));
+  }
+}
 void service_page_indicators() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
@@ -435,6 +497,7 @@ int main() {
   RUN_TEST(missing_color_stays_neutral);
   RUN_TEST(framebuffer_preserves_rgb);
   RUN_TEST(badge_contrast_pairs);
+  RUN_TEST(badge_typography_comparisons);
   RUN_TEST(service_page_indicators);
   RUN_TEST(reviewed_raster_regression);
   return UNITY_END();
