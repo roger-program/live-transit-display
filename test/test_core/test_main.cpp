@@ -1,3 +1,4 @@
+#include "badge_contrast.h"
 #include "feed_request.h"
 #include "fixture.h"
 #include "renderer.h"
@@ -339,6 +340,53 @@ void framebuffer_preserves_rgb() {
   TEST_ASSERT_EQUAL_HEX32(0x42ac52, frame.pixel(5, 6));
   TEST_ASSERT_EQUAL_HEX32(0x123456, frame.pixel(3, 5));
 }
+void badge_contrast_pairs() {
+  Framebuffer frame(64, 32);
+  constexpr Color backgrounds[] = {0xce1126, 0x93248f, 0x1eb53a, 0xf7a30e,
+                                   0x005a97, 0xfb712b, 0x00a6d6, 0x89b94c};
+  TEST_ASSERT_EQUAL(8, badgecontrast::Count);
+  for (unsigned index = 0; index < badgecontrast::Count; ++index) {
+    for (bool swapped : {false, true}) {
+      badgecontrast::render(frame, index, swapped);
+      unsigned glyphPixels = 0;
+      for (int y = 10; y < 21; ++y)
+        for (int dx = 0; dx < 29; ++dx) {
+          const auto left = frame.pixel(1 + dx, y);
+          const auto right = frame.pixel(34 + dx, y);
+          if (left == backgrounds[index]) {
+            TEST_ASSERT_EQUAL_HEX32(backgrounds[index], right);
+          } else {
+            TEST_ASSERT_EQUAL_HEX32(swapped ? 0xffffff : 0, left);
+            TEST_ASSERT_EQUAL_HEX32(swapped ? 0 : 0xffffff, right);
+            ++glyphPixels;
+          }
+        }
+      TEST_ASSERT_TRUE(glyphPixels > 0);
+      TEST_ASSERT_EQUAL_HEX32(backgrounds[index], frame.pixel(1, 10));
+      for (int y = 0; y < 32; ++y) {
+        TEST_ASSERT_EQUAL(0, frame.pixel(0, y));
+        TEST_ASSERT_EQUAL(0, frame.pixel(63, y));
+      }
+    }
+  }
+}
+void service_page_indicators() {
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  Framebuffer frame(64, 32);
+  ArrivalRenderer renderer;
+  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+  for (int i = 0; i < 4; ++i)
+    TEST_ASSERT_EQUAL_HEX32(i == 0 ? 0xaaff66 : 0x384438, frame.pixel(1 + 3 * i, 30));
+  renderer.render(frame, view, snapshot.feed.generatedAt, PageDurationMs);
+  for (int i = 0; i < 4; ++i)
+    TEST_ASSERT_EQUAL_HEX32(i == 1 ? 0xaaff66 : 0x384438, frame.pixel(1 + 3 * i, 30));
+  view.stops.resize(1);
+  view.stops[0].groups.resize(1);
+  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+  for (int x = 0; x < 64; ++x)
+    TEST_ASSERT_EQUAL(0, frame.pixel(x, 30));
+}
 void reviewed_raster_regression() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
@@ -386,6 +434,8 @@ int main() {
   RUN_TEST(explicit_color_precedes_fallback);
   RUN_TEST(missing_color_stays_neutral);
   RUN_TEST(framebuffer_preserves_rgb);
+  RUN_TEST(badge_contrast_pairs);
+  RUN_TEST(service_page_indicators);
   RUN_TEST(reviewed_raster_regression);
   return UNITY_END();
 }

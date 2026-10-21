@@ -1,6 +1,6 @@
 .PHONY: build test format format-check check preview fixtures
 build:
-	pio run -e esp32s3 -e diagnostic -e fixture -e hub75-diagnostic -e hub75-fixture
+	pio run -e esp32s3 -e diagnostic -e fixture -e hub75-diagnostic -e hub75-fixture -e hub75-badge-contrast
 test:
 	pio test -e native
 format:
@@ -12,6 +12,6 @@ fixtures:
 check: format-check
 	python tools/generate_fixtures.py --check
 	pio test -e native
-	pio run -e esp32s3 -e diagnostic -e fixture -e hub75-diagnostic -e hub75-fixture
+	pio run -e esp32s3 -e diagnostic -e fixture -e hub75-diagnostic -e hub75-fixture -e hub75-badge-contrast
 preview:
 	python tools/preview.py

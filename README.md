@@ -83,3 +83,7 @@ Countdowns use absolute UTC milliseconds: positive <60 seconds is `DUE`, otherwi
 The local 120-second stale policy checks both `generatedAt` age and monotonic receipt age. It is an experiment policy, not proof of fresh vehicle data. Future feed clocks over five seconds ahead show `CLOCK`; minor skew is tolerated. Request failures immediately suppress predictions (`OFFLINE`, `AUTH`, `RETRY`, `FEED ERR`, `BAD FEED`). Polling is 30 seconds after completion, with 60-second failure/429 backoff and five minutes for 401/403; numeric `Retry-After` can extend it up to one hour. These intervals are not verified provider quotas.
 
 Before continuing, resolve the exact board/driver IC and wiring, trusted HTTPS endpoint/root CA, clock bootstrap reliability and acceptable 64×32 readability. Per-unit credentials/configuration ownership and support/trust-root lifetime remain later lifecycle decisions. No provisioning, OTA, enclosure or PCB phase is included here.
+
+## Isolated badge contrast test
+
+Build `pio run -e hub75-badge-contrast` for a static 64×32 black/white comparison on eight official Metro backgrounds at brightness 16/255. It uses its own entry point and leaves the normal transit renderer unchanged. Select 0–7, move with n/p, swap sides with s, and repeat the serial report with i. See [run instructions and interpretation](docs/badge-contrast.md), including why normal bottom-edge dots are intentional service-page indicators. Upload requires separate authorization.
