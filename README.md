@@ -17,7 +17,7 @@ PlatformIO + Arduino was chosen over standalone ESP-IDF for the small prototype 
 
 ## Prototype hardware
 
-Waveshare ESP32-S3-RGB-Matrix controller (user-reported QFN56, board v0.2), with 32 MB quad flash and 16 MB octal PSRAM. The generic DevKitC definition is overridden with `qio_opi`, QIO flash at 80 MHz, 32 MB flash and a 4 MB factory application partition. The application-size limit matches that partition; remaining flash is unallocated. PSRAM capacity is detected by the SDK at boot, not selected by an arbitrary size macro. Actual detected capacity and usable heap still require a physical boot test.
+Waveshare ESP32-S3-RGB-Matrix controller (user-reported QFN56, board v0.2), with 32 MB octal flash and 16 MB octal PSRAM. The generic DevKitC definition is overridden with `opi_opi`, OPI flash at 80 MHz, 32 MB flash and a 4 MB factory application partition. The application-size limit matches that partition; remaining flash is unallocated. PSRAM capacity is detected by the SDK at boot, not selected by an arbitrary size macro. Actual detected capacity and usable heap still require a physical boot test. The user-reported ROM log explicitly enables octal flash; this supersedes the earlier QIO assumption from Waveshare’s setup screenshot. Exact flash manufacturer/model is not yet identified.
 
 Waveshare RGB Matrix P2.5 64×32: 160×80 mm, HUB75, 1/16 scan, 5 V / 2.5 A. Internal SRAM holds the double-buffered DMA data; PSRAM remains available to the app. Brightness stays at 16/255.
 
