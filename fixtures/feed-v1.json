@@ -20,7 +20,8 @@
               "arrivalAt": 1791030532000,
               "provenance": "realtime"
             }
-          ]
+          ],
+          "lineColor": "#CE1126"
         },
         {
           "line": "L1",
@@ -34,7 +35,8 @@
               "arrivalAt": 1791030502000,
               "provenance": "realtime"
             }
-          ]
+          ],
+          "lineColor": "#CE1126"
         },
         {
           "line": "L3",
@@ -48,7 +50,8 @@
               "arrivalAt": 1791030765000,
               "provenance": "realtime"
             }
-          ]
+          ],
+          "lineColor": "#1EB53A"
         },
         {
           "line": "L3",
@@ -62,7 +65,8 @@
               "arrivalAt": 1791030666000,
               "provenance": "realtime"
             }
-          ]
+          ],
+          "lineColor": "#1EB53A"
         }
       ],
       "realtimeStatus": "available"

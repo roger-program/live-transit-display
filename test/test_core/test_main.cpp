@@ -284,11 +284,70 @@ void diagnostics_and_clipping() {
   TEST_ASSERT_EQUAL(0, frame.pixel(-1, 0));
   TEST_ASSERT_EQUAL(0, frame.pixel(64, 32));
 }
+void fixture_line_colors() {
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  ArrivalRenderer renderer;
+  Framebuffer frame(64, 32);
+  constexpr Color expected[] = {0xce1126, 0xce1126, 0x1eb53a, 0x1eb53a, 0x42ac52, 0x42ac52};
+  for (size_t page = 0; page < 6; ++page) {
+    renderer.render(frame, view, snapshot.feed.generatedAt, page * PageDurationMs);
+    TEST_ASSERT_EQUAL_HEX32(expected[page], frame.pixel(1, 11));
+  }
+  TEST_ASSERT_TRUE(snapshot.feed.stops[1].groups[0].lineColor.empty());
+  TEST_ASSERT_TRUE(view.stops[1].groups[0].lineColor.empty());
+}
+void explicit_color_precedes_fallback() {
+  auto snapshot = sample();
+  const auto json = edited([](JsonDocument &doc) {
+    doc["stops"][0]["mode"] = "future-mode";
+    doc["stops"][0]["groups"][0]["lineColor"] = "#Ab12ef";
+    doc["stops"][1]["groups"][0]["lineColor"] = "#000000";
+  });
+  TEST_ASSERT_TRUE(parseFeed(json, snapshot.feed) == ParseResult::Ok);
+  const auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  ArrivalRenderer renderer;
+  Framebuffer frame(64, 32);
+  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+  TEST_ASSERT_EQUAL_HEX32(0xab12ef, frame.pixel(1, 11));
+  renderer.render(frame, view, snapshot.feed.generatedAt, 4 * PageDurationMs);
+  TEST_ASSERT_EQUAL_HEX32(0x000000, frame.pixel(1, 11));
+}
+void missing_color_stays_neutral() {
+  auto snapshot = sample();
+  const auto json = edited([](JsonDocument &doc) {
+    doc["stops"][0]["groups"][0].remove("lineColor");
+    doc["stops"][1]["mode"] = "future-mode";
+  });
+  TEST_ASSERT_TRUE(parseFeed(json, snapshot.feed) == ParseResult::Ok);
+  const auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  ArrivalRenderer renderer;
+  Framebuffer frame(64, 32);
+  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+  TEST_ASSERT_EQUAL_HEX32(0x777777, frame.pixel(1, 11));
+  renderer.render(frame, view, snapshot.feed.generatedAt, 4 * PageDurationMs);
+  TEST_ASSERT_EQUAL_HEX32(0x777777, frame.pixel(1, 11));
+  TEST_ASSERT_EQUAL_HEX32(0x777777, frame.pixel(1, 1));
+}
+void framebuffer_preserves_rgb() {
+  Framebuffer frame(64, 32);
+  frame.clear(0x123456);
+  frame.pixel(2, 3, 0xab12ef);
+  frame.rect(4, 5, 2, 2, 0x42ac52);
+  TEST_ASSERT_EQUAL_HEX32(0x123456, frame.pixel(63, 31));
+  TEST_ASSERT_EQUAL_HEX32(0xab12ef, frame.pixel(2, 3));
+  TEST_ASSERT_EQUAL_HEX32(0x42ac52, frame.pixel(5, 6));
+  TEST_ASSERT_EQUAL_HEX32(0x123456, frame.pixel(3, 5));
+}
 void reviewed_raster_regression() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   ArrivalRenderer renderer;
   Framebuffer frame(64, 32);
+  // Keep the reviewed neutral-colour geometry baseline; separate tests cover new colours.
+  for (auto &stop : view.stops)
+    for (auto &group : stop.groups)
+      group.lineColor = "#777777";
   // Baselines from the reviewed native PNGs; catch missing/overlapping text and markers.
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
   TEST_ASSERT_EQUAL_UINT64(17682094639170009042ULL, pixelsHash(frame));
@@ -323,6 +382,10 @@ int main() {
   RUN_TEST(label_reveal_and_utf8);
   RUN_TEST(raster_determinism_and_paging);
   RUN_TEST(diagnostics_and_clipping);
+  RUN_TEST(fixture_line_colors);
+  RUN_TEST(explicit_color_precedes_fallback);
+  RUN_TEST(missing_color_stays_neutral);
+  RUN_TEST(framebuffer_preserves_rgb);
   RUN_TEST(reviewed_raster_regression);
   return UNITY_END();
 }

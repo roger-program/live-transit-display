@@ -6,7 +6,7 @@
 
 namespace transit {
 namespace {
-constexpr Color White = 0xe8eee8, Green = 0xaaff66, Grey = 0x777777;
+constexpr Color White = 0xe8eee8, Green = 0xaaff66, Grey = 0x777777, BusGreen = 0x42ac52;
 const uint8_t *glyph(char character) {
   for (const auto &item : Font)
     if (item.character == character)
@@ -23,8 +23,11 @@ const char *stopMessage(StopStatus status) {
     return "NO PRED";
   return "UNAVAIL";
 }
-Color lineColor(const std::string &color) {
-  return color.empty() ? Grey : static_cast<Color>(std::strtoul(color.c_str() + 1, nullptr, 16));
+Color lineColor(const std::string &color, const std::string &mode) {
+  if (!color.empty())
+    return static_cast<Color>(std::strtoul(color.c_str() + 1, nullptr, 16));
+  // Presentation fallback only: never infer or populate canonical line identity.
+  return mode == "bus" ? BusGreen : Grey;
 }
 void badge(Framebuffer &frame, const std::string &label, int x, int y, Color color, int offset) {
   // Explicit width limit protects the separate countdown field from long line labels.
@@ -44,7 +47,7 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     const std::string mode = stop.mode == "metro" ? "M" : stop.mode == "bus" ? "B" : "?";
     badge(frame, mode, 1, 1,
           stop.mode == "metro" ? 0xe53935
-          : stop.mode == "bus" ? 0x42ac52
+          : stop.mode == "bus" ? BusGreen
                                : Grey,
           offset);
     const std::string name = stop.nameKnown ? stop.name : stop.mode + ":" + stop.id;
@@ -66,8 +69,8 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
   for (size_t i = 0; i < page.groupCount; ++i) {
     const auto &group = stop.groups[page.groupStart + i];
     const int y = 12 + static_cast<int>(i) * spacing;
-    badge(frame, group.line.empty() ? "?" : group.line, 1, y - 1, lineColor(group.lineColor),
-          offset);
+    badge(frame, group.line.empty() ? "?" : group.line, 1, y - 1,
+          lineColor(group.lineColor, stop.mode), offset);
     std::string arrivals;
     for (size_t a = 0; a < std::min(size_t(2), group.arrivals.size()); ++a) {
       if (a)
