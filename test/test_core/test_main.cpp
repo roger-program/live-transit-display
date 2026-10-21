@@ -508,6 +508,26 @@ void explicit_badge_foregrounds() {
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
   TEST_ASSERT_EQUAL_HEX32(0x42ac52, frame.pixel(1, 11));
 }
+void bus_stop_badge_is_independent_of_line_colors() {
+  auto snapshot = sample();
+  TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
+  View view;
+  view.stops.push_back(snapshot.feed.stops[snapshot.feed.stops.size() - 2]);
+  Framebuffer frame(64, 32);
+  ArrivalRenderer renderer;
+  constexpr Color lineColors[] = {0x547b31, 0x894796, 0x2d4191, 0x000000, 0xc62a0f};
+  for (unsigned page = 0; page < 5; ++page) {
+    renderer.render(frame, view, snapshot.feed.generatedAt, page * PageDurationMs);
+    TEST_ASSERT_EQUAL_HEX32(0xc62a0f, frame.pixel(1, 1));
+    TEST_ASSERT_EQUAL_HEX32(0xffffff, frame.pixel(2, 2));
+    TEST_ASSERT_EQUAL_HEX32(lineColors[page], frame.pixel(1, 11));
+  }
+  // Explicit backend foreground still wins on a line, independently of header ink.
+  view.stops[0].groups[0].lineTextColor = "#000000";
+  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+  TEST_ASSERT_EQUAL_HEX32(0, frame.pixel(2, 12));
+  TEST_ASSERT_EQUAL_HEX32(0xffffff, frame.pixel(2, 2));
+}
 void reviewed_raster_regression() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
@@ -523,7 +543,14 @@ void reviewed_raster_regression() {
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
   TEST_ASSERT_EQUAL_UINT64(17682094639170009042ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 5 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(17687063311361716670ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(1514878761944730371ULL, pixelsHash(frame));
+  // Restoring only the former header background reproduces the reviewed old raster.
+  auto legacyHeader = frame;
+  for (int y = 1; y < 8; ++y)
+    for (int x = 1; x < 8; ++x)
+      if (legacyHeader.pixel(x, y) == 0xc62a0f)
+        legacyHeader.pixel(x, y, 0x42ac52);
+  TEST_ASSERT_EQUAL_UINT64(17687063311361716670ULL, pixelsHash(legacyHeader));
   TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
   view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   renderer.render(frame, view, snapshot.feed.generatedAt, 2 * PageDurationMs);
@@ -561,6 +588,7 @@ int main() {
   RUN_TEST(badge_typography_comparisons);
   RUN_TEST(service_page_indicators);
   RUN_TEST(explicit_badge_foregrounds);
+  RUN_TEST(bus_stop_badge_is_independent_of_line_colors);
   RUN_TEST(reviewed_raster_regression);
   return UNITY_END();
 }

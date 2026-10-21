@@ -49,9 +49,9 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     const std::string mode = stop.mode == "metro" ? "M" : stop.mode == "bus" ? "B" : "?";
     badge(frame, mode, 1, 1,
           stop.mode == "metro" ? 0xe53935
-          : stop.mode == "bus" ? BusGreen
+          : stop.mode == "bus" ? 0xc62a0f
                                : Grey,
-          offset);
+          offset, stop.mode == "bus" ? "#FFFFFF" : "");
     const std::string name = stop.nameKnown ? stop.name : stop.mode + ":" + stop.id;
     const int right = frame.width() - 1 - (stop.status == StopStatus::Partial ? 6 : 0);
     drawText(frame, name, 10 + offset, 2, White, std::max(1, 10 + offset),
