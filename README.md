@@ -94,3 +94,13 @@ Build `pio run -e hub75-badge-contrast` for a static 64×32 black/white comparis
 The backend resolves Metro and verified TMB bus identities and emits optional `lineColor` / `lineTextColor` RGB fields. This device does not parse line families or maintain Metro/bus identity palettes. The selected Metro foregrounds are white for L1/L2/L3/L5 and black for L4/L9/L10/L11; bus foregrounds are white. Firmware validates both fields and uses their exact values. Invalid provided RGB fails feed parsing transactionally; absence is backward compatible. Existing automatic contrast applies when foreground is missing, and existing bus-green / unknown-grey background fallbacks remain.
 
 `fixtures/states.json` includes synthetic badge-policy stops for all ten verified Metro source services, V/D/H/X/conventional TMB buses and an unresolved operator. These do not claim real arrivals or add live integration. The usual hub75-fixture entry point still replays only the six original historical groups in feed-v1.json. Native tests exercise the broader state fixture. Both fixtures are embedded by the unchanged generator. Existing diagnostics, including the bold contrast experiment, remain available and isolated; production does not use the bold font.
+
+## Isolated typography diagnostic
+
+Build `pio run -e hub75-typography` for the actual operational A baseline versus
+the sibling browser B/C/D bitmap designs on the existing 64×32 panel at brightness
+16/255. Serial a/b/c/d selects a face, 0–5 or n/p selects fixed Barcelona samples,
+s advances paused reveal positions, r resets the reveal and i reports the state.
+Normal badge typography and colours remain unchanged. See
+[build/upload controls and browser differences](docs/typography.md).
+No device upload is performed by the build/test commands.

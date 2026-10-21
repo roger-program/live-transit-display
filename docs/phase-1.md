@@ -168,3 +168,59 @@ Both hub75-diagnostic and hub75-fixture builds passed with no compiler warnings/
 Changed only the generic B badge alongside a bus stop name: background #C62A0F and explicit foreground #FFFFFF. This local mode-icon presentation choice is independent of backend-controlled individual line badges. Existing lineColor/lineTextColor handling, V/D/H/X/Other colours, legacy bus-line background fallback, regular bitmap font, layout, timing, protocol and hardware settings remain unchanged. No backend changes.
 
 Validation: all 29 native cases passed; fixture consistency, formatting and diff-whitespace checks passed. The focused test checks the red/white header on all five bus line palettes and verifies an explicit black line foreground does not affect the white header. Updated the intentional bus full-raster baseline; recolouring only its header background back to the former green exactly reproduces the previous reviewed hash, verifying the rest of the frame is unchanged. All three hardware builds (hub75-diagnostic, hub75-fixture, hub75-badge-contrast) passed with no compiler warnings/errors. No device was flashed; physical confirmation remains pending.
+
+
+## Isolated physical typography diagnostic — 21 October 2026
+
+**Inspection/code facts:** the operational font is the 5×5 master with six-pixel
+advance in `lib/transit/src/font.h`, used by ArrivalRenderer and regular badges.
+This is a different baseline from the sibling browser concept's compact 3×5 A.
+Reviewed both browser renderers, the identity FACES/COUNTDOWNS tables, existing
+BDF/reference notices, all PlatformIO environments, hardware bring-up notes and
+the previous 6×7 bold badge-contrast diagnostic. The latter remains separate.
+
+**Implementation:** additive `hub75-typography` environment, APP_MODE=4, its own
+source filter and serial entry point; original default/environment settings stay
+unchanged. A directly invokes the production ArrivalRenderer. B/C/D first render
+that baseline then clear/redraw only its three existing five-row text slots.
+Badge geometry/regular lettering, separator/border pixels, palette, driver,
+compensated GPIO mapping, OPI/PSRAM, double buffering and brightness 16/255 remain
+unchanged. Serial a/b/c/d selects the face; 0–5 or n/p selects a sample; s steps
+paused reveal times 0/1000/1600/2300 ms; r resets; i/? repeats state and help.
+Each face holds identical synthetic 2M/9M predictions indefinitely. No Wi-Fi,
+provider calls, configuration writes or device interaction is performed.
+
+`tools/generate_typography.py` snapshots exact B/C/D masks, compact punctuation
+and source hashes from `live-transit-feed/scripts/concept/identity/fonts.ts` and
+`concept/render.ts`; --check detects drift without writing. Builds/tests need no
+sibling checkout once the generated header is present. No new font/dependency or
+font-license grant is introduced. See `docs/typography.md` for source provenance,
+spacing/Unicode differences and upload instructions. Operational A retains 5×5
+spacing, B/C/D use the actual browser compact advances; first arrival digits use
+the browser five-column countdown masters, second digits its compact masters.
+The firmware's one-direction layout/reveal timing is retained rather than porting
+the browser concept composition. Unknown Unicode remains '?' under existing
+firmware normalization; typographic apostrophes/dashes differ from browser ASCII
+folding, so samples use ASCII punctuation. Full UTF-8 sample labels remain intact.
+
+**Observed validation:** 35 native cases pass (29 unchanged core + six typography
+cases). New checks cover exact operational baseline raster, unchanged pixels
+outside text slots (including all badge pixels across every face/sample/phase),
+fixture-matched badge backgrounds/foregrounds, selected exact browser glyph masks,
+compact advances, accent/fallback handling, clipping, full reveal and serial
+selection repeatability. Comparing diagnostic palettes with the reviewed state
+fixture caught and corrected the initial L4 foreground to black; V23 uses the
+existing V-family V31 fixture swatch. Typography source/hash parity, generated
+fixture consistency, C++ formatting and diff whitespace checks pass. Hardware
+builds for hub75-typography, hub75-diagnostic, hub75-fixture and
+hub75-badge-contrast pass. The new diagnostic uses approximately 299 kB flash and
+19.2 kB static RAM; these are build reports, not measured runtime heap/PSRAM use.
+
+**Unresolved/physical method:** no upload, flashing, monitor connection or physical
+readability test ran. Browser C preference is still a design hypothesis. At 3 m,
+compare a/b/c in varying order with the same sample, reveal phase, lighting and
+viewing angle; use D as the optional density control. Record transcription/time,
+bloom, stroke loss, confusions and preference/tie. Current tests establish digital
+raster isolation, not physical legibility. Ordinary transport data, colours and
+configuration remain backend-owned; this isolated firmware rendering capability
+experiment creates no new requirement to flash ordinary configuration changes.
