@@ -21,7 +21,7 @@ Waveshare ESP32-S3-RGB-Matrix controller (user-reported QFN56, board v0.2), with
 
 Waveshare RGB Matrix P2.5 64×32: 160×80 mm, HUB75, 1/16 scan, 5 V / 2.5 A. Internal SRAM holds the double-buffered DMA data; PSRAM remains available to the app. Brightness stays at 16/255.
 
-The official controller map is explicit in `include/panel_config.h`. Timing and panel IC remain unvalidated: SHIFTREG, requested HZ_8M, phase false, latch blanking 2. The pinned S3 driver implements that clock selection through a 10 MHz path. Only `hub75-diagnostic` and `hub75-fixture` enable physical output. The user reports the factory demonstration works; our firmware has not been flashed or physically tested.
+The controller map in `include/panel_config.h` includes green/blue compensation for the tested panel: logical G1/B1=6/5 and G2/B2=16/15. Published board wiring remains G1/B1=5/6 and G2/B2=15/16. Red and all control/address pins are unchanged. Timing and panel IC remain unvalidated: SHIFTREG, requested HZ_8M, phase false, latch blanking 2. The pinned S3 driver implements that clock selection through a 10 MHz path. Only `hub75-diagnostic` and `hub75-fixture` enable physical output. The user reports successful opi_opi startup, correct flash/PSRAM detection, pixel/row/column/text diagnostics and brightness 16. Green/blue compensation has been built but awaits physical retest.
 
 ## Build and offline checks
 
@@ -55,7 +55,7 @@ Build artifacts are `.pio/build/<environment>/{firmware.bin,firmware.elf,bootloa
    pio test -e native
    pio run -e hub75-diagnostic -e hub75-fixture
    ```
-2. With power off, check the HUB75 input orientation and board connection. Official GPIOs: `R1/G1/B1=4/5/6`, `R2/G2/B2=7/15/16`, `A/B/C/D=18/8/3/42`, `LAT=40`, `OE=2`, `CLK=41`. GPIO3 is intentional board wiring. E routes to GPIO9, but is disabled (`-1`) for this 1/16-scan panel. No generic rewiring is needed with the matching controller connector.
+2. With power off, check the HUB75 input orientation and board connection. Official GPIOs: `R1/G1/B1=4/5/6`, `R2/G2/B2=7/15/16`, `A/B/C/D=18/8/3/42`, `LAT=40`, `OE=2`, `CLK=41`. GPIO3 is intentional board wiring. E routes to GPIO9, but is disabled (`-1`) for this 1/16-scan panel. The tested panel displays logical green as blue and logical blue as green with that published map. The configured logical colour pins therefore compensate with R1/G1/B1=4/6/5 and R2/G2/B2=7/16/15. No physical rewiring is needed.
 3. Use regulated 5 V power with panel/controller headroom (recommend at least 3 A for one panel), check polarity, and use the board's intended power input/output arrangement. Use the Mac's data USB connection for programming/debugging; do not assume it supplies enough panel current. Do not apply a higher voltage to the panel, power it from 3.3 V, or improvise connections between independent supplies. The controller includes signal buffering; retain its HUB75 path rather than adding generic jumper wiring.
 4. **Only after explicit flashing authorization**, upload diagnostics and open the monitor:
    ```sh
