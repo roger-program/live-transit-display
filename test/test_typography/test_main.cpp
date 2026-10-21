@@ -88,11 +88,93 @@ void original_c_rasters_are_unchanged() {
       TEST_ASSERT_EQUAL_UINT64(expected[sample][step], rasterHash(frame));
     }
 }
-void c2_dimensions_counters_and_subset() {
-  TEST_ASSERT_EQUAL(13, sizeof(typography::LabelsC2) / sizeof(typography::LabelsC2[0]));
+void previous_faces_are_unchanged() {
+  // Whole-frame snapshots captured before completing the C2 alphabet.
+  constexpr uint64_t expected[] = {
+      13459496026880766833ULL,
+      1455816173025368153ULL,
+      235171448345089929ULL,
+      13821181310889376209ULL,
+  };
+  Framebuffer frame(64, 32);
+  for (unsigned face = 0; face < 4; ++face) {
+    uint64_t hash = 14695981039346656037ULL;
+    for (unsigned sample = 0; sample < 10; ++sample)
+      for (auto phase : typography::Selection::Phases) {
+        typography::render(frame, static_cast<Face>(face), sample, phase);
+        hash ^= rasterHash(frame);
+        hash *= 1099511628211ULL;
+      }
+    TEST_ASSERT_EQUAL_UINT64(expected[face], hash);
+  }
+}
+void established_c2_glyphs_are_unchanged() {
+  constexpr transit::Glyph OriginalC2[] = {
+      {'A', {6, 9, 15, 9, 9}},  {'E', {15, 8, 14, 8, 15}}, {'I', {7, 2, 2, 2, 7}},
+      {'L', {8, 8, 8, 8, 15}},  {'N', {9, 13, 11, 9, 9}},  {'O', {15, 9, 9, 9, 15}},
+      {'P', {15, 9, 15, 8, 8}}, {'R', {15, 9, 15, 10, 9}}, {'S', {15, 8, 15, 1, 15}},
+      {'T', {15, 4, 4, 4, 4}},  {'U', {9, 9, 9, 9, 15}},   {'V', {9, 9, 9, 10, 4}},
+      {'Z', {15, 1, 6, 8, 15}},
+  };
+
+  for (const auto &original : OriginalC2) {
+    const auto &current = typography::c2Glyph(original.character);
+    TEST_ASSERT_EQUAL(original.character, current.character);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(original.rows, current.rows, 5);
+    TEST_ASSERT_EQUAL(original.character == 'I' ? 3 : 4, typography::c2Columns(original.character));
+  }
+}
+void complete_alphabet_and_remaining_character_audit() {
+  const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  TEST_ASSERT_TRUE(typography::c2Supports(alphabet));
+  TEST_ASSERT_TRUE(typography::c2Supports("abcdefghijklmnopqrstuvwxyz"));
+  TEST_ASSERT_TRUE(typography::c2Missing(alphabet).empty());
+  for (char character : alphabet) {
+    TEST_ASSERT_EQUAL(character, typography::c2Glyph(character).character);
+    for (char other : alphabet)
+      if (character != other) {
+        const auto &glyph = typography::c2Glyph(character);
+        const auto &alternative = typography::c2Glyph(other);
+        TEST_ASSERT_FALSE(typography::c2Columns(character) == typography::c2Columns(other) &&
+                          std::equal(glyph.rows, glyph.rows + 5, alternative.rows));
+      }
+  }
+  TEST_ASSERT_EQUAL_STRING("0123456789", typography::c2Missing("012345678901").c_str());
+  TEST_ASSERT_EQUAL_STRING("-.'/,:!+?", typography::c2Missing("-.'/,:!+?").c_str());
+  TEST_ASSERT_EQUAL_STRING("?", typography::c2Missing("🚇—").c_str());
+  TEST_ASSERT_TRUE(typography::c2Supports("Gràcia Ç ü Ñ"));
+  std::string covered;
+  for (unsigned sample = typography::AlphabetSample; sample < typography::DestinationSample;
+       ++sample) {
+    const auto text = typography::Samples[sample].destination;
+    TEST_ASSERT_TRUE(typography::c2Supports(text));
+    TEST_ASSERT_TRUE(typography::width(Face::C2, text) <= 61);
+    covered += text;
+  }
+  TEST_ASSERT_EQUAL_STRING(alphabet.c_str(), covered.c_str());
+  for (const auto &text : {alphabet, std::string("MW IM"), std::string("Badalona Pompeu Fabra")}) {
+    Framebuffer raster(256, 32);
+    typography::draw(raster, Face::C2, text, 0, 0, 1, 0, 256);
+    int inkRight = 0;
+    for (int y = 0; y < 32; ++y)
+      for (int x = 0; x < 256; ++x)
+        if (raster.pixel(x, y))
+          inkRight = std::max(inkRight, x + 1);
+    TEST_ASSERT_EQUAL(typography::width(Face::C2, text), inkRight);
+  }
+  TEST_ASSERT_EQUAL(11, typography::width(Face::C2, "MW"));
+  Framebuffer arrivals(64, 32), operational(64, 32);
+  typography::draw(arrivals, Face::C2, "0123456789", 0, 0, 1, 0, 64, 0, true);
+  drawText(operational, "0123456789", 0, 0, 1, 0, 64);
+  TEST_ASSERT_TRUE(same(arrivals, operational));
+}
+void c2_dimensions_counters_and_coverage() {
+  TEST_ASSERT_EQUAL(26, sizeof(typography::LabelsC2) / sizeof(typography::LabelsC2[0]));
   for (const auto &glyph : typography::LabelsC2) {
     const int columns = typography::c2Columns(glyph.character);
-    TEST_ASSERT_EQUAL(glyph.character == 'I' ? 3 : 4, columns);
+    TEST_ASSERT_EQUAL(
+        glyph.character == 'I' ? 3 : (glyph.character == 'M' || glyph.character == 'W' ? 5 : 4),
+        columns);
     bool left = false, right = false;
     for (int row = 0; row < 5; ++row) {
       TEST_ASSERT_GREATER_THAN(0, glyph.rows[row]);
@@ -119,7 +201,7 @@ void c2_dimensions_counters_and_subset() {
   TEST_ASSERT_FALSE(typography::c2Supports("Bus 23"));
   TEST_ASSERT_FALSE(typography::c2Supports("🚇"));
   Framebuffer actual(64, 32), fallback(64, 32);
-  typography::draw(actual, Face::C2, "B", 0, 0, 1, 0, 64);
+  typography::draw(actual, Face::C2, "0", 0, 0, 1, 0, 64);
   typography::draw(fallback, Face::C2, "?", 0, 0, 1, 0, 64);
   TEST_ASSERT_TRUE(same(actual, fallback));
 }
@@ -274,6 +356,17 @@ void serial_selection_is_repeatable() {
   TEST_ASSERT_TRUE(state.face == Face::C2);
   TEST_ASSERT_EQUAL(9, state.sample);
   TEST_ASSERT_EQUAL(1600, state.phase());
+  state.command('f');
+  TEST_ASSERT_EQUAL(typography::AlphabetSample, state.sample);
+  state.command('g');
+  TEST_ASSERT_EQUAL(typography::DestinationSample, state.sample);
+  TEST_ASSERT_TRUE(state.command('?'));
+  TEST_ASSERT_EQUAL(typography::DestinationSample, state.sample);
+  TEST_ASSERT_FALSE(state.command(':'));
+  state.command('p');
+  TEST_ASSERT_EQUAL(typography::DestinationSample - 1, state.sample);
+  TEST_ASSERT_TRUE(state.face == Face::C2);
+  TEST_ASSERT_EQUAL(1600, state.phase());
   state.command('r');
   TEST_ASSERT_EQUAL(0, state.phase());
 }
@@ -282,7 +375,10 @@ int main() {
   UNITY_BEGIN();
   RUN_TEST(sample_palette_matches_existing_fixture);
   RUN_TEST(original_c_rasters_are_unchanged);
-  RUN_TEST(c2_dimensions_counters_and_subset);
+  RUN_TEST(previous_faces_are_unchanged);
+  RUN_TEST(established_c2_glyphs_are_unchanged);
+  RUN_TEST(complete_alphabet_and_remaining_character_audit);
+  RUN_TEST(c2_dimensions_counters_and_coverage);
   RUN_TEST(c2_measured_width_clipping_and_reveal);
   RUN_TEST(focused_countdowns_are_identical);
   RUN_TEST(operational_baseline_is_exact);

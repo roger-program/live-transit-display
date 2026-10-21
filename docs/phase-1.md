@@ -282,3 +282,61 @@ No device upload, monitor connection or physical C2 observation ran. Upload
 instructions and full limits are in `docs/typography.md`. No dependency or
 external font resource added. Ordinary data, colours and configuration remain
 backend responsibilities; this adds only isolated diagnostic rendering capability.
+
+
+## C2 complete uppercase alphabet — 22 October 2026
+
+**User-observed context:** the original C2 subset (`e`) has the best reported
+balance of appearance/readability so far on the physical panel. Its B/C/D/G and
+other question marks were absent glyphs in the 13-capital subset, not evidence
+of unsuccessful glyph designs. New capital drawings are not yet physically
+validated by this update.
+
+**Inspected and implemented:** identified missing B/C/D/F/G/H/J/K/M/Q/W/X/Y in
+`include/typography_c2.h`, referenced original C in `typography_glyphs.h`, and
+manually completed A–Z. The existing 13 C2 masks and their widths are unchanged.
+Capital height remains five pixels; 23 capitals have four-column ink/five advance,
+I retains three-column ink/four advance, M/W use five-column ink/six advance for
+open interior joins. Word-space advance stays three. No automatic scaling,
+dilation, solid 2×2 blocks or uniformly bold stems. Original geometric references
+include B/D cut corners, C/G square bowls, J hook, K/X/Y diagonals, M/W interior
+joins and Q in-cell tail. No additional font source/license/dependency introduced.
+
+**Samples and controls:** preserve all original samples 0–9; add alphabet groups
+10 ABCDEFGH, 11 IJKLMNOPQ, 12 RSTUVWXYZ (39/44/45 px, all fit the 61-pixel
+viewport), and 13 Bon Pastor (47 px), 14 Collblanc (44), 15 Badalona Pompeu Fabra
+(101, 40 px overflow), 16 Gorg (19). These are offline reading stimuli on the fixed
+L3 badge, not verified line/destination pairings. All new samples retain exact
+operational countdown pixels, badges, colours, layout and brightness 16/255.
+
+`e` selects C2; a/b/c/d retain A/B/C/D. `f` jumps to alphabet sample 10; `g` to
+Barcelona sample 13; n/p navigates all 17 samples. Digits 0–9 retain their sample
+selection. Restricting digit handling explicitly to 0–9 prevents ':'/'?' from
+being misinterpreted as sample indices when the table exceeds ten entries.
+s steps reveal, r resets, i/? reports. Face switches retain content/reveal phase.
+
+**Remaining coverage:** C2 label digits 0–9 and label punctuation remain
+unimplemented; existing compact '?' is only the fallback drawing. Unsupported
+label characters are reported explicitly as unique missing characters after
+existing firmware normalization, then visibly rendered '?'; no unrelated font
+is silently used. Unknown Unicode becomes '?' in that audit, with full original
+labels still present in serial output. Lowercase/common Catalan/Spanish accents
+continue to uppercase/fold under the existing policy. Badge/countdown numerals
+and punctuation use the unchanged operational font, not missing C2 glyphs.
+
+**Observed validation:** 42 native cases pass (29 core + 13 typography). New
+regressions preserve all 13 prior C2 masks and A/B/C/D frame snapshots across
+all ten existing samples/four reveal phases; test complete distinct A–Z lookup,
+proportional dimensions, alphabet-group coverage, missing numeral/punctuation
+reports, actual raster widths, unchanged countdowns, existing colours/badges,
+expanded sample navigation and help-command handling. All seven hardware builds
+pass: esp32s3, diagnostic, fixture, hub75-diagnostic, hub75-fixture,
+hub75-badge-contrast, hub75-typography. Diagnostic build: 300465 bytes flash,
+19212 bytes static RAM (not runtime heap measurements). Browser font parity,
+fixture consistency, formatting and diff whitespace checks pass. Native glyph
+raster review confirms the intended proportions; physical validation remains
+pending for the new 13 letters. No upload, device monitor connection or flash.
+
+Production renderer, backend/Feed v1, canonical colour policy, GPIO/driver,
+brightness and PlatformIO configuration remain unchanged. See `docs/typography.md`
+for full character coverage, design compromises, controls and upload instructions.

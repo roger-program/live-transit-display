@@ -108,8 +108,19 @@ No device upload is performed by the build/test commands.
 ### Focused C2 trial
 
 In `hub75-typography`, select samples **6–9** and switch directly with `a` (A),
-`c` (original C), `e` (C2). C2 manually widens a 13-capital geometric subset to
+`c` (original C), `e` (C2). C2 uses manually drawn geometric capitals,
 mostly 4×5 with five-pixel advances and a three-pixel space advance. Focused
 samples retain identical operational countdown pixels, badges and brightness 16.
 Original samples 0–5 and C glyphs remain unchanged. `s` steps paused reveal phases,
 `r` resets and `i` reports. See [C2 dimensions and limits](docs/typography.md).
+
+
+### C2 complete uppercase alphabet
+
+C2 (`e`) now covers all A–Z while preserving the original 13 glyphs. Most are
+4×5 with five-pixel advances; I stays 3×5/four advance and M/W use 5×5/six advance.
+Word-space advance remains three. `f` selects alphabet groups (samples 10–12),
+`g` selects added Barcelona destinations (13–16), and n/p navigates all samples.
+A/B/C/D, regular badges, operational countdowns and brightness 16 are unchanged.
+Label digits/punctuation remain unsupported and are explicitly listed in the
+serial warning; see [coverage and controls](docs/typography.md).

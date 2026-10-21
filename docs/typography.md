@@ -1,4 +1,4 @@
-# Physical typography comparison (2026-10-21; C2 update 2026-10-22)
+# Physical typography comparison (2026-10-21; C2 alphabet update 2026-10-22)
 
 Isolated `hub75-typography` PlatformIO environment for the Waveshare P2.5 64×32
 panel. It uses PrototypeDisplay, the unchanged HUB75 driver/GPIO mapping, existing
@@ -10,8 +10,13 @@ storage. Nothing has been flashed as part of preparing this update.
 (original C) and `e` (C2). Startup is A on sample 6. These samples preserve the
 operational countdown raster identically across faces, isolating label typography.
 Original samples 0–5 and their C glyph/countdown rendering remain unchanged.
+Use `f` for the complete alphabet (10–12), `g` for added Barcelona destinations
+(13–16), then `n`/`p` to navigate all 17 samples.
 B/D remain accessible. The user reported B/C/D as more elegant but less readable
-around 3 m on the physical panel; C2 is a hypothesis to test, not a verified fix.
+around 3 m on the physical panel. The user subsequently reported the original
+C2 subset as the best appearance/readability balance so far; the new alphabet
+completion has not yet been physically tested. Its former ? letters were missing
+glyphs, not failed designs.
 
 ## Build, upload and serial controls
 
@@ -53,8 +58,10 @@ Single-character commands (lowercase, no Enter needed):
 | b | B: browser contemporary bitmap |
 | c | C: browser geometric bitmap |
 | d | D: browser condensed bitmap |
-| e | C2: wider geometric subset with three-pixel word-space advance |
-| 0–9 | Select a sample, listed below (6–9 recommended for C2) |
+| e | C2: complete geometric A–Z with three-pixel word-space advance |
+| 0–9 | Directly select an existing sample, listed below |
+| f | Select first alphabet group (10); n/p traverses 10–12 |
+| g | Select first added destination (13); n/p traverses 13–16 |
 | n / p | Next / previous sample, wrapping |
 | s | Next paused reveal phase: 0, 1000, 1600, 2300 ms, then 0 |
 | r | Return to initial reveal hold (0 ms) |
@@ -80,8 +87,15 @@ positions instead of automatically moving/paging the display.
 | 7 | Lesseps | L3 | La Pau |
 | 8 | Lesseps | L3 | Trinitat Nova |
 | 9 | Lesseps | L3 | Zona Universitària |
+| 10 | Lesseps | L3 | ABCDEFGH |
+| 11 | Lesseps | L3 | IJKLMNOPQ |
+| 12 | Lesseps | L3 | RSTUVWXYZ |
+| 13 | Lesseps | L3 | Bon Pastor |
+| 14 | Lesseps | L3 | Collblanc |
+| 15 | Lesseps | L3 | Badalona Pompeu Fabra |
+| 16 | Lesseps | L3 | Gorg |
 
-Samples 6–9 deliberately use one fixed header and L3 badge to hold content and
+Samples 6–16 deliberately use one fixed header and L3 badge to hold content and
 colour constant when switching faces. Their destination labels are reading stimuli,
 including a self-name and La Pau, not claims about L3 service patterns.
 
@@ -126,7 +140,7 @@ BDF references/notices and `identity/{fonts.ts,build.ts,README.md}`.
   61-pixel destination slot at (2,21), and the existing arrival row at y=12.
   The browser study's two directions, thin rail and plain line identifier are
   deliberately not ported. Only three five-row text rectangles are redrawn for
-  B/C/D in samples 0–5. Focused samples 6–9 replace only the name/destination
+  B/C/D in samples 0–5. Focused samples 6–16 replace only the name/destination
   slots; all countdown pixels remain bit-identical to A. C2 always uses this
   labels-only policy. Badge/background/separator/border pixels remain unchanged.
 - The **existing firmware pixelText policy** applies to every variant: uppercase;
@@ -164,7 +178,7 @@ build adds rendering capabilities only; it does not put ordinary transport data
 or colours behind a new firmware-update requirement.
 
 
-## C2 construction, scope and measurements — 2026-10-22
+## C2 construction, complete alphabet and measurements — 2026-10-22
 
 Inspected the existing firmware/browser definitions and sibling measured report
 `docs/typography-readability-2026-10-22.md` before implementation. C2 is isolated in
@@ -173,22 +187,35 @@ It is a manually drawn derivative of the local geometric experiment, with no
 third-party outline font or additional licensing claim/dependency. No scaling,
 dilation or uniformly bold rendering produces its masks.
 
-**Subset:** A/E/I/L/N/O/P/R/S/T/U/V/Z (13 capitals), blank space and the existing
-three-column question-mark fallback. This covers every label in focused samples
-6–9 after the existing firmware uppercase/accent folding, including UNIVERSITÀRIA.
-The original UTF-8 label remains intact in sample data/serial output. The accent
-itself is not drawn, consistent with A/C. Other capitals (B/C/D/F/G/H/J/K/M/Q/W/X/Y),
-digits and punctuation in **labels** render as `?`; no silent fallback to narrow C
-or the operational font. Unknown Unicode/curly punctuation also uses the existing
-normalizer's `?`. A serial warning identifies labels outside the C2 subset if
-samples 0–5 are selected. Countdown digits/units are outside this subset scope:
-they retain the full regular operational font.
+**Coverage:** all uppercase A–Z and blank space. Original A/E/I/L/N/O/P/R/S/T/U/V/Z
+masks are preserved byte-for-byte. Added B/C/D/F/G/H/J/K/M/Q/W/X/Y, using the
+original geometric C as the primary design reference. B/D retain cut corners;
+C/F/G/H continue square strokes and counters; J/K/X/Y are manually placed hooks,
+forks and diagonals. Q uses an in-cell tail because capital height remains five
+pixels. M/W have five-column interiors to avoid compressing their inner strokes.
+No automatic scaling, dilation, unrelated font substitution or uniform bolding.
+
+Existing firmware lowercase-to-uppercase and Catalan/Spanish accent folding
+remains: Ç→C, Ñ→N, À/Á→A, etc.; no separate lowercase/diacritic drawing is added.
+Original UTF-8 strings remain intact in data and the serial report.
+
+**Numeral/punctuation audit:** C2 **label** numerals 0–9 remain unimplemented.
+Label punctuation including apostrophe, hyphen, period, comma, slash, colon,
+exclamation and plus is also unimplemented. The existing compact `?` mask remains
+only a visible fallback, not a completed punctuation family. Unsupported label
+characters render `?`; the serial report lists unique missing characters after
+normalization, without substituting another font. Unknown Unicode and curly
+punctuation normalize to `?`, so the reported list can contain `?` rather than the
+original codepoint (the preceding full label report retains the original text).
+Samples 0, 1, 6–16 have complete C2 letter coverage; digits/punctuation in some
+other original samples will still trigger a warning. Badge and countdown
+numerals/punctuation already use the full operational font and remain unchanged.
 
 | Property | A | C | C2 |
 | --- | --- | --- | --- |
 | Actual capital height | 5 px | 5 px | 5 px |
-| Capital ink width | 5 px | 3 px, I=1 | 4 px, barred I=3 |
-| Letter advance | 6 px | 4 px, I=2 | 5 px, I=4 |
+| Capital ink width | 5 px | 3 px, I=1 | 4 px; I=3, M/W=5 |
+| Letter advance | 6 px | 4 px, I=2 | 5 px; I=4, M/W=6 |
 | Space advance | 6 px | 1 px | 3 px |
 | Typical empty columns between words | 7 | 2 | 4 |
 | Focused-sample `2M 9M` raster width | 29 px | 29 px | 29 px |
@@ -197,15 +224,16 @@ C2 has single-pixel stems and crossbars. The square O has a deliberately open
 2-column × 3-row counter; P/R have 2-column × 1-row counters, constrained by five
 rows. A has a flat two-cell apex and two-column upper counter. R's diagonal leg,
 N's joins and Z's short middle diagonal are individually placed; V has a single
-lower point. I gains bars so it is not a bare one-column stick. None of the 13
+lower point. I gains bars so it is not a bare one-column stick. None of the 26
 masters contains a solid 2×2 block. All are five rows tall and reach both horizontal
 edges of their declared ink width.
 
 **Design compromises:** even-width T has a left-of-centre stem and V a slightly
 asymmetric taper; exact bilateral symmetry cannot always coexist with a one-pixel
 axis in four columns. Short P/R counters remain vertically cramped. I uses three
-columns to keep its stem centred. This is an experimental subset, not a full
-transport font. A future improvement must not be inferred for unsupported labels.
+columns to keep its stem centred. The alphabet is complete, but C2 is not a complete transport font until its
+numerals/punctuation are designed and physically validated. M/W intentionally
+consume one extra column instead of thickening/compressing their interior joins.
 C2 deliberately combines wider proportions and larger word spaces per the request;
 a preference alone cannot identify which change caused it.
 
@@ -238,3 +266,32 @@ A equality, palette consistency, changed-pixel bounds, focused countdown equalit
 C2 masks/counters/coverage, actual widths/full reveal and direct serial switching.
 Hardware build outcomes are recorded in `docs/phase-1.md`; no upload is run by
 these tests/builds, and no physical C2 readability result is asserted.
+
+
+### Alphabet completion measurements and controls
+
+The old four comparison widths above are unchanged. Additional measured C2 widths:
+
+| Label | Native ink width | Reveal required in 61 px slot |
+| --- | ---: | ---: |
+| ABCDEFGH | 39 | No |
+| IJKLMNOPQ | 44 | No |
+| RSTUVWXYZ | 45 | No |
+| Bon Pastor | 47 | No |
+| Collblanc | 44 | No |
+| Badalona Pompeu Fabra | 101 | 40 px |
+| Gorg | 19 | No |
+
+`e`, then `f`, shows the first alphabet group; two `n` commands expose the rest.
+`g` jumps to Bon Pastor, followed by Collblanc, Badalona Pompeu Fabra and Gorg
+through `n`. Use `r` to reset reveal and `s` twice to reach the endpoint for long
+labels. Face changes a/b/c/d/e retain the selected sample and reveal phase.
+Digits 0–9 still select only samples 0–9; punctuation commands cannot accidentally
+select sample indices above nine. `i`/`?` repeats the active sample index and help.
+
+New native checks preserve the original 13 C2 masks/widths, whole-frame A/B/C/D
+snapshots across old samples, complete unique A–Z lookup, remaining missing
+character reporting, group alphabet coverage, measured proportional widths,
+countdown invariance and expanded serial navigation. Build/test results are
+recorded in `docs/phase-1.md`. No flash or new physical glyph validation is
+performed by this code change.

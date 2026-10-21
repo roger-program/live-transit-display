@@ -31,7 +31,16 @@ inline constexpr Sample Samples[] = {
     {"metro", "Lesseps", "L3", "La Pau", "#1EB53A", "#FFFFFF", true},
     {"metro", "Lesseps", "L3", "Trinitat Nova", "#1EB53A", "#FFFFFF", true},
     {"metro", "Lesseps", "L3", "Zona Universitària", "#1EB53A", "#FFFFFF", true},
+    // Alphabet groups fit the existing 61-pixel destination slot without reveal.
+    {"metro", "Lesseps", "L3", "ABCDEFGH", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "IJKLMNOPQ", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "RSTUVWXYZ", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Bon Pastor", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Collblanc", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Badalona Pompeu Fabra", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Gorg", "#1EB53A", "#FFFFFF", true},
 };
+inline constexpr unsigned AlphabetSample = 10, DestinationSample = 13;
 inline constexpr unsigned SampleCount = sizeof(Samples) / sizeof(Samples[0]);
 inline constexpr int64_t Now = 1800000000000LL;
 inline transit::View sampleView(unsigned index) {
@@ -67,7 +76,7 @@ inline const char *faceName(Face face) {
   case Face::D:
     return "D browser condensed";
   case Face::C2:
-    return "C2 geometric 4x5 subset";
+    return "C2 geometric A-Z";
   }
   return "A operational 5x5";
 }
@@ -175,8 +184,12 @@ struct Selection {
       face = static_cast<Face>(key - 'a');
     else if (key == 'e')
       face = Face::C2;
-    else if (key >= '0' && key < '0' + int(SampleCount))
+    else if (key >= '0' && key <= '9')
       sample = key - '0';
+    else if (key == 'f')
+      sample = AlphabetSample;
+    else if (key == 'g')
+      sample = DestinationSample;
     else if (key == 'n')
       sample = (sample + 1) % SampleCount;
     else if (key == 'p')
