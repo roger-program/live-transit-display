@@ -70,3 +70,32 @@ An additional compile/link experiment temporarily supplied an ignored configurat
 6. Later per-unit credential injection/recovery, stop/config ownership and device lifecycle policy described by the sibling proposal. Do not silently reinterpret the shared token as a permanent unit identity.
 
 Provisioning UX, OTA, enclosure, production PCB, manufacturing and production transport licensing remain outside this implementation. The sibling feed project is unchanged.
+
+
+## Waveshare controller support — 21 October 2026
+
+**Scope:** adapt the existing firmware to the received Waveshare ESP32-S3-RGB-Matrix controller (user-reported QFN56, PCB v0.2, 32 MB flash/16 MB PSRAM) and P2.5 64×32 panel. The user reports that the factory demo works. This is user-observed hardware evidence, not a test of this firmware. No upload, flash erase, network provisioning, OTA or backend change is authorized in this step.
+
+**Sources checked on 2026-10-21:**
+
+- [Waveshare controller documentation](https://docs.waveshare.com/ESP32-S3-RGB-Matrix): N32R16, HUB75, USB programming and onboard buffering.
+- [Official S3 GPIO definitions](https://github.com/waveshareteam/ESP32-S3-RGB-Matrix/blob/main/example/arduino_v3.3.7/01_SimpleTestShapes/platforms/esp32s3/esp32s3-default-pins.hpp): R1/G1/B1=4/5/6, R2/G2/B2=7/15/16, A/B/C/D=18/8/3/42, E=9, LAT/OE/CLK=40/2/41. E is disabled for this 1/16-scan panel. GPIO3 is intentional controller wiring, superseding the earlier generic proposed map.
+- [Espressif board-support change](https://github.com/espressif/arduino-esp32/pull/12813): 32 MB QIO flash at 80 MHz, 16 MB OPI PSRAM through qio_opi, hardware USB CDC/JTAG. This does not imply that the dedicated board ID exists in the pinned PlatformIO platform.
+- [Official panel specifications](https://docs.waveshare.com/RGB-Matrix-Px-64x32): matching size/resolution, 1/16 scan, 5 V / 2.5 A. Use regulated 5 V with controller headroom and correct polarity; Mac USB power headroom is unverified.
+- [Pinned driver S3 implementation](https://github.com/mrcodetastic/ESP32-HUB75-MatrixPanel-DMA/blob/3.0.14/src/platforms/esp32s3/gdma_lcd_parallel16.cpp): existing HZ_8M selection uses a 10 MHz S3 clock path. No timing change is made.
+
+**Changes:** explicit official GPIO map; flash-size setting 32MB; application-size limit 4 MB matching the unchanged factory partition; new hub75-fixture inheriting APP_MODE=2 and enabling physical output; standard make build/check targets include it. Existing qio_opi and BOARD_HAS_PSRAM enable SDK detection/initialization of octal PSRAM; no fictitious capacity macro is added. Physical capacity is 16 MB, but mapped/usable memory and successful initialization must be measured on boot. The 4 MB partition does not require allocating all flash. Renderer, Feed v1 parser, framebuffer adapter, double buffering, brightness 16/255, SHIFTREG, phase false, latch blanking 2 and HUB75 DMA 3.0.14 remain unchanged.
+
+**Test method:** install pinned development tools in ignored .venv; check generated fixtures and formatting; run native tests; compile hub75-diagnostic and hub75-fixture without upload. No secrets header was present during inspection. Native tests use checked-in fixtures. Build success alone does not validate electrical timing, PSRAM initialization, USB enumeration or physical readability.
+
+**Proposed physical procedure:** after separate upload authorization, run dim diagnostics 0–6 and check RGB, both halves, row/column sweeps and corners. Skip diagnostic 7 initially because it overrides brightness and cycles full white up to 64/255. Then run hub75-fixture: six existing Metro/bus group pages, countdowns and scrolling/push transitions, followed by STALE suppression at 120 seconds. Fixture time is generatedAt plus monotonic elapsed time; no Wi-Fi/SNTP is started. The first Fondo page starts at 2M/7M. Record timestamps, photos, memory reports, power and limitations here. Panel driver IC, exact revision correspondence and measured current remain unresolved; retain SHIFTREG until evidence justifies a change. Earlier generic N16R8 bring-up instructions are superseded by this section and the updated README.
+
+
+**Observed validation, 2026-10-21 around 19:55 CEST (17:55 UTC):** local .venv installed PlatformIO 6.1.18 and clang-format 18.1.8 plus pinned build dependencies. Generated fixture consistency and owned-source formatting checks passed. All 20 native cases passed, including raster regression, parser/state and diagnostic tests. Both initial builds and a clean rebuild passed; clean logs contained no compiler warnings/errors, only the driver informational ESP32-S3 pragma. No project runtime source changed beyond panel_config.h.
+
+| Environment | Application bytes / 4 MB partition | Static RAM bytes / 327680 |
+| --- | --- | --- |
+| hub75-diagnostic | 288629 | 18960 |
+| hub75-fixture | 304677 | 18968 |
+
+Esptool 4.9.0 image_info v2 verified both generated bootloaders: ESP32-S3, 32MB flash, 80 MHz, valid checksum/hash. Header mode is DIO for boot, as expected for this framework's QIO boot path; selected qio_opi SDK has CONFIG_ESPTOOLPY_FLASHMODE_QIO, CONFIG_SPIRAM_MODE_OCT, TYPE_AUTO, SIZE=-1, SPEED_80M and BOOT_INIT. The PlatformIO summary says 4MB Flash because its banner derives from maximum application size, which now correctly matches the factory partition; the actual boot image records 32MB. Neither message proves physical detection. Runtime SDK usable PSRAM capacity still awaits board execution. No compiler failures remain. No board was flashed, and /dev/cu.usbmodem1101 was absent during this session's port check; rediscover the port before upload. Historical validation.json is prior evidence, not the result of this board-support change.

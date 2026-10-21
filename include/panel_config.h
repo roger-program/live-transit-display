@@ -2,8 +2,7 @@
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
 namespace panelcfg {
-// PROPOSED ONLY: review exact development-board schematic before enabling.
-// Module model does not establish development-board pin exposure/peripheral use.
+// Waveshare ESP32-S3-RGB-Matrix controller; physical timing/IC validation pending.
 #ifndef ENABLE_PANEL_OUTPUT
 #define ENABLE_PANEL_OUTPUT 0
 #endif
@@ -11,8 +10,8 @@ inline constexpr bool Enabled = ENABLE_PANEL_OUTPUT != 0;
 inline constexpr uint16_t Width = 64, Height = 32;
 inline constexpr uint8_t ChainLength = 1;
 // HUB75: R1 G1 B1 R2 G2 B2 A B C D E LAT OE CLK.
-// Avoid flash/PSRAM pins 26..37, USB 19/20, UART 43/44, boot straps 0/3/45/46.
-inline constexpr HUB75_I2S_CFG::i2s_pins Pins = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, -1, 14, 15, 16};
+// Official board wiring includes GPIO3. E is GPIO9 on the board, unused for 1/16 scan.
+inline constexpr HUB75_I2S_CFG::i2s_pins Pins = {4, 5, 6, 7, 15, 16, 18, 8, 3, 42, -1, 40, 2, 41};
 inline constexpr auto Driver = HUB75_I2S_CFG::SHIFTREG;
 inline constexpr auto Clock = HUB75_I2S_CFG::HZ_8M;
 inline constexpr bool ClockPhase = false;
