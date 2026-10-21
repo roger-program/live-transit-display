@@ -15,13 +15,15 @@ void report() {
                 typography::faceName(selected.face), selected.sample, sample.stop, sample.line,
                 sample.destination, static_cast<unsigned long long>(selected.phase()));
   if (selected.face == typography::Face::C2) {
+    Serial.println("C2 label policy: uppercase/accent folding; U+2019 uses apostrophe bitmap");
     const auto missing = typography::c2Missing(std::string(sample.stop) + " " + sample.destination);
     if (!missing.empty())
       Serial.printf(
           "C2 missing label glyphs after normalization: %s (render as ?; no other font)\n",
           missing.c_str());
   }
-  Serial.println("a/b/c/d/e: A/B/C/D/C2; 0-9: existing samples; f: alphabet; g: Barcelona; "
+  Serial.println("a/b/c/d/e: A/B/C/D/C2; 0-9: existing samples; f: alphabet; g: Barcelona; h: "
+                 "Q/digits/punctuation; "
                  "n/p: all samples; s: reveal step; r: initial hold; i/?: report");
 }
 void show() {

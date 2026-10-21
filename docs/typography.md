@@ -1,4 +1,4 @@
-# Physical typography comparison (2026-10-21; C2 alphabet update 2026-10-22)
+# Physical typography comparison (2026-10-21; C2 numerals/punctuation/Q update 2026-10-22)
 
 Isolated `hub75-typography` PlatformIO environment for the Waveshare P2.5 64×32
 panel. It uses PrototypeDisplay, the unchanged HUB75 driver/GPIO mapping, existing
@@ -11,12 +11,14 @@ storage. Nothing has been flashed as part of preparing this update.
 operational countdown raster identically across faces, isolating label typography.
 Original samples 0–5 and their C glyph/countdown rendering remain unchanged.
 Use `f` for the complete alphabet (10–12), `g` for added Barcelona destinations
-(13–16), then `n`/`p` to navigate all 17 samples.
+(13–16), and `h` for Q/numerals/punctuation (17–26), then `n`/`p` to navigate
+all 27 samples.
 B/D remain accessible. The user reported B/C/D as more elegant but less readable
 around 3 m on the physical panel. The user subsequently reported the original
 C2 subset as the best appearance/readability balance so far; the new alphabet
-completion has not yet been physically tested. Its former ? letters were missing
-glyphs, not failed designs.
+was subsequently physically tested and looks good overall. This update adds
+missing label numerals/punctuation and corrects Q; these new changes have not yet
+been physically tested. Former question marks were missing glyphs, not failed designs.
 
 ## Build, upload and serial controls
 
@@ -58,10 +60,11 @@ Single-character commands (lowercase, no Enter needed):
 | b | B: browser contemporary bitmap |
 | c | C: browser geometric bitmap |
 | d | D: browser condensed bitmap |
-| e | C2: complete geometric A–Z with three-pixel word-space advance |
+| e | C2: geometric letters/digits/punctuation; three-pixel word-space advance |
 | 0–9 | Directly select an existing sample, listed below |
 | f | Select first alphabet group (10); n/p traverses 10–12 |
 | g | Select first added destination (13); n/p traverses 13–16 |
+| h | Select Q/digits/punctuation tests (17); n/p traverses 17–26 |
 | n / p | Next / previous sample, wrapping |
 | s | Next paused reveal phase: 0, 1000, 1600, 2300 ms, then 0 |
 | r | Return to initial reveal hold (0 ms) |
@@ -94,8 +97,18 @@ positions instead of automatically moving/paging the display.
 | 14 | Lesseps | L3 | Collblanc |
 | 15 | Lesseps | L3 | Badalona Pompeu Fabra |
 | 16 | Lesseps | L3 | Gorg |
+| 17 | Lesseps | L3 | QU QR QO |
+| 18 | Lesseps | L3 | 01234 |
+| 19 | Lesseps | L3 | 56789 |
+| 20 | Lesseps | L3 | Aeroport T1 |
+| 21 | Lesseps | L3 | Aeroport T2 |
+| 22 | Lesseps | L3 | Plaça d’Espanya |
+| 23 | Lesseps | L3 | Pg. de Gràcia |
+| 24 | Lesseps | L3 | Sants/Estació |
+| 25 | Lesseps | L3 | Can Marcet - Horta |
+| 26 | Lesseps | L3 | O0 S5 I1 |
 
-Samples 6–16 deliberately use one fixed header and L3 badge to hold content and
+Samples 6–26 deliberately use one fixed header and L3 badge to hold content and
 colour constant when switching faces. Their destination labels are reading stimuli,
 including a self-name and La Pau, not claims about L3 service patterns.
 
@@ -140,7 +153,7 @@ BDF references/notices and `identity/{fonts.ts,build.ts,README.md}`.
   61-pixel destination slot at (2,21), and the existing arrival row at y=12.
   The browser study's two directions, thin rail and plain line identifier are
   deliberately not ported. Only three five-row text rectangles are redrawn for
-  B/C/D in samples 0–5. Focused samples 6–16 replace only the name/destination
+  B/C/D in samples 0–5. Focused samples 6–26 replace only the name/destination
   slots; all countdown pixels remain bit-identical to A. C2 always uses this
   labels-only policy. Badge/background/separator/border pixels remain unchanged.
 - The **existing firmware pixelText policy** applies to every variant: uppercase;
@@ -148,7 +161,10 @@ BDF references/notices and `identity/{fonts.ts,build.ts,README.md}`.
   accents are dropped; unknown Unicode codepoints become one `?`. It supports
   Ñ too. Browser compactText uses broader Unicode decomposition, converts curly
   apostrophes and en/em dashes to ASCII; firmware converts those punctuation
-  codepoints to `?`. Therefore fixtures use ASCII apostrophes/hyphens. Comma,
+  codepoints to `?`. C2 now explicitly maps U+2019 to its apostrophe glyph
+  before calling pixelText; A/B/C/D keep their original policy. New C2 fixtures
+  exercise that curly apostrophe without modifying stored text or the production
+  normalizer. Other curly punctuation/en/em dashes still report missing. Comma,
   exclamation and plus are operational glyphs but absent from the browser compact
   subset: B/C/D show its `?` fallback. None occurs in the samples. There is no new
   Unicode policy or mutation of stored labels.
@@ -188,7 +204,8 @@ third-party outline font or additional licensing claim/dependency. No scaling,
 dilation or uniformly bold rendering produces its masks.
 
 **Coverage:** all uppercase A–Z and blank space. Original A/E/I/L/N/O/P/R/S/T/U/V/Z
-masks are preserved byte-for-byte. Added B/C/D/F/G/H/J/K/M/Q/W/X/Y, using the
+masks are preserved byte-for-byte. All subsequently validated capitals are also
+unchanged except the explicitly corrected Q described below. Added B/C/D/F/G/H/J/K/M/Q/W/X/Y, using the
 original geometric C as the primary design reference. B/D retain cut corners;
 C/F/G/H continue square strokes and counters; J/K/X/Y are manually placed hooks,
 forks and diagonals. Q uses an in-cell tail because capital height remains five
@@ -199,17 +216,31 @@ Existing firmware lowercase-to-uppercase and Catalan/Spanish accent folding
 remains: Ç→C, Ñ→N, À/Á→A, etc.; no separate lowercase/diacritic drawing is added.
 Original UTF-8 strings remain intact in data and the serial report.
 
-**Numeral/punctuation audit:** C2 **label** numerals 0–9 remain unimplemented.
-Label punctuation including apostrophe, hyphen, period, comma, slash, colon,
-exclamation and plus is also unimplemented. The existing compact `?` mask remains
-only a visible fallback, not a completed punctuation family. Unsupported label
-characters render `?`; the serial report lists unique missing characters after
-normalization, without substituting another font. Unknown Unicode and curly
-punctuation normalize to `?`, so the reported list can contain `?` rather than the
-original codepoint (the preceding full label report retains the original text).
-Samples 0, 1, 6–16 have complete C2 letter coverage; digits/punctuation in some
-other original samples will still trigger a warning. Badge and countdown
-numerals/punctuation already use the full operational font and remain unchanged.
+**Completed label coverage:** A–Z, 0–9, blank space, ASCII apostrophe `'`,
+U+2019 right apostrophe `’`, ASCII hyphen `-`, period `.` and slash `/`. The four
+punctuation masks are newly drawn within C2, not borrowed from a different font.
+The existing compact `?` remains the visible fallback. Countdown/badge rendering
+continues to use the unchanged operational font.
+
+**Normalization before bitmap rendering:** all C2 label measurement, drawing and
+missing-character audit use `c2Text`. It explicitly recognizes the three UTF-8
+bytes of **U+2019 only**, mapping them to the same apostrophe bitmap used by ASCII
+`'`. It then delegates to unchanged `transit::pixelText`, which uppercases ASCII,
+folds common precomposed Latin-1 accents (À/Á→A, Ç→C, Ñ→N, etc.) and removes
+U+0300–U+036F combining marks. Thus Plaça d’Espanya reaches the bitmap loop as
+`PLACA D'ESPANYA`, and decomposed Gràcia as `GRACIA`. This is a narrow rendering
+policy, not general Unicode transliteration. Original UTF-8 strings remain intact
+in samples and serial output. C2's serial report announces this policy. A/B/C/D
+and the production normalizer are unchanged: their U+2019 still becomes `?`.
+
+**Remaining unsupported:** comma, colon, semicolon, exclamation, plus, brackets,
+middle dot and other unimplemented punctuation/symbols; U+2018 left apostrophe,
+en/em dashes and unsupported Unicode also remain missing. There is no automatic
+straightening of other punctuation or unrelated glyph substitution. Missing C2
+characters are reported explicitly as unique characters after normalization, then
+visibly drawn as `?`. Unknown Unicode appears as `?` in that list, while the full
+original label is printed separately. All current sample labels are now covered
+by C2, including digits and punctuation in original samples 0–5.
 
 | Property | A | C | C2 |
 | --- | --- | --- | --- |
@@ -295,3 +326,60 @@ character reporting, group alphabet coverage, measured proportional widths,
 countdown invariance and expanded serial navigation. Build/test results are
 recorded in `docs/phase-1.md`. No flash or new physical glyph validation is
 performed by this code change.
+
+
+### Label numerals, punctuation and precise Q correction
+
+New numeral masters follow the original geometric C construction at four-column
+ink/five-pixel advance, except 1 uses three-column ink/four advance. All are five
+rows tall with one-pixel stems. Zero has clipped corners so it differs from the
+validated square O; 5 has shortened middle/bottom terminals so it differs from S.
+These are deliberate per-glyph designs, not scaling/dilation/uniform bolding.
+Sample 26 compares O0, S5 and I1 directly. Recognition under LED bloom remains a
+physical question; no automatic substitution of these pairs is performed.
+
+Punctuation uses natural ink widths with the same one-pixel inter-character gap:
+apostrophe 2 columns/3 advance (two upper diagonal pixels), hyphen 3/4 (middle row),
+period 1/2 (baseline row), slash 3/4 (five-row diagonal). Existing capital metrics,
+including Q's 4-column ink/5 advance, and three-pixel space advance are unchanged.
+
+Q changes **only** from `[15, 9, 9, 11, 1]` to `[15, 9, 9, 15, 2]`:
+
+```text
+Before     After
+####       ####
+#..#       #..#
+#..#       #..#
+#.##       ####
+...#       ..#.
+```
+
+Using one-based bitmap coordinates: add row 4/column 2 to close the bowl; clear
+row 5/column 4 and set row 5/column 3 to move the tail left one column. The top
+three rows, five-row height and all other 25 validated capitals are unchanged.
+The corrected bowl has a 2-column × 2-row closed counter above its tail.
+
+New sample widths, measured by the actual C++ renderer without clipping:
+
+| Sample | Label | C2 ink width |
+| --- | --- | ---: |
+| 17 | QU QR QO | 35 |
+| 18 | 01234 | 23 |
+| 19 | 56789 | 24 |
+| 20 | Aeroport T1 | 51 |
+| 21 | Aeroport T2 | 52 |
+| 22 | Plaça d’Espanya | 70 |
+| 23 | Pg. de Gràcia | 56 |
+| 24 | Sants/Estació | 62 |
+| 25 | Can Marcet - Horta | 83 |
+| 26 | O0 S5 I1 | 33 |
+
+`e`, `h` selects C2 on the Q test. `n`/`p` steps through these samples, `s` steps
+paused reveal and `r` resets it. Other face/sample shortcuts remain unchanged.
+Counted values stay operational 2M/9M at brightness 16/255 on all new samples.
+No normal renderer, backend/Feed v1, colour or hardware configuration is changed.
+Native regressions check the exact three-pixel Q edit, unchanged other capitals,
+whole-frame A/B/C/D equality across all 17 previous samples, numeral/punctuation
+coverage, explicit apostrophe handling, normalization, actual widths, period
+baseline, existing clipping/reveal and countdown equality. Hardware/build outcomes
+are recorded in `docs/phase-1.md`. No device is flashed during validation.

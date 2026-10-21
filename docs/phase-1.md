@@ -340,3 +340,64 @@ pending for the new 13 letters. No upload, device monitor connection or flash.
 Production renderer, backend/Feed v1, canonical colour policy, GPIO/driver,
 brightness and PlatformIO configuration remain unchanged. See `docs/typography.md`
 for full character coverage, design compromises, controls and upload instructions.
+
+
+## C2 label numerals/punctuation and precise Q correction — 22 October 2026
+
+**User-observed context:** complete C2 A–Z looks good on the P2.5 panel; remaining
+missing glyphs are label numerals/punctuation. The physical Q observation requested
+closing its bowl and moving the bottom tail left one column. Inspected C2, the
+original geometric C numeral masks, diagnostic controls and actual normalization
+before changing anything. New drawings/Q correction are not yet physically tested.
+
+**Exact Q change:** [15,9,9,11,1] → [15,9,9,15,2]. In one-based coordinates,
+add row 4/column 2, clear row 5/column 4 and set row 5/column 3. Top three rows,
+4-column ink/5-pixel advance and 5-row height remain unchanged. All other 25
+validated capital masks and metrics are preserved byte-for-byte.
+
+**Added label glyphs:** 0–9, ASCII apostrophe, ASCII hyphen, period and slash.
+Digits are manually adapted from original geometric C to four-column ink/five
+advance, except 1 at three/four. Zero has cut corners and 5 shortened terminals
+to distinguish them from unchanged O/S. Apostrophe uses two columns/three advance,
+hyphen three/four, period one/two and slash three/four. One-pixel inter-character
+gaps and three-pixel word-space advance are unchanged. No scaling/dilation,
+uniform bolding, unrelated font source or new dependency.
+
+**Verified normalization:** existing transit::pixelText uppercases ASCII, folds
+common precomposed Latin-1 accents and strips U+0300–U+036F combining marks before
+bitmap iteration. It previously turned curly U+2019 into '?'. C2 alone now wraps
+it with an explicit U+2019→ASCII apostrophe mapping, shared by measurement,
+drawing and missing-character audit. Plaça d’Espanya therefore plots as
+PLACA D'ESPANYA while retaining original UTF-8 sample/report strings. This policy
+is announced in serial output and documented. A/B/C/D and the production
+normalizer retain their existing behavior; no global punctuation policy changed.
+Other punctuation (comma/colon/semicolon/exclamation/plus/brackets/middle dot),
+U+2018, en/em dashes and unsupported Unicode remain explicitly reported/drawn '?'.
+There is no silent substitution with another font.
+
+**Physical samples/control:** `e`, `h` opens the new Q/numeral/punctuation set
+17–26. Labels and C2 full ink widths: QU QR QO 35, 01234 23, 56789 24,
+Aeroport T1 51, Aeroport T2 52, Plaça d’Espanya 70, Pg. de Gràcia 56,
+Sants/Estació 62, Can Marcet - Horta 83, O0 S5 I1 33 pixels. n/p navigates all
+27 samples; f/g, digits 0–9 and a/b/c/d/e retain existing functions. s/r step/reset
+reveal; i/? reports active selection and missing characters after normalization.
+Fixed L3 badge/colours/header and operational 2M/9M countdown pixels are unchanged
+across the focused samples. Inputs are reading stimuli, not verified L3 routes.
+
+**Observed validation:** 45 native tests pass (29 core + 16 typography), covering
+precise Q bits, preservation of other 25 capitals, original A/B/C/D raster hashes
+across all previous 17 samples/four reveal phases, label numeral/punctuation
+coverage, U+2019/ASCII equivalence, precomposed/decomposed accents, remaining
+unsupported reporting, true ink widths/period baseline, countdown equality,
+regular badges/palette, clipping/reveal and serial navigation. All seven hardware
+builds pass: esp32s3, diagnostic, fixture, hub75-diagnostic, hub75-fixture,
+hub75-badge-contrast and hub75-typography. Diagnostic image: 302449 bytes flash,
+19212 bytes static RAM (build reports). Import parity, fixture consistency,
+formatting and diff whitespace checks pass. No device upload, monitor connection
+or flash. No new physical readability result is claimed.
+
+Only isolated diagnostic sources/tests and documentation changed. Operational
+renderer/countdown/badge fonts, backend/Feed v1, stable colour policy, GPIO,
+HUB75 driver/brightness 16, hardware configuration and PlatformIO environments
+remain unchanged. Full bitmaps, coverage and upload instructions are in
+`docs/typography.md`.

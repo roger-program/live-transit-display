@@ -39,8 +39,19 @@ inline constexpr Sample Samples[] = {
     {"metro", "Lesseps", "L3", "Collblanc", "#1EB53A", "#FFFFFF", true},
     {"metro", "Lesseps", "L3", "Badalona Pompeu Fabra", "#1EB53A", "#FFFFFF", true},
     {"metro", "Lesseps", "L3", "Gorg", "#1EB53A", "#FFFFFF", true},
+    // Q closure/tail, label numerals and requested punctuation; fixed countdowns.
+    {"metro", "Lesseps", "L3", "QU QR QO", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "01234", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "56789", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Aeroport T1", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Aeroport T2", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Plaça d’Espanya", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Pg. de Gràcia", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Sants/Estació", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "Can Marcet - Horta", "#1EB53A", "#FFFFFF", true},
+    {"metro", "Lesseps", "L3", "O0 S5 I1", "#1EB53A", "#FFFFFF", true},
 };
-inline constexpr unsigned AlphabetSample = 10, DestinationSample = 13;
+inline constexpr unsigned AlphabetSample = 10, DestinationSample = 13, SymbolSample = 17;
 inline constexpr unsigned SampleCount = sizeof(Samples) / sizeof(Samples[0]);
 inline constexpr int64_t Now = 1800000000000LL;
 inline transit::View sampleView(unsigned index) {
@@ -76,7 +87,7 @@ inline const char *faceName(Face face) {
   case Face::D:
     return "D browser condensed";
   case Face::C2:
-    return "C2 geometric A-Z";
+    return "C2 geometric letters/digits/punctuation";
   }
   return "A operational 5x5";
 }
@@ -190,6 +201,8 @@ struct Selection {
       sample = AlphabetSample;
     else if (key == 'g')
       sample = DestinationSample;
+    else if (key == 'h')
+      sample = SymbolSample;
     else if (key == 'n')
       sample = (sample + 1) % SampleCount;
     else if (key == 'p')

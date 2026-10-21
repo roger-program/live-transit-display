@@ -122,5 +122,16 @@ C2 (`e`) now covers all A–Z while preserving the original 13 glyphs. Most are
 Word-space advance remains three. `f` selects alphabet groups (samples 10–12),
 `g` selects added Barcelona destinations (13–16), and n/p navigates all samples.
 A/B/C/D, regular badges, operational countdowns and brightness 16 are unchanged.
-Label digits/punctuation remain unsupported and are explicitly listed in the
-serial warning; see [coverage and controls](docs/typography.md).
+Label digits and apostrophe/hyphen/period/slash are now supported; other missing
+characters are explicitly listed in the serial report; see [coverage and controls](docs/typography.md).
+
+
+### C2 label numerals/punctuation and corrected Q
+
+C2 now adds label digits 0–9 and apostrophe (ASCII and `’`), hyphen, period and
+slash without changing countdowns or badges. Q's bowl is closed and its bottom
+tail moves one column left; all other validated capitals retain their masks.
+Use `e`, `h` for Q/digit/punctuation tests (17–26), then n/p; f/g and existing
+samples remain. C2 explicitly handles U+2019 before the existing accent folding;
+other unsupported punctuation still reports and displays `?`. See
+[exact bitmaps, normalization and limits](docs/typography.md).
