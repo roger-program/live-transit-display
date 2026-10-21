@@ -5,7 +5,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:ok",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "ok",
       "groups": [
         {
@@ -30,7 +30,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:empty",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "empty",
       "groups": [],
       "extra": {
@@ -40,7 +40,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:partial",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "partial",
       "groups": [
         {
@@ -65,7 +65,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:scheduled",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "scheduled",
       "groups": [
         {
@@ -90,7 +90,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:unknown",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "unknown",
       "groups": [],
       "extra": {
@@ -100,7 +100,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:unavailable",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "unavailable",
       "groups": [],
       "extra": {
@@ -110,7 +110,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:upstream_error",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "upstream_error",
       "groups": [],
       "extra": {
@@ -120,7 +120,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:stale",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "stale",
       "groups": [
         {
@@ -145,7 +145,7 @@
     {
       "mode": "rail-demo",
       "stop": "opaque:future_status",
-      "name": "Estació de prova",
+      "name": "Estaci\u00f3 de prova",
       "status": "future_status",
       "groups": [
         {
@@ -166,6 +166,221 @@
       "extra": {
         "future": "ignored"
       }
+    },
+    {
+      "mode": "metro",
+      "stop": "badge-policy:metro",
+      "name": "Synthetic Metro badge policy",
+      "status": "ok",
+      "groups": [
+        {
+          "line": "L9S",
+          "lineColor": "#FB712B",
+          "lineTextColor": "#000000",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L10S",
+          "lineColor": "#00A6D6",
+          "lineTextColor": "#000000",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L3",
+          "lineColor": "#1EB53A",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L5",
+          "lineColor": "#005A97",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L10N",
+          "lineColor": "#00A6D6",
+          "lineTextColor": "#000000",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L9N",
+          "lineColor": "#FB712B",
+          "lineTextColor": "#000000",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L1",
+          "lineColor": "#CE1126",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L4",
+          "lineColor": "#F7A30E",
+          "lineTextColor": "#000000",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L2",
+          "lineColor": "#93248F",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L11",
+          "lineColor": "#89B94C",
+          "lineTextColor": "#000000",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "bus",
+      "stop": "badge-policy:tmb",
+      "name": "Synthetic badge policy",
+      "status": "ok",
+      "groups": [
+        {
+          "line": "V31",
+          "lineColor": "#547B31",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "D20",
+          "lineColor": "#894796",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "H8",
+          "lineColor": "#2D4191",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "X1",
+          "lineColor": "#000000",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "6",
+          "lineColor": "#C62A0F",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "bus",
+      "stop": "badge-policy:unknown-operator",
+      "name": "Unknown operator fixture",
+      "status": "ok",
+      "groups": [
+        {
+          "line": "V31",
+          "lineTextColor": "#FFFFFF",
+          "destination": "Synthetic fixture",
+          "arrivals": [
+            {
+              "arrivalAt": 1791030167985,
+              "provenance": "unknown"
+            }
+          ]
+        }
+      ]
     }
   ],
   "futureField": true

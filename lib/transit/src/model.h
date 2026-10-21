@@ -17,6 +17,7 @@ struct Group {
   std::string line;
   std::string destination;
   std::string lineColor;
+  std::string lineTextColor;
   std::vector<Arrival> arrivals;
 };
 struct Stop {

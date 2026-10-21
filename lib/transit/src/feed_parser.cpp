@@ -124,6 +124,9 @@ ParseResult parseFeed(std::string_view json, Feed &output) {
       if (entry.as<JsonObjectConst>().containsKey("lineColor") &&
           (!text(entry["lineColor"], group.lineColor) || !color(group.lineColor)))
         return ParseResult::Invalid;
+      if (entry.as<JsonObjectConst>().containsKey("lineTextColor") &&
+          (!text(entry["lineTextColor"], group.lineTextColor) || !color(group.lineTextColor)))
+        return ParseResult::Invalid;
       if (entry["arrivals"].size() > MaxArrivals)
         return ParseResult::ResourceLimit;
       int64_t previous = INT64_MIN;

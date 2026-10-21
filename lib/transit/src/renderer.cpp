@@ -29,12 +29,14 @@ Color lineColor(const std::string &color, const std::string &mode) {
   // Presentation fallback only: never infer or populate canonical line identity.
   return mode == "bus" ? BusGreen : Grey;
 }
-void badge(Framebuffer &frame, const std::string &label, int x, int y, Color color, int offset) {
+void badge(Framebuffer &frame, const std::string &label, int x, int y, Color color, int offset,
+           const std::string &textColor = "") {
   // Explicit width limit protects the separate countdown field from long line labels.
   int width = std::min(frame.width() / 2 - 2, textWidth(label) + 2);
   frame.rect(x + offset, y, width, 7, color);
   const Color ink =
-      (((color >> 16) & 255) * 299 + ((color >> 8) & 255) * 587 + (color & 255) * 114) > 150000
+      !textColor.empty() ? static_cast<Color>(std::strtoul(textColor.c_str() + 1, nullptr, 16))
+      : (((color >> 16) & 255) * 299 + ((color >> 8) & 255) * 587 + (color & 255) * 114) > 150000
           ? 0
           : 0xffffff;
   drawText(frame, label, x + 1 + offset, y + 1, ink, std::max(1, x + offset),
@@ -70,7 +72,7 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     const auto &group = stop.groups[page.groupStart + i];
     const int y = 12 + static_cast<int>(i) * spacing;
     badge(frame, group.line.empty() ? "?" : group.line, 1, y - 1,
-          lineColor(group.lineColor, stop.mode), offset);
+          lineColor(group.lineColor, stop.mode), offset, group.lineTextColor);
     std::string arrivals;
     for (size_t a = 0; a < std::min(size_t(2), group.arrivals.size()); ++a) {
       if (a)

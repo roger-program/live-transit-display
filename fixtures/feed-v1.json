@@ -21,7 +21,8 @@
               "provenance": "realtime"
             }
           ],
-          "lineColor": "#CE1126"
+          "lineColor": "#CE1126",
+          "lineTextColor": "#FFFFFF"
         },
         {
           "line": "L1",
@@ -36,7 +37,8 @@
               "provenance": "realtime"
             }
           ],
-          "lineColor": "#CE1126"
+          "lineColor": "#CE1126",
+          "lineTextColor": "#FFFFFF"
         },
         {
           "line": "L3",
@@ -51,7 +53,8 @@
               "provenance": "realtime"
             }
           ],
-          "lineColor": "#1EB53A"
+          "lineColor": "#1EB53A",
+          "lineTextColor": "#FFFFFF"
         },
         {
           "line": "L3",
@@ -66,7 +69,8 @@
               "provenance": "realtime"
             }
           ],
-          "lineColor": "#1EB53A"
+          "lineColor": "#1EB53A",
+          "lineTextColor": "#FFFFFF"
         }
       ],
       "realtimeStatus": "available"
@@ -89,7 +93,9 @@
               "arrivalAt": 1791032139000,
               "provenance": "realtime"
             }
-          ]
+          ],
+          "lineColor": "#C62A0F",
+          "lineTextColor": "#FFFFFF"
         },
         {
           "line": "H8",
@@ -103,7 +109,9 @@
               "arrivalAt": 1791031378000,
               "provenance": "realtime"
             }
-          ]
+          ],
+          "lineColor": "#2D4191",
+          "lineTextColor": "#FFFFFF"
         }
       ],
       "realtimeStatus": "available"

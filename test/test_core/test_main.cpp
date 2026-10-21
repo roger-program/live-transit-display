@@ -290,13 +290,13 @@ void fixture_line_colors() {
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   ArrivalRenderer renderer;
   Framebuffer frame(64, 32);
-  constexpr Color expected[] = {0xce1126, 0xce1126, 0x1eb53a, 0x1eb53a, 0x42ac52, 0x42ac52};
+  constexpr Color expected[] = {0xce1126, 0xce1126, 0x1eb53a, 0x1eb53a, 0xc62a0f, 0x2d4191};
   for (size_t page = 0; page < 6; ++page) {
     renderer.render(frame, view, snapshot.feed.generatedAt, page * PageDurationMs);
     TEST_ASSERT_EQUAL_HEX32(expected[page], frame.pixel(1, 11));
   }
-  TEST_ASSERT_TRUE(snapshot.feed.stops[1].groups[0].lineColor.empty());
-  TEST_ASSERT_TRUE(view.stops[1].groups[0].lineColor.empty());
+  TEST_ASSERT_EQUAL_STRING("#C62A0F", snapshot.feed.stops[1].groups[0].lineColor.c_str());
+  TEST_ASSERT_EQUAL_STRING("#FFFFFF", view.stops[1].groups[0].lineTextColor.c_str());
 }
 void explicit_color_precedes_fallback() {
   auto snapshot = sample();
@@ -319,6 +319,7 @@ void missing_color_stays_neutral() {
   const auto json = edited([](JsonDocument &doc) {
     doc["stops"][0]["groups"][0].remove("lineColor");
     doc["stops"][1]["mode"] = "future-mode";
+    doc["stops"][1]["groups"][0].remove("lineColor");
   });
   TEST_ASSERT_TRUE(parseFeed(json, snapshot.feed) == ParseResult::Ok);
   const auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
@@ -449,6 +450,64 @@ void service_page_indicators() {
   for (int x = 0; x < 64; ++x)
     TEST_ASSERT_EQUAL(0, frame.pixel(x, 30));
 }
+void explicit_badge_foregrounds() {
+  for (const char *ink : {"#000000", "#FFFFFF"}) {
+    auto snapshot = sample();
+    DynamicJsonDocument doc(128 * 1024);
+    deserializeJson(doc, FixtureJson);
+    doc["stops"][0]["mode"] = "opaque";
+    doc["stops"][0]["groups"][0]["lineColor"] = "#CE1126";
+    doc["stops"][0]["groups"][0]["lineTextColor"] = ink;
+    std::string json;
+    serializeJson(doc, json);
+    TEST_ASSERT_TRUE(parseFeed(json, snapshot.feed) == ParseResult::Ok);
+    TEST_ASSERT_EQUAL_STRING(ink, snapshot.feed.stops[0].groups[0].lineTextColor.c_str());
+    auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+    ArrivalRenderer renderer;
+    Framebuffer frame(64, 32);
+    renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+    // L's top-left stroke and badge padding: explicit ink, unchanged background.
+    TEST_ASSERT_EQUAL_HEX32(ink[1] == '0' ? 0 : 0xffffff, frame.pixel(2, 12));
+    TEST_ASSERT_EQUAL_HEX32(0xce1126, frame.pixel(1, 11));
+  }
+  for (const char *invalid : {"#fff", "red", "#12345z"}) {
+    DynamicJsonDocument doc(128 * 1024);
+    deserializeJson(doc, FixtureJson);
+    doc["stops"][0]["groups"][0]["lineTextColor"] = invalid;
+    std::string json;
+    serializeJson(doc, json);
+    Feed output;
+    TEST_ASSERT_TRUE(parseFeed(json, output) == ParseResult::Invalid);
+  }
+  auto snapshot = sample();
+  TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
+  const auto &stop = snapshot.feed.stops[snapshot.feed.stops.size() - 2];
+  constexpr Color colors[] = {0x547b31, 0x894796, 0x2d4191, 0x000000, 0xc62a0f};
+  View view;
+  view.stops.push_back(stop);
+  Framebuffer frame(64, 32);
+  ArrivalRenderer renderer;
+  for (unsigned i = 0; i < 5; ++i) {
+    renderer.render(frame, view, snapshot.feed.generatedAt, i * PageDurationMs);
+    TEST_ASSERT_EQUAL_HEX32(colors[i], frame.pixel(1, 11));
+    bool whiteInk = false;
+    for (int y = 12; y < 17; ++y)
+      for (int x = 2; x < 15; ++x)
+        whiteInk = whiteInk || frame.pixel(x, y) == 0xffffff;
+    TEST_ASSERT_TRUE(whiteInk);
+  }
+  // Every verified Metro policy fixture uses its explicit foreground, independent of label.
+  view.stops[0] = snapshot.feed.stops[snapshot.feed.stops.size() - 3];
+  for (size_t i = 0; i < view.stops[0].groups.size(); ++i) {
+    const auto &group = view.stops[0].groups[i];
+    renderer.render(frame, view, snapshot.feed.generatedAt, i * PageDurationMs);
+    TEST_ASSERT_EQUAL_HEX32(group.lineTextColor == "#000000" ? 0 : 0xffffff, frame.pixel(2, 12));
+  }
+  // A legacy colourless bus keeps its existing green fallback without inferring V family.
+  view.stops[0] = snapshot.feed.stops.back();
+  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+  TEST_ASSERT_EQUAL_HEX32(0x42ac52, frame.pixel(1, 11));
+}
 void reviewed_raster_regression() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
@@ -456,8 +515,10 @@ void reviewed_raster_regression() {
   Framebuffer frame(64, 32);
   // Keep the reviewed neutral-colour geometry baseline; separate tests cover new colours.
   for (auto &stop : view.stops)
-    for (auto &group : stop.groups)
+    for (auto &group : stop.groups) {
       group.lineColor = "#777777";
+      group.lineTextColor.clear();
+    }
   // Baselines from the reviewed native PNGs; catch missing/overlapping text and markers.
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
   TEST_ASSERT_EQUAL_UINT64(17682094639170009042ULL, pixelsHash(frame));
@@ -499,6 +560,7 @@ int main() {
   RUN_TEST(badge_contrast_pairs);
   RUN_TEST(badge_typography_comparisons);
   RUN_TEST(service_page_indicators);
+  RUN_TEST(explicit_badge_foregrounds);
   RUN_TEST(reviewed_raster_regression);
   return UNITY_END();
 }
