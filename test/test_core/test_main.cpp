@@ -557,17 +557,20 @@ void brightness_presets_are_bounded() {
   }
 }
 void v23_contrast_uses_operational_c2() {
-  constexpr Color inks[] = {0xffffff, 0xd9d9d9, 0xbfbfbf, 0};
+  constexpr Color inks[] = {0xffffff, 0xd9d9d9, 0xd9d9d9, 0xbfbfbf};
+  constexpr Color backgrounds[] = {0x547b31, 0x466729, 0x385322, 0x30481d};
   for (unsigned variant = 0; variant < 4; ++variant) {
     Framebuffer frame(64, 32);
     badgecontrast::renderV23(frame, variant);
-    TEST_ASSERT_EQUAL_HEX32(0x547b31, frame.pixel(1, 11));
+    TEST_ASSERT_EQUAL_HEX32(backgrounds[variant], frame.pixel(1, 11));
     Framebuffer expected(64, 32);
     typography::drawC2(expected, "V23", 2, 12, 1, 1, 63);
     for (int y = 12; y < 17; ++y)
       for (int x = 2; x < 17; ++x)
         if (expected.pixel(x, y))
           TEST_ASSERT_EQUAL_HEX32(inks[variant], frame.pixel(x, y));
+        else
+          TEST_ASSERT_EQUAL_HEX32(backgrounds[variant], frame.pixel(x, y));
   }
 }
 void reviewed_raster_regression() {

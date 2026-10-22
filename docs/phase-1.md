@@ -420,3 +420,12 @@ Confirmed decision: all operational text, including countdown digits, M suffixes
 User-reported physical observations: brightness 4/255 is comfortable indoors at night with lights on and colours look correct. Complete darkness may require lower brightness or display-off; scheduling remains unresolved and is not implemented. Prototype default is now 4; serial brightness presets remain.
 
 V23 experiment: build hub75-badge-contrast. Starts variant A; uppercase A/B/C/D select #FFFFFF/#D9D9D9/#BFBFBF/#000000 on unchanged #547B31. Uses the operational renderer with normalized Feed v1 lineColor/lineTextColor, no production identity rule. Press m to toggle the earlier Metro comparison. Fixed brightness 4/255. Evaluate under the same ambient light, recording readability and glare for each variant before selecting a production foreground. Production V-series foreground remains unchanged. No API calls or new externally verified facts. Software raster/build results do not establish physical readability. No ESP32 flashed.
+
+
+## Darker V23 diagnostic backgrounds — 2026-10-22
+
+User-observed preceding physical test at 4/255: #FFFFFF too bright; #D9D9D9 and #BFBFBF improved balance but remained difficult to read; black unsatisfactory. These observations motivate a new isolated experiment, not a production palette decision.
+
+Replaced diagnostic A–D pairs with background/foreground #547B31/#FFFFFF, #466729/#D9D9D9, #385322/#D9D9D9 and #30481D/#BFBFBF. V23 remains operational C2 via normalized Feed v1 lineColor/lineTextColor. Shared diagnostic sample definitions drive both rendering and serial reporting. Each selection prints variant, both colours and global brightness 4/255. Uppercase controls and prior Metro comparison remain. Production renderer, palettes and backend unchanged. No external facts verified or provider calls made. Physical readability of darker green remains unresolved; compare under fixed viewing conditions. No ESP32 flashed.
+
+Observed software validation: all 49 native firmware tests passed, including exact C2 V23 ink and background pixels for all four pairs and unchanged operational raster regressions. hub75-badge-contrast build passed. Firmware formatting and diff whitespace checks passed. These checks do not establish physical LED readability; no upload or flash performed.

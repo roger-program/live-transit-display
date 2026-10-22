@@ -72,4 +72,20 @@ Confirmed decision: all operational text, including countdown digits, M suffixes
 
 User-reported physical observations: brightness 4/255 is comfortable indoors at night with lights on and colours look correct. Complete darkness may require lower brightness or display-off; scheduling remains unresolved and is not implemented. Prototype default is now 4; serial brightness presets remain.
 
-V23 experiment: build hub75-badge-contrast. Starts variant A; uppercase A/B/C/D select #FFFFFF/#D9D9D9/#BFBFBF/#000000 on unchanged #547B31. Uses the operational renderer with normalized Feed v1 lineColor/lineTextColor, no production identity rule. Press m to toggle the earlier Metro comparison. Fixed brightness 4/255. Evaluate under the same ambient light, recording readability and glare for each variant before selecting a production foreground. Production V-series foreground remains unchanged. No API calls or new externally verified facts. Software raster/build results do not establish physical readability. No ESP32 flashed.
+V23 experiment: build hub75-badge-contrast. Starts variant A; uppercase A/B/C/D select the current colour pairs below. Each selection reports variant, background, foreground and global brightness. Uses the operational renderer with normalized Feed v1 lineColor/lineTextColor, no production identity rule. Press m to toggle the earlier Metro comparison. Fixed brightness 4/255. Evaluate under the same ambient light, recording readability and glare for each variant before selecting a production foreground. Production V-series foreground remains unchanged. No API calls or new externally verified facts. Software raster/build results do not establish physical readability. No ESP32 flashed.
+
+
+## Darker V-series backgrounds — 2026-10-22
+
+This replaces the previous foreground-only V23 variants.
+
+| Variant | Background | Foreground |
+| --- | --- | --- |
+| A | #547B31 | #FFFFFF |
+| B | #466729 | #D9D9D9 |
+| C | #385322 | #D9D9D9 |
+| D | #30481D | #BFBFBF |
+
+Keep global brightness at 4/255 and operational C2 text V23. Uppercase A–D selects and reports the exact pair; i repeats the report. Other diagnostic controls remain available.
+
+User-reported physical results from the preceding test: white was too bright; reduced white improved brightness balance but remained difficult to read; black was unsatisfactory. The darker backgrounds are experimental choices, not revised production colours. Compare readability, glare and recognition at fixed ambient light, distance and angle. Whether darker green helps remains unresolved until physical evaluation. No device flashed.

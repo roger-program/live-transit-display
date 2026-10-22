@@ -15,7 +15,10 @@ bool swapped = false;
 badgecontrast::Comparison comparison = badgecontrast::Comparison::BlackWhite;
 void report() {
   if (v23) {
-    Serial.printf("V23 variant %c; background=#547B31; brightness=4/255\n", char('A' + variant));
+    const auto &colors = badgecontrast::V23Variants[variant];
+    Serial.printf("V23 variant %c; background=%s; foreground=%s; brightness=%u/255\n",
+                  char('A' + variant), colors.background, colors.foreground,
+                  unsigned(appcfg::Brightness));
     return;
   }
   Serial.printf("Badge contrast %u: %s #%06lx; left=%s right=%s; brightness=4\n", selected,

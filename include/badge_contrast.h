@@ -53,8 +53,18 @@ inline void drawBold(transit::Framebuffer &frame, const char *label, int x, int 
               frame.pixel(x + col, y + row, 0xffffff);
 }
 // Feed v1 normalized inputs exercise the operational badge colour path.
+struct V23Variant {
+  const char *background;
+  const char *foreground;
+};
+inline constexpr V23Variant V23Variants[] = {
+    {"#547B31", "#FFFFFF"},
+    {"#466729", "#D9D9D9"},
+    {"#385322", "#D9D9D9"},
+    {"#30481D", "#BFBFBF"},
+};
 inline void renderV23(transit::Framebuffer &frame, unsigned variant) {
-  constexpr const char *inks[] = {"#FFFFFF", "#D9D9D9", "#BFBFBF", "#000000"};
+  const auto &colors = V23Variants[variant % 4];
   transit::View view;
   transit::Stop stop;
   stop.mode = "bus";
@@ -63,8 +73,8 @@ inline void renderV23(transit::Framebuffer &frame, unsigned variant) {
   stop.status = transit::StopStatus::Ok;
   transit::Group group;
   group.line = "V23";
-  group.lineColor = "#547B31";
-  group.lineTextColor = inks[variant % 4];
+  group.lineColor = colors.background;
+  group.lineTextColor = colors.foreground;
   group.destination = "CONTRAST";
   group.arrivals.push_back({120000, transit::Provenance::Realtime, "", ""});
   stop.groups.push_back(group);
