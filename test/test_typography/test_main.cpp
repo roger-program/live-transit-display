@@ -41,44 +41,44 @@ uint64_t rasterHash(const Framebuffer &frame) {
     }
   return hash;
 }
-void original_c_rasters_are_unchanged() {
+void original_c_labels_with_regular_badges() {
   // Captured before C2 changes: six original samples, four reveal phases each.
   constexpr uint64_t expected[6][4] = {
       {
-          6313334295921434406ULL,
-          1555733161246437846ULL,
-          1555733161246437846ULL,
-          1555733161246437846ULL,
+          7749878141983216069ULL,
+          9931406020408383525ULL,
+          9931406020408383525ULL,
+          9931406020408383525ULL,
       },
       {
-          14456415335612399286ULL,
-          6536940450219568726ULL,
-          12870228134835537798ULL,
-          6536940450219568726ULL,
+          13422728455129996514ULL,
+          3449185746832397186ULL,
+          14918542989308745010ULL,
+          3449185746832397186ULL,
       },
       {
-          3929238620019417560ULL,
-          3929238620019417560ULL,
-          3929238620019417560ULL,
-          3929238620019417560ULL,
+          16896965383166995204ULL,
+          16896965383166995204ULL,
+          16896965383166995204ULL,
+          16896965383166995204ULL,
       },
       {
-          17260872549701333587ULL,
-          6733157038434577587ULL,
-          1281795804916322731ULL,
-          6733157038434577587ULL,
+          14243549861090742104ULL,
+          17324614225099239448ULL,
+          17564728952860026400ULL,
+          17324614225099239448ULL,
       },
       {
-          15948530755033704665ULL,
-          18285982664928063097ULL,
-          13042077144263896297ULL,
-          18285982664928063097ULL,
+          4342782278554189309ULL,
+          5829578235396363885ULL,
+          9357593157961210909ULL,
+          5829578235396363885ULL,
       },
       {
-          15477338888834312075ULL,
-          4535416234175118923ULL,
-          13715089068438336971ULL,
-          4535416234175118923ULL,
+          12858854701760518983ULL,
+          8920544667613570791ULL,
+          8771529488988145159ULL,
+          8920544667613570791ULL,
       },
   };
   Framebuffer frame(64, 32);
@@ -88,13 +88,13 @@ void original_c_rasters_are_unchanged() {
       TEST_ASSERT_EQUAL_UINT64(expected[sample][step], rasterHash(frame));
     }
 }
-void previous_faces_are_unchanged() {
-  // Whole-frame snapshots captured before completing the C2 alphabet.
+void comparison_faces_with_regular_badges() {
+  // Comparison-label rasters now share active C2 badges; individual B/C/D masters remain unchanged.
   constexpr uint64_t expected[] = {
-      11387924015495438145ULL,
-      2028969189399253273ULL,
-      14647834937721726873ULL,
-      11743500881333410017ULL,
+      13155006443075424845ULL,
+      414003277100157933ULL,
+      14148901540790083805ULL,
+      1078605851073503261ULL,
   };
   Framebuffer frame(64, 32);
   for (unsigned face = 0; face < 4; ++face) {
@@ -168,7 +168,7 @@ void complete_alphabet_and_remaining_character_audit() {
   drawText(operational, "0123456789", 0, 0, 1, 0, 64);
   TEST_ASSERT_TRUE(same(arrivals, operational));
 }
-void validated_capitals_except_q_are_unchanged() {
+void validated_capitals_except_q_and_x_are_unchanged() {
   constexpr transit::Glyph before[] = {
       {'A', {6, 9, 15, 9, 9}},     {'B', {14, 9, 14, 9, 14}},   {'C', {15, 8, 8, 8, 15}},
       {'D', {14, 9, 9, 9, 14}},    {'E', {15, 8, 14, 8, 15}},   {'F', {15, 8, 14, 8, 8}},
@@ -181,7 +181,7 @@ void validated_capitals_except_q_are_unchanged() {
       {'Y', {9, 9, 6, 4, 4}},      {'Z', {15, 1, 6, 8, 15}},
   };
   for (const auto &glyph : before) {
-    if (glyph.character == 'Q')
+    if (glyph.character == 'Q' || glyph.character == 'X')
       continue;
     const auto &current = typography::c2Glyph(glyph.character);
     TEST_ASSERT_EQUAL(glyph.character, current.character);
@@ -190,6 +190,13 @@ void validated_capitals_except_q_are_unchanged() {
         glyph.character == 'I' ? 3 : (glyph.character == 'M' || glyph.character == 'W' ? 5 : 4),
         typography::c2Columns(glyph.character));
   }
+}
+void x_bitmap_and_spacing_are_precise() {
+  const uint8_t expected[] = {9, 9, 6, 9, 9};
+  TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, typography::c2Glyph('X').rows, 5);
+  TEST_ASSERT_EQUAL(4, typography::c2Columns('X'));
+  TEST_ASSERT_EQUAL(4, typography::c2Width("X"));
+  TEST_ASSERT_EQUAL(9, typography::c2Width("XX"));
 }
 void q_bowl_and_tail_change_are_precise() {
   const uint8_t before[] = {15, 9, 9, 11, 1};
@@ -359,7 +366,8 @@ void only_text_slots_change_and_badges_are_regular() {
       const int slotLeft = 1 + std::min(30, textWidth(input.line) + 2) + 2;
       for (Face face : {Face::B, Face::C, Face::D, Face::C2}) {
         typography::render(alternative, face, sample, phase);
-        TEST_ASSERT_FALSE(same(baseline, alternative));
+        if (face != Face::C2)
+          TEST_ASSERT_FALSE(same(baseline, alternative));
         for (int y = 0; y < 32; ++y)
           for (int x = 0; x < 64; ++x) {
             const bool label = y >= 2 && y < 7 && x >= 10 && x < 63;
@@ -468,11 +476,12 @@ void serial_selection_is_repeatable() {
 int main() {
   UNITY_BEGIN();
   RUN_TEST(sample_palette_matches_existing_fixture);
-  RUN_TEST(original_c_rasters_are_unchanged);
-  RUN_TEST(previous_faces_are_unchanged);
+  RUN_TEST(original_c_labels_with_regular_badges);
+  RUN_TEST(comparison_faces_with_regular_badges);
   RUN_TEST(established_c2_glyphs_are_unchanged);
   RUN_TEST(complete_alphabet_and_remaining_character_audit);
-  RUN_TEST(validated_capitals_except_q_are_unchanged);
+  RUN_TEST(validated_capitals_except_q_and_x_are_unchanged);
+  RUN_TEST(x_bitmap_and_spacing_are_precise);
   RUN_TEST(q_bowl_and_tail_change_are_precise);
   RUN_TEST(numerals_punctuation_and_normalization);
   RUN_TEST(c2_dimensions_counters_and_coverage);

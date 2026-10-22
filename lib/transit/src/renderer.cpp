@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "font.h"
+#include "regular_font.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -32,15 +33,15 @@ Color lineColor(const std::string &color, const std::string &mode) {
 void badge(Framebuffer &frame, const std::string &label, int x, int y, Color color, int offset,
            const std::string &textColor = "") {
   // Explicit width limit protects the separate countdown field from long line labels.
-  int width = std::min(frame.width() / 2 - 2, textWidth(label) + 2);
+  int width = std::min(frame.width() / 2 - 2, typography::c2Width(label) + 2);
   frame.rect(x + offset, y, width, 7, color);
   const Color ink =
       !textColor.empty() ? static_cast<Color>(std::strtoul(textColor.c_str() + 1, nullptr, 16))
       : (((color >> 16) & 255) * 299 + ((color >> 8) & 255) * 587 + (color & 255) * 114) > 150000
           ? 0
           : 0xffffff;
-  drawText(frame, label, x + 1 + offset, y + 1, ink, std::max(1, x + offset),
-           std::min(frame.width() - 1, x + offset + width));
+  typography::drawC2(frame, label, x + 1 + offset, y + 1, ink, std::max(1, x + offset),
+                     std::min(frame.width() - 1, x + offset + width));
 }
 void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t now,
               uint64_t pageTime, uint64_t stopTime, int offset, bool header, bool content) {
@@ -54,9 +55,9 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
           offset, stop.mode == "bus" ? "#FFFFFF" : "");
     const std::string name = stop.nameKnown ? stop.name : stop.mode + ":" + stop.id;
     const int right = frame.width() - 1 - (stop.status == StopStatus::Partial ? 6 : 0);
-    drawText(frame, name, 10 + offset, 2, White, std::max(1, 10 + offset),
-             std::min(frame.width() - 1, right + offset),
-             overflowOffset(textWidth(name), right - 10, stopTime));
+    typography::drawC2(frame, name, 10 + offset, 2, White, std::max(1, 10 + offset),
+                       std::min(frame.width() - 1, right + offset),
+                       overflowOffset(typography::c2Width(name), right - 10, stopTime));
     if (stop.status == StopStatus::Partial)
       drawText(frame, "!", right + offset, 2, 0xffaa00, 1, frame.width() - 1);
     frame.rect(1 + offset, 9, frame.width() - 2, 1, 0x384438);
@@ -64,7 +65,8 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
   if (!content)
     return;
   if (!page.groupCount) {
-    drawText(frame, stopMessage(stop.status), 2 + offset, 16, Green, 1, frame.width() - 1);
+    typography::drawC2(frame, stopMessage(stop.status), 2 + offset, 16, Green, 1,
+                       frame.width() - 1);
     return;
   }
   const int spacing = frame.height() >= 54 ? 23 : 19;
@@ -81,8 +83,8 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     }
     if (arrivals.empty())
       arrivals = "NO PRED";
-    const int badgeWidth =
-        std::min(frame.width() / 2 - 2, textWidth(group.line.empty() ? "?" : group.line) + 2);
+    const int badgeWidth = std::min(frame.width() / 2 - 2,
+                                    typography::c2Width(group.line.empty() ? "?" : group.line) + 2);
     const int slotLeft = 1 + badgeWidth + 2;
     const int available = frame.width() - 1 - slotLeft;
     // If two values cannot fit, retain the first intact instead of clipping ambiguity.
@@ -97,9 +99,10 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     const int arrivalLeft = std::max(slotLeft, frame.width() - 1 - textWidth(arrivals));
     drawText(frame, arrivals, arrivalLeft + offset, y, Green, std::max(1, arrivalLeft + offset),
              std::min(frame.width() - 1, frame.width() - 1 + offset));
-    drawText(frame, group.destination, 2 + offset, y + 9, White, std::max(1, 2 + offset),
-             std::min(frame.width() - 1, frame.width() - 1 + offset),
-             overflowOffset(textWidth(group.destination), frame.width() - 3, pageTime));
+    typography::drawC2(
+        frame, group.destination, 2 + offset, y + 9, White, std::max(1, 2 + offset),
+        std::min(frame.width() - 1, frame.width() - 1 + offset),
+        overflowOffset(typography::c2Width(group.destination), frame.width() - 3, pageTime));
   }
   if (page.servicePages > 1) {
     const int count = std::min(static_cast<int>(page.servicePages), frame.width() / 3);
@@ -204,7 +207,7 @@ void ArrivalRenderer::render(Framebuffer &frame, const View &view, int64_t now, 
   frame.clear();
   const auto pages = pagesFor(view, frame.height());
   if (pages.empty()) {
-    drawText(frame, view.message, 2, 12, Green, 1, frame.width() - 1);
+    typography::drawC2(frame, view.message, 2, 12, Green, 1, frame.width() - 1);
     return;
   }
   const size_t index = (elapsed / PageDurationMs) % pages.size();

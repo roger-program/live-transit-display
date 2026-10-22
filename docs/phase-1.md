@@ -401,3 +401,14 @@ renderer/countdown/badge fonts, backend/Feed v1, stable colour policy, GPIO,
 HUB75 driver/brightness 16, hardware configuration and PlatformIO environments
 remain unchanged. Full bitmaps, coverage and upload instructions are in
 `docs/typography.md`.
+
+
+## Active regular typography and serial brightness — 2026-10-22
+
+C2 is now the operational regular font for stop labels, destinations, mode and line badges, and status messages. Its X rows are exactly 9,9,6,9,9 (4×5), with a one-pixel inter-character gap. C2 masters live in lib/transit/src/regular_font.h; the former include/typography_c2.h is a research compatibility wrapper. Legacy bitmap primitives remain for unchanged countdowns, diagnostic patterns and intentional comparison tools. The partial-coverage exclamation mark remains the existing indicator. Feed Protocol v1, colours, page geometry, timings and default brightness remain unchanged. Narrower text changes measured badge widths and reveal distances as required by the selected font.
+
+Offline fixture/live modes accept b4, b8, b16 or b32 followed by Enter over the 115200-baud serial monitor. For example: `.venv/bin/pio device monitor --port /dev/cu.usbmodem1101 --baud 115200`, then type `b8` and Enter. CR, LF and CRLF are accepted. Changes reach the existing DMA driver on the next frame (nominally within 50 ms); reset restores 16/255. Invalid commands do not change brightness. Diagnostic mode retains its existing serial controls and brightness sweeps. These presets are an isolated prototype input; configuredBrightness is an ordinary byte that can later be assigned by device configuration without changing the rendering/driver interface. Values are not calibrated luminance.
+
+The sibling browser preview uses matching C2 masks, widths, spaces and apostrophe/accent folding. Detailed density scales ordinary C2 pixels by two; specialized detailed countdowns remain unchanged. Browser concept/identity typography comparisons are retained intentionally for research. Browser geometry, badge padding and countdown presentation still differ from the 64×32 firmware; glyph parity does not establish whole-frame equivalence. No hardware upload or physical readability measurement was performed.
+
+Final validation on 2026-10-22: 48/48 native firmware tests passed; hub75-fixture build succeeded with 309585 bytes application flash and 19332 bytes static RAM. Backend 160/160 tests, TypeScript checking and lint passed. Firmware formatting and both repository diff whitespace checks passed. No flashing performed.

@@ -1,4 +1,5 @@
 #include "app_config.h"
+#include "brightness.h"
 #include "display_driver.h"
 #include "feed_client.h"
 #include "fixture.h"
@@ -21,6 +22,27 @@ SemaphoreHandle_t mailboxMutex;
 bool mailboxPending = false;
 std::atomic<bool> synchronized{false};
 uint64_t animationStart = 0;
+uint8_t configuredBrightness = appcfg::Brightness;
+std::string serialCommand;
+bool serialOverflow = false;
+void readBrightness() {
+  while (Serial.available()) {
+    const char ch = static_cast<char>(Serial.read());
+    if (ch == '\n' || ch == '\r') {
+      if (!serialOverflow && !serialCommand.empty()) {
+        if (transit::brightnessPreset(serialCommand, configuredBrightness))
+          Serial.printf("Brightness %u/255\n", configuredBrightness);
+        else
+          Serial.println("Brightness commands: b4, b8, b16, b32 (then Enter)");
+      }
+      serialCommand.clear();
+      serialOverflow = false;
+    } else if (serialCommand.size() < 8 && !serialOverflow)
+      serialCommand += ch;
+    else
+      serialOverflow = true;
+  }
+}
 unsigned diagnostic = 0;
 uint64_t diagnosticStart = 0;
 
@@ -97,6 +119,8 @@ void setup() {
   esp_log_level_set("*", ESP_LOG_NONE);
   Serial.begin(115200);
   printInfo();
+  if (APP_MODE != 1)
+    Serial.println("Brightness: b4, b8, b16, b32 then Enter; default 16/255");
   if (!display.begin()) {
     Serial.println("Display initialization failed");
     while (true)
@@ -118,7 +142,9 @@ void setup() {
 }
 void loop() {
   const uint64_t tick = uptimeMs();
-  uint8_t brightness = appcfg::Brightness;
+  if (APP_MODE != 1)
+    readBrightness();
+  uint8_t brightness = configuredBrightness;
   if (APP_MODE == 1) {
     while (Serial.available()) {
       int input = Serial.read();

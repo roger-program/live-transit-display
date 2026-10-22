@@ -1,4 +1,5 @@
 #include "badge_contrast.h"
+#include "brightness.h"
 #include "feed_request.h"
 #include "fixture.h"
 #include "renderer.h"
@@ -528,6 +529,32 @@ void bus_stop_badge_is_independent_of_line_colors() {
   TEST_ASSERT_EQUAL_HEX32(0, frame.pixel(2, 12));
   TEST_ASSERT_EQUAL_HEX32(0xffffff, frame.pixel(2, 2));
 }
+void operational_badge_uses_regular_x() {
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  view.stops.front().groups.front().line = "X";
+  view.stops.front().groups.front().lineColor = "#123456";
+  view.stops.front().groups.front().lineTextColor = "#FFFFFF";
+  Framebuffer frame(64, 32);
+  ArrivalRenderer renderer;
+  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+  const uint8_t rows[] = {9, 9, 6, 9, 9};
+  for (int y = 0; y < 5; ++y)
+    for (int x = 0; x < 4; ++x)
+      TEST_ASSERT_EQUAL_HEX32(rows[y] & (1 << (3 - x)) ? 0xffffff : 0x123456,
+                              frame.pixel(2 + x, 12 + y));
+}
+void brightness_presets_are_bounded() {
+  uint8_t value = 16;
+  for (const auto preset : {4, 8, 16, 32}) {
+    TEST_ASSERT_TRUE(brightnessPreset("b" + std::to_string(preset), value));
+    TEST_ASSERT_EQUAL(preset, value);
+  }
+  for (const auto *invalid : {"b0", "b255", "b-1", "b16extra", "", "16"}) {
+    TEST_ASSERT_FALSE(brightnessPreset(invalid, value));
+    TEST_ASSERT_EQUAL(32, value);
+  }
+}
 void reviewed_raster_regression() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
@@ -539,24 +566,24 @@ void reviewed_raster_regression() {
       group.lineColor = "#777777";
       group.lineTextColor.clear();
     }
-  // Baselines from the reviewed native PNGs; catch missing/overlapping text and markers.
+  // Active C2 typography raster baselines; exact glyph masks are checked separately.
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
-  TEST_ASSERT_EQUAL_UINT64(17682094639170009042ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(4234504253916165992ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 5 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(1514878761944730371ULL, pixelsHash(frame));
-  // Restoring only the former header background reproduces the reviewed old raster.
+  TEST_ASSERT_EQUAL_UINT64(18216677645695225880ULL, pixelsHash(frame));
+  // A header background-only substitution keeps text and geometry fixed.
   auto legacyHeader = frame;
   for (int y = 1; y < 8; ++y)
     for (int x = 1; x < 8; ++x)
       if (legacyHeader.pixel(x, y) == 0xc62a0f)
         legacyHeader.pixel(x, y, 0x42ac52);
-  TEST_ASSERT_EQUAL_UINT64(17687063311361716670ULL, pixelsHash(legacyHeader));
+  TEST_ASSERT_EQUAL_UINT64(15678726954626631993ULL, pixelsHash(legacyHeader));
   TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
   view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   renderer.render(frame, view, snapshot.feed.generatedAt, 2 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(2637198088624226296ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(5318716738657364286ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 3 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(4873872969905638214ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(6106750770200546648ULL, pixelsHash(frame));
 }
 } // namespace
 int main() {
@@ -589,6 +616,8 @@ int main() {
   RUN_TEST(service_page_indicators);
   RUN_TEST(explicit_badge_foregrounds);
   RUN_TEST(bus_stop_badge_is_independent_of_line_colors);
+  RUN_TEST(operational_badge_uses_regular_x);
+  RUN_TEST(brightness_presets_are_bounded);
   RUN_TEST(reviewed_raster_regression);
   return UNITY_END();
 }
