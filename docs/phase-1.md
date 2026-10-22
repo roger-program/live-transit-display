@@ -412,3 +412,11 @@ Offline fixture/live modes accept b4, b8, b16 or b32 followed by Enter over the 
 The sibling browser preview uses matching C2 masks, widths, spaces and apostrophe/accent folding. Detailed density scales ordinary C2 pixels by two; specialized detailed countdowns remain unchanged. Browser concept/identity typography comparisons are retained intentionally for research. Browser geometry, badge padding and countdown presentation still differ from the 64×32 firmware; glyph parity does not establish whole-frame equivalence. No hardware upload or physical readability measurement was performed.
 
 Final validation on 2026-10-22: 48/48 native firmware tests passed; hub75-fixture build succeeded with 309585 bytes application flash and 19332 bytes static RAM. Backend 160/160 tests, TypeScript checking and lint passed. Firmware formatting and both repository diff whitespace checks passed. No flashing performed.
+
+## Operational C2 and V23 contrast — 2026-10-22
+
+Confirmed decision: all operational text, including countdown digits, M suffixes and partial-status markers, uses regular_font.h C2. Countdown widths and right alignment use C2 ink widths; the existing first-arrival fallback and clipping bounds remain. Legacy glyph helpers remain for isolated diagnostics. Browser operational glyphs use the matching C2 definitions and measured widths at both scales. Typography experiments remain available.
+
+User-reported physical observations: brightness 4/255 is comfortable indoors at night with lights on and colours look correct. Complete darkness may require lower brightness or display-off; scheduling remains unresolved and is not implemented. Prototype default is now 4; serial brightness presets remain.
+
+V23 experiment: build hub75-badge-contrast. Starts variant A; uppercase A/B/C/D select #FFFFFF/#D9D9D9/#BFBFBF/#000000 on unchanged #547B31. Uses the operational renderer with normalized Feed v1 lineColor/lineTextColor, no production identity rule. Press m to toggle the earlier Metro comparison. Fixed brightness 4/255. Evaluate under the same ambient light, recording readability and glare for each variant before selecting a production foreground. Production V-series foreground remains unchanged. No API calls or new externally verified facts. Software raster/build results do not establish physical readability. No ESP32 flashed.

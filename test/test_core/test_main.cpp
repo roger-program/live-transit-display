@@ -2,6 +2,7 @@
 #include "brightness.h"
 #include "feed_request.h"
 #include "fixture.h"
+#include "regular_font.h"
 #include "renderer.h"
 #include <ArduinoJson.h>
 #include <unity.h>
@@ -269,7 +270,7 @@ void raster_determinism_and_paging() {
 }
 void diagnostics_and_clipping() {
   Framebuffer frame(64, 32);
-  TEST_ASSERT_EQUAL(16, renderDiagnostic(frame, Diagnostic::Red, 0));
+  TEST_ASSERT_EQUAL(4, renderDiagnostic(frame, Diagnostic::Red, 0));
   TEST_ASSERT_EQUAL_HEX32(0xff0000, frame.pixel(63, 31));
   renderDiagnostic(frame, Diagnostic::Green, 0);
   TEST_ASSERT_EQUAL_HEX32(0x00ff00, frame.pixel(0, 0));
@@ -555,6 +556,20 @@ void brightness_presets_are_bounded() {
     TEST_ASSERT_EQUAL(32, value);
   }
 }
+void v23_contrast_uses_operational_c2() {
+  constexpr Color inks[] = {0xffffff, 0xd9d9d9, 0xbfbfbf, 0};
+  for (unsigned variant = 0; variant < 4; ++variant) {
+    Framebuffer frame(64, 32);
+    badgecontrast::renderV23(frame, variant);
+    TEST_ASSERT_EQUAL_HEX32(0x547b31, frame.pixel(1, 11));
+    Framebuffer expected(64, 32);
+    typography::drawC2(expected, "V23", 2, 12, 1, 1, 63);
+    for (int y = 12; y < 17; ++y)
+      for (int x = 2; x < 17; ++x)
+        if (expected.pixel(x, y))
+          TEST_ASSERT_EQUAL_HEX32(inks[variant], frame.pixel(x, y));
+  }
+}
 void reviewed_raster_regression() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
@@ -568,22 +583,22 @@ void reviewed_raster_regression() {
     }
   // Active C2 typography raster baselines; exact glyph masks are checked separately.
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
-  TEST_ASSERT_EQUAL_UINT64(4234504253916165992ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(4652948382405536046ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 5 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(18216677645695225880ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(6892046344060526122ULL, pixelsHash(frame));
   // A header background-only substitution keeps text and geometry fixed.
   auto legacyHeader = frame;
   for (int y = 1; y < 8; ++y)
     for (int x = 1; x < 8; ++x)
       if (legacyHeader.pixel(x, y) == 0xc62a0f)
         legacyHeader.pixel(x, y, 0x42ac52);
-  TEST_ASSERT_EQUAL_UINT64(15678726954626631993ULL, pixelsHash(legacyHeader));
+  TEST_ASSERT_EQUAL_UINT64(12972573383326975115ULL, pixelsHash(legacyHeader));
   TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
   view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   renderer.render(frame, view, snapshot.feed.generatedAt, 2 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(5318716738657364286ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(1747568753111830010ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 3 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(6106750770200546648ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(2220839326115014118ULL, pixelsHash(frame));
 }
 } // namespace
 int main() {
@@ -618,6 +633,7 @@ int main() {
   RUN_TEST(bus_stop_badge_is_independent_of_line_colors);
   RUN_TEST(operational_badge_uses_regular_x);
   RUN_TEST(brightness_presets_are_bounded);
+  RUN_TEST(v23_contrast_uses_operational_c2);
   RUN_TEST(reviewed_raster_regression);
   return UNITY_END();
 }

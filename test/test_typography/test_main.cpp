@@ -91,10 +91,10 @@ void original_c_labels_with_regular_badges() {
 void comparison_faces_with_regular_badges() {
   // Comparison-label rasters now share active C2 badges; individual B/C/D masters remain unchanged.
   constexpr uint64_t expected[] = {
-      13155006443075424845ULL,
-      414003277100157933ULL,
-      14148901540790083805ULL,
-      1078605851073503261ULL,
+      13951603525253931717ULL,
+      17005051676223190861ULL,
+      9353075426315248013ULL,
+      15100612861453528333ULL,
   };
   Framebuffer frame(64, 32);
   for (unsigned face = 0; face < 4; ++face) {

@@ -52,6 +52,26 @@ inline void drawBold(transit::Framebuffer &frame, const char *label, int x, int 
             if (glyph.rows[row] & (1 << (5 - col)))
               frame.pixel(x + col, y + row, 0xffffff);
 }
+// Feed v1 normalized inputs exercise the operational badge colour path.
+inline void renderV23(transit::Framebuffer &frame, unsigned variant) {
+  constexpr const char *inks[] = {"#FFFFFF", "#D9D9D9", "#BFBFBF", "#000000"};
+  transit::View view;
+  transit::Stop stop;
+  stop.mode = "bus";
+  stop.name = std::string("V23 TEST ") + char('A' + variant % 4);
+  stop.nameKnown = true;
+  stop.status = transit::StopStatus::Ok;
+  transit::Group group;
+  group.line = "V23";
+  group.lineColor = "#547B31";
+  group.lineTextColor = inks[variant % 4];
+  group.destination = "CONTRAST";
+  group.arrivals.push_back({120000, transit::Provenance::Realtime, "", ""});
+  stop.groups.push_back(group);
+  view.stops.push_back(stop);
+  transit::ArrivalRenderer renderer;
+  renderer.render(frame, view, 0, 0);
+}
 inline void render(transit::Framebuffer &frame, unsigned index, bool swapped = false,
                    Comparison comparison = Comparison::BlackWhite) {
   frame.clear();

@@ -59,7 +59,7 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
                        std::min(frame.width() - 1, right + offset),
                        overflowOffset(typography::c2Width(name), right - 10, stopTime));
     if (stop.status == StopStatus::Partial)
-      drawText(frame, "!", right + offset, 2, 0xffaa00, 1, frame.width() - 1);
+      typography::drawC2(frame, "!", right + offset, 2, 0xffaa00, 1, frame.width() - 1);
     frame.rect(1 + offset, 9, frame.width() - 2, 1, 0x384438);
   }
   if (!content)
@@ -88,17 +88,18 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     const int slotLeft = 1 + badgeWidth + 2;
     const int available = frame.width() - 1 - slotLeft;
     // If two values cannot fit, retain the first intact instead of clipping ambiguity.
-    if (textWidth(arrivals) > available && group.arrivals.size() > 1)
+    if (typography::c2Width(arrivals) > available && group.arrivals.size() > 1)
       arrivals = countdown(group.arrivals.front(), now);
-    if (textWidth(arrivals) > available)
+    if (typography::c2Width(arrivals) > available)
       arrivals = group.arrivals.empty()
                      ? "NONE"
                      : (group.arrivals.front().provenance == Provenance::Scheduled ? "S99+M"
                         : group.arrivals.front().provenance == Provenance::Unknown ? "?99+M"
                                                                                    : "99+M");
-    const int arrivalLeft = std::max(slotLeft, frame.width() - 1 - textWidth(arrivals));
-    drawText(frame, arrivals, arrivalLeft + offset, y, Green, std::max(1, arrivalLeft + offset),
-             std::min(frame.width() - 1, frame.width() - 1 + offset));
+    const int arrivalLeft = std::max(slotLeft, frame.width() - 1 - typography::c2Width(arrivals));
+    typography::drawC2(frame, arrivals, arrivalLeft + offset, y, Green,
+                       std::max(1, arrivalLeft + offset),
+                       std::min(frame.width() - 1, frame.width() - 1 + offset));
     typography::drawC2(
         frame, group.destination, 2 + offset, y + 9, White, std::max(1, 2 + offset),
         std::min(frame.width() - 1, frame.width() - 1 + offset),
@@ -270,6 +271,6 @@ uint8_t renderDiagnostic(Framebuffer &frame, Diagnostic mode, uint64_t elapsed) 
     return level;
   }
   }
-  return 16;
+  return 4;
 }
 } // namespace transit
