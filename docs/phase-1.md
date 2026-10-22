@@ -429,3 +429,14 @@ User-observed preceding physical test at 4/255: #FFFFFF too bright; #D9D9D9 and 
 Replaced diagnostic A–D pairs with background/foreground #547B31/#FFFFFF, #466729/#D9D9D9, #385322/#D9D9D9 and #30481D/#BFBFBF. V23 remains operational C2 via normalized Feed v1 lineColor/lineTextColor. Shared diagnostic sample definitions drive both rendering and serial reporting. Each selection prints variant, both colours and global brightness 4/255. Uppercase controls and prior Metro comparison remain. Production renderer, palettes and backend unchanged. No external facts verified or provider calls made. Physical readability of darker green remains unresolved; compare under fixed viewing conditions. No ESP32 flashed.
 
 Observed software validation: all 49 native firmware tests passed, including exact C2 V23 ink and background pixels for all four pairs and unchanged operational raster regressions. hub75-badge-contrast build passed. Firmware formatting and diff whitespace checks passed. These checks do not establish physical LED readability; no upload or flash performed.
+
+
+## Saturated V-series diagnostic comparison — 2026-10-23
+
+User-reported physical observations, Waveshare P2.5 64×32 HUB75 at brightness 4/255: comfortable indoors; original #547B31/white difficult to read; #385322/#D9D9D9 more readable but almost grey, losing green identity. No quantitative measurements supplied.
+
+Replaced only isolated diagnostic A–D inputs: A #385322 (previous best reference), B #286B12, C #207A10, D #185C08; all foregrounds #D9D9D9. Existing operational C2 V23 rendering via normalized lineColor/lineTextColor, uppercase selection, serial colour/brightness report and default 4/255 remain. The diagnostic has no brightness-adjustment control; other environments' controls are untouched. Production renderer, Metro/bus colours and backend unchanged. No dependencies or operator rules added.
+
+Method for the pending physical test: compare each pair under fixed ambient light, distance and angle; record readability and recognizable green separately. More saturated candidates improving both is a hypothesis, not a verified outcome. No external facts verified or provider requests made; no ESP32 flashed.
+
+Observed validation: all 49 native firmware tests passed, including exact C2 badge foreground/background checks for all four pairs and unchanged operational raster regressions. hub75-badge-contrast built successfully. Firmware formatting and diff whitespace checks passed. No upload performed; physical readability and green identity remain pending evaluation.

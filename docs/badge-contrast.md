@@ -77,7 +77,7 @@ V23 experiment: build hub75-badge-contrast. Starts variant A; uppercase A/B/C/D 
 
 ## Darker V-series backgrounds — 2026-10-22
 
-This replaces the previous foreground-only V23 variants.
+Historical experiment: replaced the foreground-only V23 variants; superseded by the saturated-green comparison below.
 
 | Variant | Background | Foreground |
 | --- | --- | --- |
@@ -89,3 +89,19 @@ This replaces the previous foreground-only V23 variants.
 Keep global brightness at 4/255 and operational C2 text V23. Uppercase A–D selects and reports the exact pair; i repeats the report. Other diagnostic controls remain available.
 
 User-reported physical results from the preceding test: white was too bright; reduced white improved brightness balance but remained difficult to read; black was unsatisfactory. The darker backgrounds are experimental choices, not revised production colours. Compare readability, glare and recognition at fixed ambient light, distance and angle. Whether darker green helps remains unresolved until physical evaluation. No device flashed.
+
+
+## Current saturated-green comparison — 2026-10-23
+
+| Variant | Background | Foreground |
+| --- | --- | --- |
+| A (reference) | #385322 | #D9D9D9 |
+| B | #286B12 | #D9D9D9 |
+| C | #207A10 | #D9D9D9 |
+| D | #185C08 | #D9D9D9 |
+
+User-reported observations on the Waveshare P2.5 64×32 panel: global brightness 4/255 is comfortable indoors; original #547B31 with white text is difficult to read. #385322 with #D9D9D9 is more readable but appears almost grey. A retains that best previous result as the reference. B–D are experimental candidates intended to retain a recognizable green; physical success remains unresolved.
+
+Build hub75-badge-contrast. Starts A; uppercase A/B/C/D selects the pair and reports variant, background, foreground and global brightness. i repeats the report; m toggles the existing Metro comparison. V23 retains operational C2 and brightness stays 4/255. This isolated entry point has no serial brightness adjustment; existing controls elsewhere are unchanged.
+
+Compare readability and green identity at the same ambient light, distance and angle. Record both separately before choosing a production palette. No operational rendering or production colours changed; no ESP32 flashed.

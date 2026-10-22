@@ -58,10 +58,10 @@ struct V23Variant {
   const char *foreground;
 };
 inline constexpr V23Variant V23Variants[] = {
-    {"#547B31", "#FFFFFF"},
-    {"#466729", "#D9D9D9"},
     {"#385322", "#D9D9D9"},
-    {"#30481D", "#BFBFBF"},
+    {"#286B12", "#D9D9D9"},
+    {"#207A10", "#D9D9D9"},
+    {"#185C08", "#D9D9D9"},
 };
 inline void renderV23(transit::Framebuffer &frame, unsigned variant) {
   const auto &colors = V23Variants[variant % 4];

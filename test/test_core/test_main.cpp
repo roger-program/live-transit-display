@@ -557,8 +557,8 @@ void brightness_presets_are_bounded() {
   }
 }
 void v23_contrast_uses_operational_c2() {
-  constexpr Color inks[] = {0xffffff, 0xd9d9d9, 0xd9d9d9, 0xbfbfbf};
-  constexpr Color backgrounds[] = {0x547b31, 0x466729, 0x385322, 0x30481d};
+  constexpr Color inks[] = {0xd9d9d9, 0xd9d9d9, 0xd9d9d9, 0xd9d9d9};
+  constexpr Color backgrounds[] = {0x385322, 0x286b12, 0x207a10, 0x185c08};
   for (unsigned variant = 0; variant < 4; ++variant) {
     Framebuffer frame(64, 32);
     badgecontrast::renderV23(frame, variant);
