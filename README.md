@@ -149,3 +149,10 @@ The sibling browser preview uses matching C2 masks, widths, spaces and apostroph
 ## First physical live-arrivals test
 
 See [configuration, hotspot, endpoint decision, build/upload and recovery steps](docs/live-arrivals.md). Normal live mode reuses the existing Wi-Fi/HTTPS/parser pipeline; no backend exposure, deployment or hardware flashing is automatic. Current configured brightness is 4/255; historical bring-up notes above record earlier brightness settings.
+
+## User-configurable Wi-Fi
+
+The live firmware supports a protected local setup AP, saved NVS credentials,
+BOOT long-press and `wifi` serial recovery. See [Wi-Fi setup](docs/wifi-setup.md)
+for migration behaviour, manual acceptance tests and the preserved-build restore
+procedure. No automatic upload is part of setup development.

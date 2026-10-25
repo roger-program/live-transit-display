@@ -26,7 +26,7 @@ esp_err_t onHttpEvent(esp_http_client_event_t *event) {
 }
 } // namespace
 bool FeedClient::configured() const {
-  return localcfg::WifiSsid[0] && transit::validOrigin(localcfg::FeedOrigin) &&
+  return transit::validOrigin(localcfg::FeedOrigin) &&
          transit::validBearer(localcfg::BearerToken) && localcfg::RootCa[0];
 }
 transit::FeedResult FeedClient::fetch(const std::vector<std::string> &selectors) const {

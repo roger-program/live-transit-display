@@ -4,6 +4,7 @@
 #include "feed_client.h"
 #include "fixture.h"
 #include "renderer.h"
+#include "wifi_setup.h"
 #include <Arduino.h>
 #include <WiFi.h>
 #include <atomic>
@@ -14,6 +15,10 @@
 
 namespace {
 PrototypeDisplay display;
+WifiSetup wifiSetup;
+uint64_t bootPressedAt = 0;
+bool bootReleased = false;
+bool bootHandled = false;
 transit::ArrivalRenderer renderer;
 transit::Framebuffer frame(panelcfg::Width *panelcfg::ChainLength, panelcfg::Height);
 transit::Snapshot snapshot;
@@ -30,7 +35,9 @@ void readBrightness() {
     const char ch = static_cast<char>(Serial.read());
     if (ch == '\n' || ch == '\r') {
       if (!serialOverflow && !serialCommand.empty()) {
-        if (transit::brightnessPreset(serialCommand, configuredBrightness))
+        if (APP_MODE == 0 && serialCommand == "wifi")
+          wifiSetup.request();
+        else if (transit::brightnessPreset(serialCommand, configuredBrightness))
           Serial.printf("Brightness %u/255\n", configuredBrightness);
         else
           Serial.println("Brightness commands: b4, b8, b16, b32 (then Enter)");
@@ -85,25 +92,25 @@ void publish(transit::Snapshot &next) {
 void networkTask(void *) {
   FeedClient client;
   std::vector<std::string> selectors(std::begin(appcfg::Stops), std::end(appcfg::Stops));
+  wifiSetup.begin();
   if (!client.configured() || selectors.empty() || selectors.size() > transit::MaxStops) {
     transit::Snapshot next;
     next.error = transit::RequestError::NoConfig;
     publish(next);
-    vTaskDelete(nullptr);
-    return;
+    while (true) {
+      wifiSetup.tick(uptimeMs());
+      vTaskDelay(pdMS_TO_TICKS(50));
+    }
   }
-  WiFi.persistent(false);
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(true);
   sntp_set_time_sync_notification_cb([](timeval *) { synchronized.store(true); });
   configTime(0, 0, "pool.ntp.org", "time.cloudflare.com");
-  uint64_t reconnectAt = 0;
   uint64_t pollAt = 0;
   bool offlinePublished = false;
   bool connected = false;
   bool waitingForClock = false;
   while (true) {
     const uint64_t tick = uptimeMs();
+    wifiSetup.tick(tick);
     if (WiFi.status() != WL_CONNECTED) {
       if (connected)
         Serial.println("Wi-Fi disconnected; reconnecting");
@@ -114,10 +121,6 @@ void networkTask(void *) {
         next.error = transit::RequestError::Network;
         publish(next);
         offlinePublished = true;
-      }
-      if (tick >= reconnectAt) {
-        WiFi.begin(localcfg::WifiSsid, localcfg::WifiPassword);
-        reconnectAt = tick + 15000;
       }
     } else {
       if (!connected) {
@@ -132,7 +135,7 @@ void networkTask(void *) {
           publish(next);
           waitingForClock = true;
         }
-      } else if (tick >= pollAt) {
+      } else if (!wifiSetup.active() && tick >= pollAt) {
         auto result = client.fetch(selectors);
         transit::Snapshot next;
         next.error = result.error;
@@ -167,8 +170,12 @@ void setup() {
     snapshot.hasFeed = transit::parseFeed(FixtureJson, snapshot.feed) == transit::ParseResult::Ok;
     snapshot.receivedAtMs = animationStart;
   } else if (APP_MODE == 0) {
+    pinMode(0, INPUT_PULLUP);
+    Serial.println("Hold BOOT for 3 seconds after startup, or enter wifi, for Wi-Fi setup");
+    const bool wifiReady = wifiSetup.initialize();
     mailboxMutex = xSemaphoreCreateMutex();
-    if (!mailboxMutex || xTaskCreate(networkTask, "feed", 16384, nullptr, 1, nullptr) != pdPASS)
+    if (!wifiReady || !mailboxMutex ||
+        xTaskCreate(networkTask, "feed", 16384, nullptr, 1, nullptr) != pdPASS)
       snapshot.error = transit::RequestError::Network;
   } else {
     Serial.println(
@@ -179,6 +186,21 @@ void loop() {
   const uint64_t tick = uptimeMs();
   if (APP_MODE != 1)
     readBrightness();
+  if (APP_MODE == 0) {
+    const bool pressed = digitalRead(0) == LOW;
+    if (!pressed) {
+      bootReleased = true;
+      bootPressedAt = 0;
+      bootHandled = false;
+    } else if (bootReleased && !bootHandled) {
+      if (!bootPressedAt)
+        bootPressedAt = tick;
+      if (tick - bootPressedAt >= 3000) {
+        wifiSetup.request();
+        bootHandled = true;
+      }
+    }
+  }
   uint8_t brightness = configuredBrightness;
   if (APP_MODE == 1) {
     while (Serial.available()) {
@@ -209,6 +231,8 @@ void loop() {
     const auto view = transit::viewAt(snapshot, now, tick, APP_MODE == 2 || clockValid());
     renderer.render(frame, view, now, tick - animationStart);
   }
+  if (APP_MODE == 0)
+    wifiSetup.render(frame, tick);
   display.present(frame, brightness);
   delay(50); // 20 fps; network/TLS work runs separately from animation.
 }

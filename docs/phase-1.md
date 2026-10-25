@@ -586,3 +586,46 @@ only documentation changed among tracked files; app/panel configuration, normal
 renderer, fonts, palettes, brightness and diagnostics remain unchanged. Rebuild
 after entering the private values; the manual upload command performs that build.
 No ESP32 flash, reset, serial-monitor connection or backend change was made.
+
+
+## Persistent Wi-Fi and protected local setup — 25 October 2026
+
+Implemented in the existing live firmware; no partition, environment, renderer,
+Feed v1 contract, backend, TLS policy, deployment or device flash changed. The
+new WifiSetup module owns station retries, a ten-minute WPA-protected SoftAP and
+a self-contained mobile HTTP form bound to the AP address. It supports async
+network discovery/manual SSID, bounded candidate association, failure/retry,
+committed NVS credentials and shutdown five seconds after success. Feed work
+pauses during setup; normal reconnects continue without credential erasure.
+
+Credentials are versioned blobs in the existing NVS transit-wifi namespace.
+Inactive-slot write/readback precedes active-slot commit, retaining the previous
+record. Saved settings take priority; compiled development Wi-Fi is tested once
+only when the namespace has no records. FeedClient no longer requires a compiled
+Wi-Fi SSID. No passwords are logged. NVS encryption/production security and the
+Arduino default-NVS auto-erasure caveat remain unresolved; no destructive NVS
+recovery was introduced.
+
+BOOT GPIO0 runtime long-press (release after startup, then hold three seconds)
+and the development serial command wifi + Enter reopen setup without clearing
+saved credentials. Waveshare documents a programmable BOOT button and its
+official music-player example defines BOARD_BUTTON_PIN 0. Source URLs,
+verification date, enclosure/access limitations, migration behaviour and all six
+manual acceptance scenarios are in [Wi-Fi setup](wifi-setup.md). Actual button,
+phone handoff, AP channel changes, radio, stack/heap and power-cut NVS tests are
+pending; no physical test or board connection was performed.
+
+Before rebuilding, preserved the prior local hub75-live application (886,448
+bytes), bootloader and partition binary in ignored artifacts/wifi-before-change;
+added the matching stock helper, build settings/table and verified SHA-256
+manifest. Artifacts may contain embedded secrets and remain private. This is not
+a device readback. Application-only wired restoration at 0x10000 and optional
+full-image recovery offsets are documented, not executed.
+
+Final software verification: 58/58 native cases passed (54 existing, four new
+credential/record validation cases); all eight existing hardware environments
+built successfully. Final hub75-live: 932,649 application bytes, 46,492 static
+RAM bytes. Formatting, fixture consistency, diff whitespace and archive hashes
+passed. The partition CSV, PlatformIO settings and generated live partition
+binary match the preserved versions. Native cases do not emulate Wi-Fi, HTTP
+or NVS power-loss behaviour. No upload, erase, reset, repartition or deployment.
