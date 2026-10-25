@@ -684,3 +684,34 @@ Validation: 62/62 native cases passed; hub75-live built (936,301 application byt
 46,516 static RAM bytes). Formatting, fixture consistency and diff whitespace
 passed. No partition, NVS schema, transport renderer, recovery controls, backend
 or TLS policy change. No flash, erase, deployment or device connection.
+
+
+## Dedicated onboarding success and BOOT handling — 25 October 2026
+
+Added a separate mobile success document containing only Connected!, Your display
+is ready., and You can close this page. It is served only after association,
+DHCP and successful NVS activation. Failure/retry pages remain. Browser-initiated
+setup now waits to serve that page before arming its five-second AP shutdown
+grace; arrivals and normal saved-network retries resume after the verified save.
+If the phone never requests the success page, the AP remains available until it
+does or the device is rebooted. Compiled-credential migration closes automatically
+without waiting for a nonexistent browser. No credential schema change.
+
+Rechecked Waveshare's official music-player example: BOARD_BUTTON_PIN 0,
+INPUT_PULLUP, pressed on a false read; source URL and verification date are in
+docs/wifi-setup.md. Kept GPIO0 unchanged. Main loop nominal polling is 50 ms;
+network work is already a separate task. Replaced the initial-release gate with
+100 ms debounce and a one-shot three-second hold, and bounded serial input
+draining so continuous traffic cannot monopolize the loop. Added initial-level,
+pressed/released, activation and polling-gap diagnostics. Serial wifi recovery,
+HUB75 mapping and transport rendering remain unchanged.
+
+The startup gate/no-debounce/unbounded-drain limitations are verified code
+findings; none proves the cause of the user's physical runtime hold failure.
+Actual GPIO0 levels, PCB/enclosure access, polling under real load, phone receipt
+and page rendering still need physical verification. The manual procedure is
+in docs/wifi-setup.md; holding BOOT at reset can enter ROM download mode.
+
+Validation: 65/65 native cases passed; hub75-live built with 937,361 application
+bytes and 46,540 static RAM bytes. Formatting, fixtures and diff whitespace
+passed. No flash, erase, device connection, partition change or deployment.

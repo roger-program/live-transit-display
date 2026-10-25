@@ -1,6 +1,8 @@
+#include "setup_button.h"
 #include "wifi_credentials.h"
 #include "wifi_setup_diagnostics.h"
 #include "wifi_setup_screen.h"
+#include "wifi_success_page.h"
 #include <unity.h>
 using namespace provisioning;
 void setUp() {}
@@ -75,8 +77,52 @@ void connection_failures_distinguish_network_auth_and_timeout() {
   TEST_ASSERT_NOT_NULL(std::strstr(connectionFailure(0), "DHCP"));
   TEST_ASSERT_NOT_NULL(std::strstr(connectionFailure(65535), "retry"));
 }
+void boot_hold_debounces_and_triggers_once() {
+  SetupButton button;
+  TEST_ASSERT_FALSE(button.update(false, 0));
+  TEST_ASSERT_FALSE(button.update(true, 100));
+  TEST_ASSERT_FALSE(button.update(false, 150));
+  TEST_ASSERT_FALSE(button.update(true, 180));
+  TEST_ASSERT_FALSE(button.update(true, 280));
+  TEST_ASSERT_TRUE(button.pressed());
+  TEST_ASSERT_FALSE(button.update(false, 1000)); // Short release noise does not reset the hold.
+  TEST_ASSERT_FALSE(button.update(true, 1050));
+  TEST_ASSERT_FALSE(button.update(true, 3279));
+  TEST_ASSERT_TRUE(button.update(true, 3280));
+  TEST_ASSERT_FALSE(button.update(true, 9000));
+  TEST_ASSERT_FALSE(button.update(false, 9050));
+  TEST_ASSERT_FALSE(button.update(false, 9150));
+  TEST_ASSERT_FALSE(button.pressed());
+  TEST_ASSERT_FALSE(button.update(true, 9200));
+  TEST_ASSERT_FALSE(button.update(true, 9300));
+  TEST_ASSERT_TRUE(button.update(true, 12300));
+}
+void boot_hold_at_first_sample_and_short_press() {
+  SetupButton held;
+  TEST_ASSERT_FALSE(held.update(true, 0));
+  TEST_ASSERT_FALSE(held.update(true, 100));
+  TEST_ASSERT_TRUE(held.update(true, 3100));
+  SetupButton shortPress;
+  shortPress.update(false, 0);
+  shortPress.update(true, 100);
+  shortPress.update(true, 200);
+  shortPress.update(false, 1000);
+  shortPress.update(false, 1100);
+  TEST_ASSERT_FALSE(shortPress.update(false, 5000));
+}
+void success_page_has_no_form_or_troubleshooting() {
+  const std::string page = WifiSuccessPage;
+  for (const char *text : {"Connected!", "Your display is ready.", "You can close this page."})
+    TEST_ASSERT_TRUE(page.find(text) != std::string::npos);
+  for (const char *element : {"<form", "<input", "<select", "<button", "http-equiv", "password",
+                              "2.4 GHz", "reconnect", "Retry"})
+    TEST_ASSERT_TRUE(page.find(element) == std::string::npos);
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(boot_hold_debounces_and_triggers_once);
+  RUN_TEST(boot_hold_at_first_sample_and_short_press);
+  RUN_TEST(success_page_has_no_form_or_troubleshooting);
   RUN_TEST(setup_request_origin_validation);
   RUN_TEST(ssid_diagnostics_are_bounded_single_line);
   RUN_TEST(connection_failures_distinguish_network_auth_and_timeout);

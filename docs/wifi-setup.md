@@ -30,8 +30,12 @@ started on a later network-task tick (at least one second after queueing).
 Progress refreshes use GET `/`, never a repeat POST. Connection tests allow 20
 seconds from the actual connection attempt. Success means association to the requested
 SSID and a nonzero station IP, not internet, DNS or feed availability. The status
-page refreshes while testing. On success, credentials are saved and the AP/server
-close after five seconds; reconnect the phone to its usual network. AP channel
+page refreshes while testing. After a verified save, arrivals resume automatically
+and the browser receives a dedicated Connected! page without a form. For browser
+setup, the AP/server close five seconds after that success page is served. If the
+phone has disconnected, rejoin the setup AP to receive the page; until then the
+AP remains available while arrivals run. Compiled-credential migration has no
+browser to wait for and closes the AP after five seconds. AP channel
 changes during home-network association can interrupt the phone connection; the
 matrix and retry/rejoin path are required physical checks.
 
@@ -88,8 +92,9 @@ used as a settings button. Espressif documents GPIO0 low at reset as download mo
 https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html
 (checked 2026-10-25).
 
-After normal startup, release BOOT once, then hold it for three seconds to enter
-setup without removing the saved network. Do not hold BOOT while resetting for
+After normal startup, hold BOOT for three seconds (plus about 100 ms debounce)
+to enter setup without removing the saved network. No preliminary release is
+required by the application handler. Do not hold BOOT while resetting for
 this feature: that can enter the ROM downloader instead. If BOOT is inaccessible,
 open the development USB serial monitor at 115200 and send `wifi` followed by
 Enter. Existing brightness commands remain. Serial recovery does not print AP or
@@ -250,3 +255,64 @@ actionable disconnect-reason classification. Formatting, fixtures and whitespace
 checks passed. Tests do not simulate WebServer sockets, radio/channel changes or
 NVS failure injection. Exact hardware root cause and end-to-end fix remain to be
 verified by the steps above. No flash, erase, deployment or device connection.
+
+## Dedicated success page and BOOT investigation — 25 October 2026
+
+The success page is a separate, minimal mobile document with the exact text:
+“Connected!”, “Your display is ready.”, “You can close this page.” There is no form,
+selector, input, button, troubleshooting text or refresh redirect. It uses the
+existing system-font/spacing style with a generous content inset. The success
+branch is reached only after candidate association, DHCP and the existing
+inactive-record/readback/activation NVS sequence have all succeeded. Failures
+retain the existing form and retry/error flow.
+
+For browser submissions, saving no longer starts a timer that can expire before
+the next browser request. The AP shutdown timer is armed after serving the first
+success page, with five seconds for receipt/rendering. Arrivals and saved-network
+retries resume immediately after saving. If the browser never returns after a
+channel switch, the AP remains available for the success page; reboot uses the
+saved network normally. Repeated success requests do not keep extending the
+shutdown window. This preserves the browser opportunity, but actual socket
+delivery/phone rendering still requires a physical check.
+
+Hardware mapping was rechecked against Waveshare's official example on
+2026-10-25:
+https://raw.githubusercontent.com/waveshareteam/ESP32-S3-RGB-Matrix/main/example/arduino_v3.3.7/09_Music_Player/09_Music_Player.ino
+It defines BOARD_BUTTON_PIN 0, INPUT_PULLUP and a pressed state when the read
+level is false. GPIO0 is unchanged and no configured HUB75 pin overlaps it.
+The existing main loop samples nominally every 50 ms plus drawing/serial work;
+HTTP/feed requests run in a separate task. Inspection found no network fetch
+running directly in the button polling loop.
+
+Verified software limitations were an initial-release gate (a button held before
+the first poll was ignored), lack of debounce, and an unbounded serial input-drain
+loop that could starve later polling under continuous input. Replaced the gate
+with a 100 ms debounced, one-shot three-second hold; initial held state is handled,
+short release glitches do not reset a hold, and release rearms it. Serial draining
+is now bounded to 64 bytes/frame. These limitations do not establish the reported
+physical fault's cause. The existing wifi + Enter recovery command is unchanged.
+
+Serial now reports initial GPIO0 HIGH/LOW, debounced BOOT pressed/released,
+long-press activation and polling gaps above 250 ms. After an authorized manual
+upload, test during normal arrivals with the monitor at 115200:
+
+1. Expect GPIO0 initial HIGH with no button held. Press BOOT and expect
+   `BOOT: pressed`; hold about 3.1 seconds and expect
+   `BOOT: long press detected; requesting Wi-Fi setup`, then the AP-ready log.
+2. If no pressed/released logs occur, verify the actual accessible BOOT control,
+   PCB revision and GPIO0 electrical levels. Do not substitute RESET or remap a
+   GPIO based solely on the symptom. A button held during reset can enter ROM
+   download mode before application polling starts. Enclosure access is unverified.
+3. If pressed/released logs occur but activation fails, capture their timing and
+   any `BOOT: polling delayed` lines. An in-flight feed request may delay the
+   network task acting on an already logged request, but should not block polling.
+4. Submit a wrong password and confirm the retry form remains. Then submit the
+   correct password and verify that only the three success lines remain. Arrivals
+   should resume, followed by the success-page-sent log and AP closure no sooner
+   than five seconds afterward. Test rejoining the AP after a channel switch.
+5. Confirm serial wifi recovery and reboot using saved credentials still work.
+
+Final checks: 65/65 native cases passed, including debounce/initial hold/one-shot
+rearming and success-page exclusions; hub75-live built with 937,361 application
+bytes and 46,540 static RAM bytes. Formatting, fixture consistency and whitespace
+checks passed. No hardware interaction, flashing, erasure or deployment.

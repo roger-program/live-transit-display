@@ -3,6 +3,7 @@
 #include "wifi_credentials.h"
 #include "wifi_setup_diagnostics.h"
 #include "wifi_setup_screen.h"
+#include "wifi_success_page.h"
 #include <WiFi.h>
 #include <esp_system.h>
 #include <esp_timer.h>
@@ -51,6 +52,15 @@ void WifiSetup::sendPage(int code) {
   server_.sendHeader("Cache-Control", "no-store");
   server_.sendHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; "
                                                 "form-action 'self'; frame-ancestors 'none'");
+  if (success_) {
+    server_.send(200, "text/html; charset=utf-8", provisioning::WifiSuccessPage);
+    if (!successPageSent_) {
+      successPageSent_ = true;
+      finishAt_ = nowMs() + 5000;
+      Serial.println("Wi-Fi setup: success page sent; closing AP in five seconds");
+    }
+    return;
+  }
   String page = "<!doctype html><html lang=en><head><meta charset=utf-8>";
   if (testing_)
     page += "<meta http-equiv=refresh content='2;url=/'>";
@@ -180,6 +190,7 @@ void WifiSetup::begin() {
       sendPage(400);
       return;
     }
+    browserSubmission_ = true;
     candidateSsid_ = ssid;
     candidatePassword_ = password;
     testing_ = true;
@@ -212,6 +223,7 @@ void WifiSetup::begin() {
 void WifiSetup::start() {
   if (setup_)
     return;
+  browserSubmission_ = false;
   WiFi.disconnect(false, false);
   WiFi.mode(WIFI_AP_STA);
   xSemaphoreTake(mutex_, portMAX_DELAY);
@@ -281,7 +293,14 @@ void WifiSetup::tick(uint64_t now) {
         savedPassword_ = candidatePassword_;
         stored_ = true;
         success_ = true;
-        finishAt_ = nowMs() + 5000;
+        successPageSent_ = false;
+        // Browser setup waits for its success response before starting the AP shutdown grace.
+        // Compiled-credential migration has no browser response to wait for.
+        finishAt_ = browserSubmission_ ? 0 : nowMs() + 5000;
+        provisioning_ = false;
+        xSemaphoreTake(mutex_, portMAX_DELAY);
+        visible_ = false; // Arrivals resume even if the phone needs to rejoin for the success page.
+        xSemaphoreGive(mutex_);
         message("Connected and saved. Setup will close; reconnect your phone to home Wi-Fi.");
       } else {
         Serial.printf("Wi-Fi setup: credentials not saved (%s)\n", saveFailure);
@@ -304,7 +323,7 @@ void WifiSetup::tick(uint64_t now) {
       WiFi.scanNetworks(true);
     }
   }
-  if (setup_ && success_ && now >= finishAt_) {
+  if (setup_ && success_ && finishAt_ != 0 && now >= finishAt_) {
     testing_ = false;
     candidateSsid_ = "";
     candidatePassword_ = "";
@@ -323,7 +342,7 @@ void WifiSetup::tick(uint64_t now) {
     if (stored_ && WiFi.status() != WL_CONNECTED)
       connect(savedSsid_, savedPassword_, now);
   }
-  if (!setup_ && stored_ && WiFi.status() != WL_CONNECTED && now >= retryAt_)
+  if ((!setup_ || success_) && stored_ && WiFi.status() != WL_CONNECTED && now >= retryAt_)
     connect(savedSsid_, savedPassword_, now);
 }
 bool WifiSetup::render(transit::Framebuffer &frame) {

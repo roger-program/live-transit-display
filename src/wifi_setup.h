@@ -36,6 +36,7 @@ private:
   uint8_t activeSlot_ = 0;
   bool stored_ = false, setup_ = false, testing_ = false, success_ = false;
   bool attemptStarted_ = false;
+  bool successPageSent_ = false, browserSubmission_ = false;
   bool storageReady_ = false, visible_ = false;
   uint64_t attemptAt_ = 0, retryAt_ = 0, finishAt_ = 0, connectAt_ = 0;
 };

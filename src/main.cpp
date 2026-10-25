@@ -4,6 +4,7 @@
 #include "feed_client.h"
 #include "fixture.h"
 #include "renderer.h"
+#include "setup_button.h"
 #include "wifi_setup.h"
 #include <Arduino.h>
 #include <WiFi.h>
@@ -16,9 +17,9 @@
 namespace {
 PrototypeDisplay display;
 WifiSetup wifiSetup;
-uint64_t bootPressedAt = 0;
-bool bootReleased = false;
-bool bootHandled = false;
+constexpr uint8_t BootButtonPin = 0; // Waveshare's documented active-low BOOT input.
+provisioning::SetupButton bootButton;
+uint64_t lastButtonPollAt = 0;
 transit::ArrivalRenderer renderer;
 transit::Framebuffer frame(panelcfg::Width *panelcfg::ChainLength, panelcfg::Height);
 transit::Snapshot snapshot;
@@ -31,7 +32,8 @@ uint8_t configuredBrightness = appcfg::Brightness;
 std::string serialCommand;
 bool serialOverflow = false;
 void readBrightness() {
-  while (Serial.available()) {
+  unsigned remaining = 64; // Continuous serial traffic must not starve the BOOT poll.
+  while (remaining-- && Serial.available()) {
     const char ch = static_cast<char>(Serial.read());
     if (ch == '\n' || ch == '\r') {
       if (!serialOverflow && !serialCommand.empty()) {
@@ -170,7 +172,9 @@ void setup() {
     snapshot.hasFeed = transit::parseFeed(FixtureJson, snapshot.feed) == transit::ParseResult::Ok;
     snapshot.receivedAtMs = animationStart;
   } else if (APP_MODE == 0) {
-    pinMode(0, INPUT_PULLUP);
+    pinMode(BootButtonPin, INPUT_PULLUP);
+    Serial.printf("BOOT: GPIO0 initial level=%s (active low)\n",
+                  digitalRead(BootButtonPin) == LOW ? "LOW" : "HIGH");
     Serial.println("Hold BOOT for 3 seconds after startup, or enter wifi, for Wi-Fi setup");
     const bool wifiReady = wifiSetup.initialize();
     mailboxMutex = xSemaphoreCreateMutex();
@@ -187,18 +191,17 @@ void loop() {
   if (APP_MODE != 1)
     readBrightness();
   if (APP_MODE == 0) {
-    const bool pressed = digitalRead(0) == LOW;
-    if (!pressed) {
-      bootReleased = true;
-      bootPressedAt = 0;
-      bootHandled = false;
-    } else if (bootReleased && !bootHandled) {
-      if (!bootPressedAt)
-        bootPressedAt = tick;
-      if (tick - bootPressedAt >= 3000) {
-        wifiSetup.request();
-        bootHandled = true;
-      }
+    if (lastButtonPollAt && tick - lastButtonPollAt > 250)
+      Serial.printf("BOOT: polling delayed %llu ms\n",
+                    static_cast<unsigned long long>(tick - lastButtonPollAt));
+    lastButtonPollAt = tick;
+    const bool wasPressed = bootButton.pressed();
+    const bool activated = bootButton.update(digitalRead(BootButtonPin) == LOW, tick);
+    if (bootButton.pressed() != wasPressed)
+      Serial.println(bootButton.pressed() ? "BOOT: pressed" : "BOOT: released");
+    if (activated) {
+      Serial.println("BOOT: long press detected; requesting Wi-Fi setup");
+      wifiSetup.request();
     }
   }
   uint8_t brightness = configuredBrightness;
