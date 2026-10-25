@@ -1,4 +1,5 @@
 #include "wifi_credentials.h"
+#include "wifi_setup_diagnostics.h"
 #include "wifi_setup_screen.h"
 #include <unity.h>
 using namespace provisioning;
@@ -46,8 +47,39 @@ void setup_credentials_fit_static_panel() {
     TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(line));
   }
 }
+void setup_request_origin_validation() {
+  TEST_ASSERT_TRUE(setupHost("192.168.4.1"));
+  TEST_ASSERT_TRUE(setupHost("192.168.4.1:80"));
+  TEST_ASSERT_TRUE(
+      setupOrigin("")); // Some local clients omit Origin; form token is still required.
+  TEST_ASSERT_TRUE(setupOrigin("http://192.168.4.1"));
+  TEST_ASSERT_TRUE(setupOrigin("http://192.168.4.1:80"));
+  for (const std::string &value : {std::string("192.168.4.1.attacker.example"),
+                                   std::string("192.168.4.1:81"), std::string("localhost")})
+    TEST_ASSERT_FALSE(setupHost(value));
+  TEST_ASSERT_FALSE(setupOrigin("http://192.168.4.1.attacker.example"));
+  TEST_ASSERT_FALSE(setupOrigin("null"));
+  TEST_ASSERT_FALSE(setupOrigin("https://192.168.4.1"));
+}
+void ssid_diagnostics_are_bounded_single_line() {
+  TEST_ASSERT_EQUAL_STRING("Home Wi-Fi", diagnosticSsid("Home Wi-Fi").c_str());
+  const std::string input = std::string("x\r\n\t\x1b\"\\", 7) + char(0xff);
+  const auto safe = diagnosticSsid(input);
+  TEST_ASSERT_EQUAL_STRING("x\\x0D\\x0A\\x09\\x1B\\x22\\x5C\\xFF", safe.c_str());
+  TEST_ASSERT_EQUAL(32, diagnosticSsid(std::string(100, 'x')).size());
+}
+void connection_failures_distinguish_network_auth_and_timeout() {
+  TEST_ASSERT_NOT_NULL(std::strstr(connectionFailure(201), "Network not found"));
+  TEST_ASSERT_NOT_NULL(std::strstr(connectionFailure(202), "Authentication"));
+  TEST_ASSERT_NOT_NULL(std::strstr(connectionFailure(204), "handshake"));
+  TEST_ASSERT_NOT_NULL(std::strstr(connectionFailure(0), "DHCP"));
+  TEST_ASSERT_NOT_NULL(std::strstr(connectionFailure(65535), "retry"));
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(setup_request_origin_validation);
+  RUN_TEST(ssid_diagnostics_are_bounded_single_line);
+  RUN_TEST(connection_failures_distinguish_network_auth_and_timeout);
   RUN_TEST(setup_credentials_fit_static_panel);
   RUN_TEST(credential_boundaries);
   RUN_TEST(raw_psk_validation);

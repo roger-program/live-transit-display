@@ -651,3 +651,36 @@ Verification: 59/59 native cases passed, including setup text coverage/width at
 These are software observations, not physical readability or radio tests. Updated
 docs/wifi-setup.md covers the no-timeout manual check and configurable prototype
 settings. No flash, erase, device connection or deployment performed.
+
+
+## Wi-Fi submission diagnostics and response ordering — 25 October 2026
+
+Investigated the observed setup form submission failure by tracing the existing
+HTTP handler, pinned WebServer/WiFiSTA implementation, AP/STA association, timeout
+and NVS activation. Found WiFi.disconnect/begin ran before the 303 response,
+creating a response/channel-switch race. This is a verified code ordering defect
+and plausible symptom explanation, not a hardware-reproduced root cause.
+
+POST now returns a complete HTTP 200 progress page before the network task starts
+the queued connection after one second. Refresh explicitly uses GET /, avoiding
+POST resubmission or a missing GET /connect handler. Begin status is not treated
+as final asynchronous failure. The connection budget remains 20 seconds, timed
+from the real attempt. Valid explicit :80 Host/Origin values are accepted without
+allowing foreign origins or dropping token/interface checks.
+
+Added safe serial receipt/SSID/attempt/result/disconnect-reason/save/exit events,
+HTTP rejection categories and NVS failure stages. SSIDs are bounded/escaped; no
+passwords, form tokens, raw SDK exceptions, headers or request bodies are logged.
+Reason-specific retry pages preserve prior credentials. Shared-channel changes
+can still disconnect a phone; the page documents rejoining the setup AP.
+
+Sources checked 2026-10-25: installed Arduino 2.0.17 WiFiSTA/WebServer sources and
+IDF 4.4.7 home-channel documentation linked in docs/wifi-setup.md. That guide also
+records the full request-to-persistence trace, limitations and exact reproduction
+steps including incorrect password, default-port URL, successful save, reboot
+and router-channel/DHCP failure checks. Physical verification remains pending.
+
+Validation: 62/62 native cases passed; hub75-live built (936,301 application bytes,
+46,516 static RAM bytes). Formatting, fixture consistency and diff whitespace
+passed. No partition, NVS schema, transport renderer, recovery controls, backend
+or TLS policy change. No flash, erase, deployment or device connection.

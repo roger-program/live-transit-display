@@ -25,7 +25,10 @@ network dropdown, manual SSID, password field and status/retry flow. A backgroun
 scan populates the initial list; refresh the page after scanning. A failed
 connection triggers another scan. Hidden SSIDs can be entered manually.
 
-Connection tests allow 20 seconds. Success means association to the requested
+Form submission returns a complete progress page before the connection is
+started on a later network-task tick (at least one second after queueing).
+Progress refreshes use GET `/`, never a repeat POST. Connection tests allow 20
+seconds from the actual connection attempt. Success means association to the requested
 SSID and a nonzero station IP, not internet, DNS or feed availability. The status
 page refreshes while testing. On success, credentials are saved and the AP/server
 close after five seconds; reconnect the phone to its usual network. AP channel
@@ -47,8 +50,10 @@ is kept in RAM until its connection succeeds, written to the inactive slot, read
 back and compared, then activated with a separate committed slot selector. Failed
 association never writes NVS; incomplete candidate writes leave the previous
 selected slot in place. The old slot remains after activation. No Wi-Fi erase or
-factory-reset endpoint is added. SSIDs/passwords are not printed or echoed into
-HTML. Submitted passwords travel only over the protected local setup network.
+factory-reset endpoint is added. Submitted SSIDs are logged only as bounded,
+escaped single-line diagnostics. Passwords and form tokens are never logged or
+echoed into HTML. Submitted passwords travel only over the protected local setup
+network.
 
 The setup AP uses the shared prototype password `bcnmetro` and accepts one client.
 `SetupSsid` and `SetupPassword` in `lib/transit/src/wifi_setup_screen.h` are the
@@ -173,3 +178,75 @@ recovery are unchanged. Setup closes after the existing success delay and normal
 arrivals resume. Fixed-screen fit/coverage regression added; 59/59 native tests
 passed and hub75-live built (932,353 application bytes, 46,484 static RAM bytes).
 Physical readability, association and long-idle checks remain manual. No flashing.
+
+## Submission failure investigation — 25 October 2026
+
+**Verified code defect:** the old POST handler invoked WiFi.disconnect/begin
+before sending its 303 response. Joining home Wi-Fi can change the shared AP/STA
+channel, interrupting the phone before that response arrives. The pinned IDF
+documents station priority for the shared channel:
+https://docs.espressif.com/projects/esp-idf/en/v4.4.7/esp32s3/api-guides/wifi.html#home-channel
+(checked 2026-10-25). This is a plausible cause of the reported submit failure,
+not a physically reproduced root cause. A delay reduces the response/radio race;
+it cannot guarantee every phone survives a channel switch.
+
+**Other failure points:** strict Host comparison previously rejected the valid
+explicit :80 form. Host and Origin now allow only the setup address with absent
+or explicit default HTTP port; cross-origin protection and the random form token
+remain. Missing/stale token, wrong interface and unexpected Host/Origin now log
+the rejection category without raw headers, URLs or submitted secrets. The
+bundled WebServer must successfully parse the request before our handler logs
+it; absence of the request log means browser/network/parser failure remains
+possible. No SDK HTTP/TLS debug logging was enabled.
+
+A successfully parsed POST now logs receipt and a sanitized SSID, validates the
+form and queues the candidate. It returns an HTTP 200 progress page, then starts
+the connection after the response handler returns. The timer starts at the actual
+WiFi.begin call. Disconnect reason codes arrive through an atomic handoff from
+the Wi-Fi event task; intentional reason 8 is ignored. Begin's immediate status
+is logged, but is not treated as a definitive asynchronous connection result.
+The 20-second budget remains unchanged. Reason codes are hints: authentication
+or handshake failure does not prove that a password is wrong.
+
+After association to the candidate SSID and DHCP, NVS write/readback/activation
+are unchanged, with specific failure-stage diagnostics. Only a completed save
+starts the five-second shutdown delay. Failure leaves the AP, retry form, matrix
+credentials and previous saved credentials intact. Error text distinguishes
+network-not-found, authentication/handshake, router/signal and timeout/DHCP.
+Rejoin the setup AP and open its address again if the phone loses the page.
+
+### Reproduce and verify after a separately authorized manual upload
+
+1. Preserve the current working build before any upload; use the restoration
+   procedure above and confirm the selected device/port. No upload was performed
+   in this investigation. Open USB serial at **115200**.
+2. Boot normally, release BOOT, then hold it for three seconds, or send `wifi`
+   followed by Enter. Expect `Wi-Fi setup: AP and configuration page ready`.
+3. Join **metro-display** with **bcnmetro**, retain the connection without internet,
+   and open **http://192.168.4.1/** in a normal browser. Choose a known 2.4 GHz home
+   network and deliberately enter a wrong password of at least eight characters.
+4. Submit once. Expect, in order, `HTTP configuration request received`,
+   `SSID received`, `progress response sent; connection queued`, then
+   `connection attempt started`. A 403 rejection instead prints its category;
+   invalid input prints that no connection was started. No request log at all
+   isolates the failure before the parsed POST handler. Do not enable raw SDK logs.
+5. Allow roughly **21 seconds plus page refresh time**. Expect a disconnect reason
+   where supplied, then `connection failed` with status/reason and a useful page
+   error. The form must remain retryable. If disconnected, rejoin metro-display
+   and reopen the address. Try **http://192.168.4.1:80/** as well.
+6. Submit the correct password. Expect `connection successful; DHCP address
+   acquired`, `credentials saved successfully`, then `setup mode exited; returning
+   to arrivals`. If NVS fails, the specific write/readback/activation stage is
+   printed and setup remains open. Confirm live arrivals resume.
+7. Reboot and confirm saved-network reconnection. Repeat on a router channel other
+   than the initial setup channel 1 to exercise channel handoff. On a test network,
+   disable DHCP or move the selected AP out of range to exercise timeout/network
+   errors. Capture only these safe diagnostics and phone/router model details.
+
+**Software results:** 62/62 native cases passed; hub75-live built with 936,301
+application bytes and 46,516 static RAM bytes. New regressions cover default-port
+Host/Origin handling, rejected foreign origins, bounded/control-escaped SSIDs and
+actionable disconnect-reason classification. Formatting, fixtures and whitespace
+checks passed. Tests do not simulate WebServer sockets, radio/channel changes or
+NVS failure injection. Exact hardware root cause and end-to-end fix remain to be
+verified by the steps above. No flash, erase, deployment or device connection.
