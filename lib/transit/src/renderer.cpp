@@ -87,7 +87,7 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
                        std::min(frame.width() - 1, frame.width() - 1 + offset));
     const auto lines = destinationLines(group.destination, frame.width() - 2);
     for (size_t line = 0; line < lines.size(); ++line) {
-      const int destinationY = lines.size() == 2 ? y + 8 + static_cast<int>(line) * 6 : y + 9;
+      const int destinationY = y + 8 + static_cast<int>(line) * 6;
       typography::drawC2(frame, lines[line], 1 + offset, destinationY, White,
                          std::max(1, 1 + offset),
                          std::min(frame.width() - 1, frame.width() - 1 + offset),

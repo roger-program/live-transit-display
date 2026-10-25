@@ -493,7 +493,7 @@ void destination_wrapping_and_geometry() {
     view.stops[0].groups[0].destination = label;
     Framebuffer frame(64, 32), expected(64, 32);
     renderer.render(frame, view, snapshot.feed.generatedAt, 1500);
-    typography::drawC2(expected, label, 1, 21, 0xe8eee8, 1, 63,
+    typography::drawC2(expected, label, 1, 20, 0xe8eee8, 1, 63,
                        overflowOffset(typography::c2Width(label), 62, 1500));
     for (int y = 18; y < 32; ++y)
       for (int x = 0; x < 64; ++x)
@@ -634,22 +634,22 @@ void reviewed_raster_regression() {
     }
   // Active C2 typography raster baselines; exact glyph masks are checked separately.
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
-  TEST_ASSERT_EQUAL_UINT64(6232198569100824004ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(16407060266703154628ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 5 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(17157345282767631424ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(14666369046108617792ULL, pixelsHash(frame));
   // A header background-only substitution keeps text and geometry fixed.
   auto legacyHeader = frame;
   for (int y = 1; y < 8; ++y)
     for (int x = 1; x < 8; ++x)
       if (legacyHeader.pixel(x, y) == 0xc62a0f)
         legacyHeader.pixel(x, y, 0x42ac52);
-  TEST_ASSERT_EQUAL_UINT64(15782813740394858793ULL, pixelsHash(legacyHeader));
+  TEST_ASSERT_EQUAL_UINT64(16916934630398909737ULL, pixelsHash(legacyHeader));
   TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
   view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   renderer.render(frame, view, snapshot.feed.generatedAt, 2 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(10601792845716596446ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(8114341266584107742ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 3 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(12428467260189450338ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(18245193702606040162ULL, pixelsHash(frame));
 }
 } // namespace
 void interruption_retains_feed_and_recovers() {
@@ -717,6 +717,46 @@ void three_prediction_rows() {
   TEST_ASSERT_EQUAL_STRING("99' 99' 99'", arrivalText(group, 1000, 44).c_str());
   TEST_ASSERT_EQUAL_STRING("99' 99'", arrivalText(group, 1000, 43).c_str());
 }
+void three_prediction_framebuffer() {
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  view.stops.resize(1);
+  view.stops[0].groups.resize(1);
+  auto &group = view.stops[0].groups[0];
+  group.destination = "FONDO";
+  ArrivalRenderer renderer;
+  const std::vector<std::vector<int>> cases = {{0, 10, 19}, {2, 8, 15}, {12, 24, 38}};
+  const char *labels[] = {"0' 10' 19'", "2' 8' 15'", "12' 24' 38'"};
+  for (const char *line : {"L3", "LONG LINE"}) {
+    group.line = line;
+    const int badgeWidth = std::min(30, typography::c2Width(line) + 2);
+    const int slotLeft = 1 + badgeWidth + 2;
+    for (size_t i = 0; i < cases.size(); ++i) {
+      group.arrivals.clear();
+      Framebuffer baseline(64, 32), actual(64, 32), expected(64, 32);
+      renderer.render(baseline, view, 1000, 0);
+      for (int minute : cases[i])
+        group.arrivals.push_back({1001 + minute * 60000LL, Provenance::Realtime, "", ""});
+      const std::string label = badgeWidth == 30 ? (i == 0   ? "0' 10'"
+                                                    : i == 1 ? "2' 8'"
+                                                             : "12' 24'")
+                                                 : labels[i];
+      TEST_ASSERT_EQUAL_STRING(label.c_str(), arrivalText(group, 1000, 63 - slotLeft).c_str());
+      const int width = typography::c2Width(label);
+      TEST_ASSERT_TRUE(63 - width >= slotLeft);
+      // Draw the expected glyphs without clipping: missing minute-mark pixels or
+      // a clipped right edge in the actual renderer must fail this comparison.
+      typography::drawC2(expected, label, 63 - width, 12, 0xaaff66, 0, 64);
+      renderer.render(actual, view, 1000, 0);
+      for (int y = 11; y <= 17; ++y) {
+        for (int x = 0; x < slotLeft; ++x)
+          TEST_ASSERT_EQUAL_HEX32(baseline.pixel(x, y), actual.pixel(x, y));
+        for (int x = slotLeft; x < 64; ++x)
+          TEST_ASSERT_EQUAL_HEX32(expected.pixel(x, y), actual.pixel(x, y));
+      }
+    }
+  }
+}
 int main() {
   UNITY_BEGIN();
   RUN_TEST(interruption_retains_feed_and_recovers);
@@ -730,6 +770,7 @@ int main() {
   RUN_TEST(preserve_identifiers_and_color);
   RUN_TEST(countdown_boundaries);
   RUN_TEST(three_prediction_rows);
+  RUN_TEST(three_prediction_framebuffer);
   RUN_TEST(freshness_boundary_and_monotonic_guard);
   RUN_TEST(clock_and_request_errors_suppress_arrivals);
   RUN_TEST(partial_scheduled_and_expiry);
