@@ -435,22 +435,70 @@ void badge_typography_comparisons() {
     TEST_ASSERT_EQUAL_HEX32(0xffffff, frame.pixel(6, y));
   }
 }
-void service_page_indicators() {
+void pagination_without_indicators() {
   auto snapshot = sample();
   auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
-  Framebuffer frame(64, 32);
+  for (auto &stop : view.stops)
+    for (auto &group : stop.groups)
+      group.destination = "FONDO";
+  const auto pages = pagesFor(view, 32);
+  TEST_ASSERT_EQUAL(6, pages.size());
+  Framebuffer first(64, 32), next(64, 32), repeat(64, 32);
   ArrivalRenderer renderer;
-  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
-  for (int i = 0; i < 4; ++i)
-    TEST_ASSERT_EQUAL_HEX32(i == 0 ? 0xaaff66 : 0x384438, frame.pixel(1 + 3 * i, 30));
-  renderer.render(frame, view, snapshot.feed.generatedAt, PageDurationMs);
-  for (int i = 0; i < 4; ++i)
-    TEST_ASSERT_EQUAL_HEX32(i == 1 ? 0xaaff66 : 0x384438, frame.pixel(1 + 3 * i, 30));
+  renderer.render(first, view, snapshot.feed.generatedAt, 0);
+  renderer.render(next, view, snapshot.feed.generatedAt, PageDurationMs);
+  renderer.render(repeat, view, snapshot.feed.generatedAt, pages.size() * PageDurationMs);
+  for (int x = 0; x < 64; ++x) {
+    TEST_ASSERT_EQUAL(0, first.pixel(x, 30));
+    TEST_ASSERT_EQUAL(0, next.pixel(x, 30));
+  }
+  TEST_ASSERT_EQUAL_UINT64(pixelsHash(first), pixelsHash(repeat));
+  TEST_ASSERT_NOT_EQUAL(pixelsHash(first), pixelsHash(next));
+}
+void destination_wrapping_and_geometry() {
+  const auto hospital = destinationLines("Hospital de Bellvitge", 62);
+  TEST_ASSERT_EQUAL(2, hospital.size());
+  TEST_ASSERT_EQUAL_STRING("HOSPITAL DE", hospital[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("BELLVITGE", hospital[1].c_str());
+  const auto zona = destinationLines("Zona Universitària", 62);
+  TEST_ASSERT_EQUAL(2, zona.size());
+  TEST_ASSERT_EQUAL_STRING("ZONA", zona[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("UNIVERSITARIA", zona[1].c_str());
+  TEST_ASSERT_EQUAL(1, destinationLines("Trinitat Nova", 62).size());
+  TEST_ASSERT_EQUAL(1, destinationLines("WWWWWWWWWWWWWWWWWWWWWW", 62).size());
+  TEST_ASSERT_EQUAL(1, destinationLines("Zona Universitària", 60).size());
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   view.stops.resize(1);
   view.stops[0].groups.resize(1);
-  renderer.render(frame, view, snapshot.feed.generatedAt, 0);
-  for (int x = 0; x < 64; ++x)
-    TEST_ASSERT_EQUAL(0, frame.pixel(x, 30));
+  ArrivalRenderer renderer;
+  for (int width : {64, 128}) {
+    const std::string label =
+        width == 64 ? "Hospital de Bellvitge" : "Hospital de Bellvitge Hospital de Bellvitge";
+    view.stops[0].groups[0].destination = label;
+    const auto lines = destinationLines(label, width - 2);
+    TEST_ASSERT_EQUAL(2, lines.size());
+    Framebuffer frame(width, width / 2), later(width, width / 2), expected(width, width / 2);
+    renderer.render(frame, view, snapshot.feed.generatedAt, 0);
+    renderer.render(later, view, snapshot.feed.generatedAt, 1500);
+    TEST_ASSERT_EQUAL_UINT64(pixelsHash(frame), pixelsHash(later));
+    typography::drawC2(expected, lines[0], 1, 20, 0xe8eee8, 1, width - 1);
+    typography::drawC2(expected, lines[1], 1, 26, 0xe8eee8, 1, width - 1);
+    for (int y = 18; y < width / 2; ++y)
+      for (int x = 0; x < width; ++x)
+        TEST_ASSERT_EQUAL_HEX32(expected.pixel(x, y), frame.pixel(x, y));
+    TEST_ASSERT_EQUAL_HEX32(0xe8eee8, frame.pixel(1, 20));
+  }
+  for (const char *label : {"FONDO", "WWWWWWWWWWWWWWWWWWWWWW"}) {
+    view.stops[0].groups[0].destination = label;
+    Framebuffer frame(64, 32), expected(64, 32);
+    renderer.render(frame, view, snapshot.feed.generatedAt, 1500);
+    typography::drawC2(expected, label, 1, 21, 0xe8eee8, 1, 63,
+                       overflowOffset(typography::c2Width(label), 62, 1500));
+    for (int y = 18; y < 32; ++y)
+      for (int x = 0; x < 64; ++x)
+        TEST_ASSERT_EQUAL_HEX32(expected.pixel(x, y), frame.pixel(x, y));
+  }
 }
 void explicit_badge_foregrounds() {
   for (const char *ink : {"#000000", "#FFFFFF"}) {
@@ -586,22 +634,22 @@ void reviewed_raster_regression() {
     }
   // Active C2 typography raster baselines; exact glyph masks are checked separately.
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
-  TEST_ASSERT_EQUAL_UINT64(14124837897921310662ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(6232198569100824004ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 5 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(13708469641495778878ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(17157345282767631424ULL, pixelsHash(frame));
   // A header background-only substitution keeps text and geometry fixed.
   auto legacyHeader = frame;
   for (int y = 1; y < 8; ++y)
     for (int x = 1; x < 8; ++x)
       if (legacyHeader.pixel(x, y) == 0xc62a0f)
         legacyHeader.pixel(x, y, 0x42ac52);
-  TEST_ASSERT_EQUAL_UINT64(5705371943769837879ULL, pixelsHash(legacyHeader));
+  TEST_ASSERT_EQUAL_UINT64(15782813740394858793ULL, pixelsHash(legacyHeader));
   TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
   view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   renderer.render(frame, view, snapshot.feed.generatedAt, 2 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(17983623612294700526ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(10601792845716596446ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 3 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(9431929387809873746ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(12428467260189450338ULL, pixelsHash(frame));
 }
 } // namespace
 void interruption_retains_feed_and_recovers() {
@@ -699,7 +747,8 @@ int main() {
   RUN_TEST(framebuffer_preserves_rgb);
   RUN_TEST(badge_contrast_pairs);
   RUN_TEST(badge_typography_comparisons);
-  RUN_TEST(service_page_indicators);
+  RUN_TEST(pagination_without_indicators);
+  RUN_TEST(destination_wrapping_and_geometry);
   RUN_TEST(explicit_badge_foregrounds);
   RUN_TEST(bus_stop_badge_is_independent_of_line_colors);
   RUN_TEST(operational_badge_uses_regular_x);

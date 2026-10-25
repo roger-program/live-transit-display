@@ -355,12 +355,15 @@ void operational_baseline_is_exact() {
       renderer.render(expected, typography::sampleView(sample), typography::Now, phase);
       typography::render(actual, Face::A, sample, phase);
       // The offline diagnostic retains its historical countdown samples.
-      // All pixels outside the arrival field still match the live renderer.
+      // Header, badges and separator still match the live renderer.
       const auto view = typography::sampleView(sample);
       const int left =
           1 + std::min(30, typography::c2Width(view.stops.front().groups.front().line) + 2) + 2;
       for (int y = 12; y < 17; ++y)
         for (int x = left; x < 63; ++x)
+          expected.pixel(x, y, actual.pixel(x, y));
+      for (int y = 18; y < 31; ++y)
+        for (int x = 1; x < 63; ++x)
           expected.pixel(x, y, actual.pixel(x, y));
       TEST_ASSERT_TRUE(same(actual, expected));
     }

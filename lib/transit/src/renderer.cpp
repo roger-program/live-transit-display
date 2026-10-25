@@ -2,6 +2,7 @@
 #include "font.h"
 #include "regular_font.h"
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <cstdlib>
 
@@ -84,19 +85,41 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     typography::drawC2(frame, arrivals, arrivalLeft + offset, y, Green,
                        std::max(1, arrivalLeft + offset),
                        std::min(frame.width() - 1, frame.width() - 1 + offset));
-    typography::drawC2(
-        frame, group.destination, 2 + offset, y + 9, White, std::max(1, 2 + offset),
-        std::min(frame.width() - 1, frame.width() - 1 + offset),
-        overflowOffset(typography::c2Width(group.destination), frame.width() - 3, pageTime));
-  }
-  if (page.servicePages > 1) {
-    const int count = std::min(static_cast<int>(page.servicePages), frame.width() / 3);
-    for (int i = 0; i < count; ++i)
-      frame.pixel(1 + i * 3 + offset, frame.height() - 2,
-                  size_t(i) == page.servicePage ? Green : 0x384438);
+    const auto lines = destinationLines(group.destination, frame.width() - 2);
+    for (size_t line = 0; line < lines.size(); ++line) {
+      const int destinationY = lines.size() == 2 ? y + 8 + static_cast<int>(line) * 6 : y + 9;
+      typography::drawC2(frame, lines[line], 1 + offset, destinationY, White,
+                         std::max(1, 1 + offset),
+                         std::min(frame.width() - 1, frame.width() - 1 + offset),
+                         lines.size() == 2 ? 0
+                                           : overflowOffset(typography::c2Width(lines[line]),
+                                                            frame.width() - 2, pageTime));
+    }
   }
 }
+
 } // namespace
+
+std::vector<std::string> destinationLines(const std::string &text, int available) {
+  const auto label = typography::c2Text(text);
+  if (typography::c2Width(label) <= available)
+    return {label};
+  std::vector<std::string> best = {label};
+  int bestDifference = INT_MAX;
+  for (size_t split = 1; split + 1 < label.size(); ++split) {
+    if (label[split] != ' ' || label[split - 1] == ' ' || label[split + 1] == ' ')
+      continue;
+    const auto first = label.substr(0, split);
+    const auto second = label.substr(split + 1);
+    const int firstWidth = typography::c2Width(first), secondWidth = typography::c2Width(second);
+    const int difference = std::abs(firstWidth - secondWidth);
+    if (firstWidth <= available && secondWidth <= available && difference < bestDifference) {
+      best = {first, second};
+      bestDifference = difference;
+    }
+  }
+  return best;
+}
 
 std::string arrivalText(const Group &group, int64_t now, int available) {
   std::string result;

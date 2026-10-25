@@ -173,6 +173,9 @@ inline void render(transit::Framebuffer &frame, Face face, unsigned sample, uint
   const int legacyLeft = 1 + std::min(30, c2Width(legacyGroup.line) + 2) + 2;
   frame.rect(legacyLeft, 12, 63 - legacyLeft, 5, 0);
   drawC2(frame, legacyArrivals, 63 - c2Width(legacyArrivals), 12, 0xaaff66, legacyLeft, 63);
+  frame.rect(1, 18, 62, 13, 0);
+  drawC2(frame, legacyGroup.destination, 2, 21, 0xe8eee8, 2, 63,
+         transit::overflowOffset(c2Width(legacyGroup.destination), 61, phase));
   if (face == Face::A)
     return; // Historical diagnostic arrival samples; other pixels use the live renderer.
   const auto &stop = view.stops.front();
