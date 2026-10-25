@@ -155,7 +155,7 @@ hotspot association, certificate chain, real upstream availability, heap headroo
 and uninterrupted panel refresh still require the steps above. No live operator
 requests, deployment or device flashing are part of automated verification.
 
-## Verified deployment gate — 25 October 2026
+## Historical deployment gate — earlier on 25 October 2026
 
 The selected origin is `https://live-transit-feed.roger-80a.workers.dev`.
 Authenticated Metro, Bus and mixed requests succeeded; both upstream diagnostics
@@ -173,3 +173,35 @@ realtime provenance and selected colours. No deployment or flash was performed.
 Until this difference is resolved, stop before the upload step above unless an
 explicit legacy-response test is chosen. Sanitized request summaries are in the
 sibling feed repository at `docs/evidence/deployed-feed-2026-10-25/`.
+
+
+## Current pre-flash check — 25 October 2026
+
+The historical backend-field gap above is resolved: production version
+`2bd64122-96d6-4048-ac55-780d9842e1f6` was verified with explicit provenance,
+realtimeStatus and selected Metro/TMB Bus colours. See the sibling feed
+repository's production-alignment evidence. The current blockers are local:
+
+- `include/secrets.h` is absent. Copy the ignored example locally, restrict its
+  permissions, and set hotspot SSID/password, FeedOrigin, BearerToken and RootCa.
+  FeedOrigin is `https://live-transit-feed.roger-80a.workers.dev`; BearerToken is
+  the existing backend FEED_API_TOKEN value, without the `Bearer ` prefix.
+- The pinned Arduino SDK has `CONFIG_MBEDTLS_HAVE_TIME_DATE` disabled. Its
+  compiled certificate past/future check functions return zero unconditionally.
+  NTP gating is present but does not activate these disabled library checks.
+  Resolve certificate validity-period enforcement before declaring readiness;
+  adding an application compiler flag cannot rebuild the precompiled library.
+  Do not disable chain/hostname validation or change the renderer to work around it.
+
+Native tests: 51 passed; hub75-live build, formatting and fixture checks passed.
+USB enumeration detected `/dev/cu.usbmodem3101` (Espressif 303A:1001); no port was
+opened and no device flashed. Re-enumerate if reconnected. The endpoint's
+hostname/chain was verified from the Mac, including TLS 1.2 using only ISRG Root
+X2; this does not verify ESP32 runtime behavior. The public self-signed root PEM
+is available from https://letsencrypt.org/certs/isrg-root-x2.pem; paste its entire
+PEM into the existing RootCa raw string. Root SHA-256:
+`69729b8e15a86efc177a57afb7171dfc64add28c2fca8cf1507e34453ccb1470`.
+
+Stop before the upload step until configuration and certificate-date checks are
+resolved and revalidated. Actual Wi-Fi association, SNTP synchronization and
+ESP32 TLS remain hardware-test observations, not host-test results.

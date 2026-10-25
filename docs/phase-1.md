@@ -481,3 +481,65 @@ Physical hotspot association, SNTP/CA bootstrap, heap headroom and uninterrupted
 LED output remain unverified. docs/live-arrivals.md records secure local
 configuration, chosen HTTPS origin, dynamically detected USB port, manual
 build/upload/monitor commands, state interpretation and interruption tests.
+
+
+## Pre-flash readiness inspection — 25 October 2026
+
+User requested inspection/tests/build and explicitly prohibited flashing. No
+renderer, font, colour, layout, backend or firmware source change was made.
+Read docs/live-arrivals.md, app/network/TLS/panel configuration; git checkout was
+clean before this documentation update. PlatformIO enumerated one Espressif USB
+JTAG/serial device (303A:1001) at /dev/cu.usbmodem3101. Enumeration only: no serial
+monitor, boot/reset, upload or flash operation was run.
+
+Observed: include/secrets.h does not exist; its path is ignored and untracked.
+All five local values therefore compile as empty fallback settings. The example
+already contains the correct public feed origin, but SSID/password, Feed token
+and root PEM still require local configuration. Do not expose credentials in
+commands, logs, chat, evidence or commits. No secret file was created automatically.
+
+Observed software validation: all 51 native tests passed, hub75-live built
+successfully (45,256 bytes static RAM, 727,109 bytes flash), C++ formatting and
+generated fixture checks passed. Build success without secrets does not imply
+network readiness: the current device would show CONFIG. Hardware authentication
+and hotspot association cannot be established from this host build.
+
+Code inspection confirms SNTP callback installation before configTime, with an
+atomic synchronized flag plus minimum UTC epoch required before client.fetch.
+The HTTPS client supplies cert_pem, leaves hostname skipping disabled and refuses
+redirects; no insecure mode was introduced. Physical NTP completion is untested.
+
+Important additional finding: pinned Arduino 2.0.17 / Espressif32 6.12.0 SDK
+esp32s3/sdkconfig explicitly says CONFIG_MBEDTLS_HAVE_TIME_DATE is not set;
+the selected opi_opi SDK header has HAVE_TIME but no HAVE_TIME_DATE. Inspecting
+the actual libmbedx509.a with the installed Xtensa objdump confirmed both
+mbedtls_x509_time_is_past and mbedtls_x509_time_is_future unconditionally return
+zero. Thus certificate notBefore/notAfter enforcement is disabled in the linked
+library, despite NTP gating. This qualifies the earlier generic description of
+certificate validation: chain/hostname checks are configured, validity dates are
+not enforced. Do not claim full TLS readiness or fix this with only an application
+-D flag; use a reviewed library/framework correction. No framework replacement
+or precompiled SDK modification was performed during this readiness inspection.
+
+Official behavior verified 2026-10-25:
+https://docs.espressif.com/projects/esp-idf/en/v4.4.7/esp32s3/api-reference/kconfig.html#config-mbedtls-have-time-date
+states the option controls certificate valid-from/valid-to checks. These checks
+must be enabled in the TLS library build, or equivalent verified enforcement
+provided before treating the build as ready.
+
+Direct TLS observation 2026-10-25 from the Mac: the public feed hostname and
+certificate chain validate using system trust, and a separate root-only TLS 1.2
+connection also validates. Observed leaf issuer Let's Encrypt YE2, leaf expiry
+2026-12-16T15:02:36Z; verified root ISRG Root X2 (ECDSA P-384). The selected SDK
+enables TLS 1.2 and that curve. Saved only the public root in a temporary local
+file for configuration; no credential or raw exception output. Root SHA-256:
+69729b8e15a86efc177a57afb7171dfc64add28c2fca8cf1507e34453ccb1470.
+Official root source verified 2026-10-25:
+https://letsencrypt.org/certificates/ and
+https://letsencrypt.org/certs/isrg-root-x2.pem.
+Mac success is not proof of the ESP32 handshake, NTP or future CDN chain stability.
+
+Readiness: not ready to flash. Configure the ignored local header, resolve the
+precompiled TLS date-check omission, and rerun the readiness checks. The prior
+backend-field blocker is resolved by production version
+2bd64122-96d6-4048-ac55-780d9842e1f6; the backend was not modified in this task.
