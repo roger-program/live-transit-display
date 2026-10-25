@@ -543,3 +543,46 @@ Readiness: not ready to flash. Configure the ignored local header, resolve the
 precompiled TLS date-check omission, and rerun the readiness checks. The prior
 backend-field blocker is resolved by production version
 2bd64122-96d6-4048-ac55-780d9842e1f6; the backend was not modified in this task.
+
+
+## Prototype-only TLS exception and local preparation — 25 October 2026
+
+The user explicitly accepted the previously documented missing TLS validity-date
+checks for this first physical prototype test only, and prohibited framework
+rebuilds or insecure TLS modes. Full certificate notBefore/notAfter enforcement
+remains mandatory before production. This supersedes the earlier prototype
+readiness blocker, not the production security requirement. Chain and hostname
+validation, the pinned framework and NTP-before-HTTPS logic remain unchanged.
+
+Created ignored/untracked include/secrets.h from the existing example with mode
+0600. Configured only the existing public HTTPS origin and verified ISRG Root X2
+PEM. Wi-Fi SSID, Wi-Fi password and existing Feed API token are deliberately empty
+for the user to enter locally; no new token or Cloudflare secret mutation. Empty
+configuration fails closed as CONFIG. No credential value was printed or saved
+in evidence, and no backend, Feed v1, renderer, typography, colour policy,
+brightness, hardware pin or diagnostic code was changed.
+
+Public CA source verified 2026-10-25:
+https://letsencrypt.org/certs/isrg-root-x2.pem. Download used system-verified
+HTTPS, then SHA-256 matched the previously verified ISRG Root X2 fingerprint:
+69729b8e15a86efc177a57afb7171dfc64add28c2fca8cf1507e34453ccb1470.
+A root-only TLS 1.2 connection to
+https://live-transit-feed.roger-80a.workers.dev verified hostname and chain from
+the Mac, without sending any token. This does not verify the ESP32 handshake or
+remove the accepted device-side validity-date limitation.
+
+PlatformIO re-enumerated the Espressif USB JTAG/serial unit at
+/dev/cu.usbmodem3101. Enumeration only: no serial open/reset, upload or flash.
+Current manual commands and expected LED/serial behavior are in live-arrivals.md.
+Remaining private configuration and radio/SNTP/TLS operation must be verified
+in the physical test. Builds made with empty credentials are not live-ready.
+
+Validation after local header creation: all 51 native firmware tests passed;
+hub75-live build passed (45,256 bytes static RAM; 727,109 bytes flash). Formatting,
+generated fixtures and diff whitespace checks passed. The installed RootCa PEM
+was parsed successfully and its fingerprint rechecked; header remains ignored,
+untracked and mode 0600, with all three private fields empty. Git diff confirms
+only documentation changed among tracked files; app/panel configuration, normal
+renderer, fonts, palettes, brightness and diagnostics remain unchanged. Rebuild
+after entering the private values; the manual upload command performs that build.
+No ESP32 flash, reset, serial-monitor connection or backend change was made.

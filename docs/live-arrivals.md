@@ -175,7 +175,7 @@ explicit legacy-response test is chosen. Sanitized request summaries are in the
 sibling feed repository at `docs/evidence/deployed-feed-2026-10-25/`.
 
 
-## Current pre-flash check — 25 October 2026
+## Historical pre-flash check — before prototype exception, 25 October 2026
 
 The historical backend-field gap above is resolved: production version
 `2bd64122-96d6-4048-ac55-780d9842e1f6` was verified with explicit provenance,
@@ -205,3 +205,48 @@ PEM into the existing RootCa raw string. Root SHA-256:
 Stop before the upload step until configuration and certificate-date checks are
 resolved and revalidated. Actual Wi-Fi association, SNTP synchronization and
 ESP32 TLS remain hardware-test observations, not host-test results.
+
+
+## Current prototype configuration — 25 October 2026
+
+The user explicitly accepts the installed framework's missing certificate-date
+checks **only for the first physical prototype test**. This supersedes the
+historical date-check upload blocker above. Full validity-period verification
+remains an unresolved, mandatory production security requirement. The framework
+was not rebuilt and no insecure TLS mode was enabled. Certificate-chain and
+hostname checks, trusted root configuration and NTP-before-HTTPS remain intact.
+
+`include/secrets.h` is now created from the existing example, ignored/untracked
+and mode 0600. The existing HTTPS origin and official ISRG Root X2 PEM are set.
+The root was downloaded from Let's Encrypt, matched the previously verified
+SHA-256 fingerprint and successfully validated the endpoint's chain and hostname
+with TLS 1.2 from the Mac. Do not mistake this for an ESP32 runtime test.
+
+Fill these three empty values locally before uploading:
+
+- WifiSsid: exact phone hotspot name; use its 2.4 GHz/compatibility setting.
+- WifiPassword: the hotspot password.
+- BearerToken: the existing backend FEED_API_TOKEN value, without `Bearer `.
+
+No private value was printed, generated, copied from backend secrets, committed
+or uploaded. Empty SSID/token deliberately fail configuration rather than using
+a dummy credential. The header and compiled firmware will contain credentials
+once you fill them; keep both private.
+
+After saving valid local credentials, build/upload manually from the firmware
+repository (close any serial monitor before upload):
+
+```sh
+. .venv/bin/activate
+pio run -e hub75-live -t upload --upload-port /dev/cu.usbmodem3101
+pio device monitor --port /dev/cu.usbmodem3101 --baud 115200
+```
+
+The port was re-enumerated for this preparation, not assumed from a prior run.
+Recheck `pio device list` if USB is reconnected. No upload/reset/monitor was run
+automatically. Until credentials are filled, the current build shows CONFIG.
+After valid configuration expect Wi-Fi connected, optional CLOCK during SNTP,
+then Feed OK summaries with generation time and realtime counts. The existing
+Espanya Metro and Bus 94 pages, C2 type, badges/colours, paging, countdowns and
+brightness 4/255 are unchanged. Runtime hotspot, SNTP, TLS and LED behavior remain
+the physical-test milestone.
