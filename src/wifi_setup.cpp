@@ -3,7 +3,7 @@
 #include "wifi_credentials.h"
 #include "wifi_setup_diagnostics.h"
 #include "wifi_setup_screen.h"
-#include "wifi_success_page.h"
+#include "wifi_setup_web.h"
 #include <WiFi.h>
 #include <esp_system.h>
 #include <esp_timer.h>
@@ -48,49 +48,51 @@ void WifiSetup::message(const String &status) {
   status_ = status;
   xSemaphoreGive(mutex_);
 }
-void WifiSetup::sendPage(int code) {
+const char *WifiSetup::webState() const {
+  return success_ ? "success" : testing_ ? "connecting" : failed_ ? "failed" : "configuration";
+}
+void WifiSetup::sendPage(int code, bool configuration) {
   server_.sendHeader("Cache-Control", "no-store");
-  server_.sendHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; "
-                                                "form-action 'self'; frame-ancestors 'none'");
-  if (success_) {
-    server_.send(200, "text/html; charset=utf-8", provisioning::WifiSuccessPage);
-    if (!successPageSent_) {
-      successPageSent_ = true;
-      finishAt_ = nowMs() + 5000;
-      Serial.println("Wi-Fi setup: success page sent; closing AP in five seconds");
+  server_.sendHeader(
+      "Content-Security-Policy",
+      "default-src 'none'; style-src 'unsafe-inline'; connect-src 'self'; script-src 'nonce-" +
+          token_ + "'; form-action 'self'; frame-ancestors 'none'");
+  const String state = configuration && !testing_ && !success_ ? "configuration" : webState();
+  String page = provisioning::WifiPageHead;
+  if (state == "success")
+    page += provisioning::WifiSuccessContent;
+  else if (state == "connecting")
+    page += provisioning::WifiConnectingContent;
+  else if (state == "failed")
+    page += provisioning::WifiFailureContent;
+  else {
+    page +=
+        "<h1>Connect your display</h1><p>Choose your Wi-Fi network.</p>"
+        "<form method=post action=/connect><input type=hidden name=token value='" +
+        token_ +
+        "'><label>Wi-Fi network<select name=network><option value=''>Enter a name below</option>";
+    bool selectedInList = false;
+    const int count = WiFi.scanComplete();
+    if (count >= 0) {
+      for (int i = 0; i < count && i < 40; ++i) {
+        const String name = WiFi.SSID(i);
+        const bool selected = !selectedInList && name == selectedSsid_;
+        if (selected)
+          selectedInList = true;
+        const String safe = escape(name);
+        page += "<option value='" + safe + "'" + (selected ? " selected" : "") + ">" + safe +
+                "</option>";
+      }
     }
-    return;
+    page += "</select></label><label>Network name (optional)<input name=ssid maxlength=32 "
+            "autocomplete=off value='" +
+            (selectedInList ? String("") : escape(selectedSsid_)) +
+            "'></label><label>Password<input name=password type=password maxlength=64 "
+            "autocomplete=off></label><button>Connect</button></form>";
   }
-  String page = "<!doctype html><html lang=en><head><meta charset=utf-8>";
-  if (testing_)
-    page += "<meta http-equiv=refresh content='2;url=/'>";
-  page +=
-      "<meta name=viewport "
-      "content='width=device-width,initial-scale=1'><title>Display "
-      "Wi-Fi</title><style>body{font:18px system-ui;max-width:32rem;margin:2rem "
-      "auto;padding:1rem}input,select,button{font:inherit;box-sizing:border-box;width:"
-      "100%;padding:.8rem;margin:.4rem 0 1rem}label{display:block}</style></head><body><h1>Connect "
-      "your display</h1><p>";
-  page += escape(status_) +
-          "</p><p>If your phone disconnects while the display joins home Wi-Fi, reconnect to "
-          "metro-display and reopen http://192.168.4.1 to see the result.</p><p>Use a 2.4 GHz "
-          "network. This page works without internet.</p><form method=post "
-          "action=/connect><input type=hidden name=token value='" +
-          token_ +
-          "'><label>Available networks<select name=network><option value=''>Enter a name "
-          "below</option>";
-  const int count = WiFi.scanComplete();
-  if (count >= 0) {
-    for (int i = 0; i < count && i < 40; ++i) {
-      const String ssid = escape(WiFi.SSID(i));
-      page += "<option value='" + ssid + "'>" + ssid + "</option>";
-    }
-  }
-  page +=
-      "</select></label><label>Network name (overrides selection)<input name=ssid maxlength=32 "
-      "autocomplete=off></label><label>Password<input name=password type=password maxlength=64 "
-      "autocomplete=off></label><button>Connect</button></form><p><a href=/>Refresh networks and "
-      "status</a></p><p>After success, reconnect your phone to your usual Wi-Fi.</p></body></html>";
+  page += "</main><script nonce='" + token_ + "'>const token='" + token_ +
+          "';const initialState='" + state + "';" + provisioning::WifiSetupScript +
+          "</script></body></html>";
   server_.send(code, "text/html; charset=utf-8", page);
 }
 void WifiSetup::connect(const String &ssid, const String &password, uint64_t now) {
@@ -108,12 +110,14 @@ void WifiSetup::connect(const String &ssid, const String &password, uint64_t now
 }
 bool WifiSetup::authorized() {
   const String origin = server_.header("Origin");
-  const char *rejection = server_.client().localIP() != WiFi.softAPIP() ? "wrong interface"
-                          : !provisioning::setupHost(server_.hostHeader().c_str())
-                              ? "unexpected Host"
-                          : !provisioning::setupOrigin(origin.c_str()) ? "unexpected Origin"
-                          : server_.arg("token") != token_ ? "missing or stale form token"
-                                                           : nullptr;
+  const char *rejection =
+      server_.client().localIP() != WiFi.softAPIP()            ? "wrong interface"
+      : !provisioning::setupHost(server_.hostHeader().c_str()) ? "unexpected Host"
+      : !provisioning::setupOrigin(origin.c_str())             ? "unexpected Origin"
+      : (server_.arg("token").length() ? server_.arg("token") : server_.header("X-Setup-Token")) !=
+              token_
+          ? "missing or stale form token"
+          : nullptr;
   if (rejection) {
     Serial.printf("Wi-Fi setup: HTTP request rejected (%s)\n", rejection);
     message("Setup session expired or request address was invalid. Reopen http://192.168.4.1 and "
@@ -156,15 +160,35 @@ void WifiSetup::begin() {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(false); // This task owns bounded retries and candidate testing.
-  const char *headers[] = {"Origin"};
-  server_.collectHeaders(headers, 1);
+  const char *headers[] = {"Origin", "X-Setup-Token"};
+  server_.collectHeaders(headers, 2);
   server_.on("/", HTTP_GET, [this]() {
     if (server_.client().localIP() != WiFi.softAPIP() ||
         !provisioning::setupHost(server_.hostHeader().c_str())) {
       server_.send(400, "text/plain", "Open http://192.168.4.1");
       return;
     }
-    sendPage();
+    sendPage(200, server_.hasArg("configure"));
+  });
+  server_.on("/status", HTTP_GET, [this]() {
+    if (!authorized())
+      return;
+    server_.sendHeader("Cache-Control", "no-store");
+    server_.send(200, "application/json", String("{\"state\":\"") + webState() + "\"}");
+  });
+  server_.on("/complete", HTTP_POST, [this]() {
+    if (!authorized())
+      return;
+    if (!success_) {
+      server_.send(409, "text/plain", "");
+      return;
+    }
+    if (!successPageSent_) {
+      successPageSent_ = true;
+      finishAt_ = nowMs() + 5000;
+      Serial.println("Wi-Fi setup: success rendered; closing AP in five seconds");
+    }
+    server_.send(204, "text/plain", "");
   });
   server_.on("/connect", HTTP_POST, [this]() {
     Serial.println("Wi-Fi setup: HTTP configuration request received");
@@ -180,16 +204,20 @@ void WifiSetup::begin() {
       ssid = server_.arg("network");
     Serial.printf("Wi-Fi setup: SSID received \"%s\"\n",
                   provisioning::diagnosticSsid(std::string(ssid.c_str(), ssid.length())).c_str());
+    if (ssid.length() <= 32)
+      selectedSsid_ = ssid;
     const String password = server_.arg("password");
     const bool valid = provisioning::validCredentials(
         std::string(ssid.c_str(), ssid.length()), std::string(password.c_str(), password.length()));
     if (!valid) {
+      failed_ = true;
       Serial.println("Wi-Fi setup: invalid SSID/password format; connection not started");
       message("Invalid network name or password format. Use a 1-32 byte SSID and an empty, 8-63 "
               "byte or 64 hex digit password.");
       sendPage(400);
       return;
     }
+    failed_ = false;
     browserSubmission_ = true;
     candidateSsid_ = ssid;
     candidatePassword_ = password;
@@ -224,6 +252,8 @@ void WifiSetup::start() {
   if (setup_)
     return;
   browserSubmission_ = false;
+  failed_ = false;
+  selectedSsid_ = "";
   WiFi.disconnect(false, false);
   WiFi.mode(WIFI_AP_STA);
   xSemaphoreTake(mutex_, portMAX_DELAY);
@@ -303,6 +333,7 @@ void WifiSetup::tick(uint64_t now) {
         xSemaphoreGive(mutex_);
         message("Connected and saved. Setup will close; reconnect your phone to home Wi-Fi.");
       } else {
+        failed_ = true;
         Serial.printf("Wi-Fi setup: credentials not saved (%s)\n", saveFailure);
         message("Could not save. Previous credentials retained; retry setup.");
         WiFi.disconnect(false, false);
@@ -314,6 +345,7 @@ void WifiSetup::tick(uint64_t now) {
       const String failure = provisioning::connectionFailure(disconnectReason_.load());
       Serial.printf("Wi-Fi setup: connection failed; status=%d; reason=%u (%s)\n",
                     static_cast<int>(WiFi.status()), disconnectReason_.load(), failure.c_str());
+      failed_ = true;
       testing_ = false;
       candidateSsid_ = "";
       candidatePassword_ = "";

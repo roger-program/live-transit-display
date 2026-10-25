@@ -316,3 +316,79 @@ Final checks: 65/65 native cases passed, including debounce/initial hold/one-sho
 rearming and success-page exclusions; hub75-live built with 937,361 application
 bytes and 46,540 static RAM bytes. Formatting, fixture consistency and whitespace
 checks passed. No hardware interaction, flashing, erasure or deployment.
+
+## Browser configuration, connecting and result states — 25 October 2026
+
+User reports provisioning now works on the physical device. This refinement
+changes only browser presentation, polling and success-render acknowledgement;
+station association, NVS write/readback/activation, BOOT detection, serial recovery
+and transport rendering are preserved. Earlier sections record historical flows;
+the state flow below supersedes their meta-refresh/status-form descriptions.
+
+- Configuration retains scanned-network selection, manual SSID and password entry.
+- Submit immediately removes the form and displays “Connecting…” and “Setting up
+  your display.” with a small CSS spinner, respecting reduced-motion preferences.
+  No diagnostics, timers, countdowns or buttons appear in progress.
+- Success displays only “Connected!”, “Your display is ready.” and “You can close
+  this page.” Failure displays “Couldn’t connect”, “Check your Wi-Fi password and
+  try again.” and a Try again button. Retry restores the configuration form and
+  selected SSID, but always clears the password.
+
+The same nonce-protected script runs on the local device page without internet,
+frameworks or external assets. It submits credentials in a POST body, immediately
+removes the form, then polls GET /status about once per second. The endpoint
+returns only one state: configuration, connecting, failed or success; no SSID,
+password, reason code or raw diagnostic. AP-interface, Host, Origin and random
+setup-token checks apply. Poll/ack tokens use X-Setup-Token headers, never URLs.
+CSP allows only same-origin connections and the per-session nonce script.
+
+Transient failed requests or malformed/interrupted responses retain the progress
+screen and retry quietly; requests have an internal four-second abort budget
+with no user-facing timeout. If the submission response is lost, the browser
+polls rather than automatically sending credentials again. A status indicating
+configuration means the submission was not accepted and shows the retry state.
+A stale session reloads the root page for a new token.
+
+The device retains the chosen SSID separately from the cleared candidate. The
+browser also remembers only that SSID in sessionStorage when available, covering
+a submission that never reached the device. Selected values are escaped in
+server HTML; browser restoration assigns input/select values directly. Changing
+the selected network clears a previous manual name so it cannot override the
+new choice. Passwords are never echoed into HTML, returned from status, persisted
+in browser storage or logged. Only the submission body contains the password.
+
+Success still requires completed association, DHCP and committed NVS activation.
+After rendering success through two animation frames, the browser POSTs /complete
+with the session token. Firmware checks success again, then arms the existing
+five-second AP shutdown grace once. Interrupted acknowledgements retry quietly;
+repeated acknowledgements do not extend shutdown. GET /status and serving HTML
+alone cannot trigger closure. Arrivals resume after the verified save as before.
+If the phone loses its AP connection, automatic polling resumes when connectivity
+returns; a phone that switches away may still need a manual rejoin. This does not
+make radio channel changes invisible on every phone.
+
+### Verification
+
+66/66 native tests passed. hub75-live built with 942,493 application bytes and
+46,556 static RAM bytes. Formatting, fixture consistency and whitespace passed.
+The new progress/failure markup checks reject forms/inputs/diagnostics in those
+states. The previous success-state exclusion check remains.
+
+Run `node tools/test_wifi_web.mjs` for the retained, dependency-free browser-script
+regression harness (Node built-ins only; no firmware/frontend dependency). It
+evaluates the actual embedded script against a minimal mocked browser, checking
+immediate form removal, interrupted poll recovery, failure/retry, SSID restoration,
+success paint/ack ordering, interrupted acknowledgement recovery, lost-submission
+handling and password isolation. It does not simulate phone radio behaviour or
+prove visual rendering on Safari/Chrome. Existing C++ checks remain runnable
+through the normal PlatformIO native test command.
+
+After a separately authorized upload, join metro-display, open its local page and
+submit a wrong password. Confirm only progress is visible, followed by the exact
+failure screen. Select Try again and verify the chosen SSID remains while the
+password is empty. Submit correctly and confirm the exact success state, then
+AP closure after the success-rendered serial log plus at least five seconds.
+Temporarily disconnect/rejoin the phone during progress and verify quiet polling
+recovery. Reboot and verify the saved network; confirm BOOT and wifi serial
+recovery still activate setup. None of these physical checks was run for this
+refinement. No flash, erase, deployment or device connection was performed.

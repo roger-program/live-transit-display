@@ -715,3 +715,32 @@ in docs/wifi-setup.md; holding BOOT at reset can enter ROM download mode.
 Validation: 65/65 native cases passed; hub75-live built with 937,361 application
 bytes and 46,540 static RAM bytes. Formatting, fixtures and diff whitespace
 passed. No flash, erase, device connection, partition change or deployment.
+
+
+## Browser onboarding states and polling — 25 October 2026
+
+User reports physical provisioning works. Implemented focused configuration,
+connecting and result presentation with a dependency-free embedded script. Submit
+immediately replaces the form with Connecting… / Setting up your display. and a
+subtle CSS spinner. Success contains only the requested three messages; failure
+contains the requested two messages and Try again. Retry preserves the SSID
+through bounded device state plus optional browser sessionStorage, never the
+password. Inputs/options remain HTML-escaped; switching dropdown choice clears
+a retained manual override. No framework or external web assets added.
+
+GET /status returns only a state enum after the existing AP/Host/Origin/session
+checks; token travels in a header. One-at-a-time polling quietly retries transport
+interruptions and never resubmits credentials automatically. Once success is
+painted, POST /complete acknowledges it and firmware arms the five-second AP
+shutdown grace idempotently. No success or acknowledgement is accepted before
+association, DHCP and NVS activation. The working association/persistence logic,
+BOOT handler, serial recovery and arrivals renderer are unchanged.
+
+Verified: 66/66 native cases passed; hub75-live built (942,493 application bytes,
+46,556 static RAM bytes). tools/test_wifi_web.mjs uses Node built-ins to evaluate
+the embedded script and verify submit/progress, interrupted polling, retry/SSID
+retention, success paint/ack ordering, interrupted acknowledgement, lost submission
+and credential isolation. It is a mocked browser check, not a physical radio or
+visual browser test. Formatting, fixture consistency and whitespace checks passed.
+Updated docs/wifi-setup.md records the full current flow and manual phone checks.
+No flashing, erasure, deployment, device connection or partition change.

@@ -2,7 +2,7 @@
 #include "wifi_credentials.h"
 #include "wifi_setup_diagnostics.h"
 #include "wifi_setup_screen.h"
-#include "wifi_success_page.h"
+#include "wifi_setup_web.h"
 #include <unity.h>
 using namespace provisioning;
 void setUp() {}
@@ -111,15 +111,30 @@ void boot_hold_at_first_sample_and_short_press() {
   TEST_ASSERT_FALSE(shortPress.update(false, 5000));
 }
 void success_page_has_no_form_or_troubleshooting() {
-  const std::string page = WifiSuccessPage;
+  const std::string page = WifiSuccessContent;
   for (const char *text : {"Connected!", "Your display is ready.", "You can close this page."})
     TEST_ASSERT_TRUE(page.find(text) != std::string::npos);
   for (const char *element : {"<form", "<input", "<select", "<button", "http-equiv", "password",
                               "2.4 GHz", "reconnect", "Retry"})
     TEST_ASSERT_TRUE(page.find(element) == std::string::npos);
 }
+void connecting_and_failure_content_excludes_configuration() {
+  const std::string connecting = WifiConnectingContent;
+  TEST_ASSERT_TRUE(connecting.find("Connecting…") != std::string::npos);
+  TEST_ASSERT_TRUE(connecting.find("Setting up your display.") != std::string::npos);
+  for (const char *element :
+       {"<form", "<input", "<select", "<button", "seconds", "timeout", "DHCP"})
+    TEST_ASSERT_TRUE(connecting.find(element) == std::string::npos);
+  const std::string failure = WifiFailureContent;
+  TEST_ASSERT_TRUE(failure.find("Couldn’t connect") != std::string::npos);
+  TEST_ASSERT_TRUE(failure.find("Check your Wi-Fi password and try again.") != std::string::npos);
+  TEST_ASSERT_TRUE(failure.find("Try again") != std::string::npos);
+  for (const char *element : {"<form", "<input", "<select", "seconds", "DHCP"})
+    TEST_ASSERT_TRUE(failure.find(element) == std::string::npos);
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(connecting_and_failure_content_excludes_configuration);
   RUN_TEST(boot_hold_debounces_and_triggers_once);
   RUN_TEST(boot_hold_at_first_sample_and_short_press);
   RUN_TEST(success_page_has_no_form_or_troubleshooting);

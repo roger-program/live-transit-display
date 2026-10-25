@@ -1,0 +1,94 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const header = fs.readFileSync(new URL('../lib/transit/src/wifi_setup_web.h', import.meta.url), 'utf8');
+const script = header.match(/R"JS\(([\s\S]*?)\)JS"/)[1];
+function harness(initialState, fetcher, remembered = null) {
+  const events = {}, clicks = {}, requests = [], timers = [], frames = [];
+  const storage = new Map(remembered ? [['display-setup-ssid', remembered]] : []);
+  const network = {value:'', options:[{value:''},{value:'Home Network'}], addEventListener(k, f) { events[k] = f; }};
+  const ssid = {value:''};
+  const form = {elements:{network, ssid, password:{value:'test-only-password'}, token:{value:'test-token'}},
+    addEventListener(k, f) { events[k] = f; }, reset() { for (const x of Object.values(this.elements)) x.value = ''; }};
+  const button = {addEventListener(k, f) { clicks[k] = f; }};
+  const main = {innerHTML:initialState === 'configuration' ? '<form></form>' : '',
+    querySelector(k) { return k === 'form' ? (initialState === 'configuration' ? form : null) : button; }};
+  const location = {assign(v) { this.assigned = v; }, replace(v) { this.replaced = v; }};
+  const context = {
+    document:{querySelector:() => main}, location, URLSearchParams, AbortController,
+    FormData:class { constructor(f) { this.values = Object.entries(f.elements).map(([k,v]) => [k,v.value]); }
+      [Symbol.iterator]() { return this.values[Symbol.iterator](); } },
+    sessionStorage:{getItem:k => storage.get(k) ?? null, setItem:(k,v) => storage.set(k,v)},
+    setTimeout(fn, ms) { const t = {fn, ms}; timers.push(t); return t; },
+    clearTimeout(t) { const i = timers.indexOf(t); if (i >= 0) timers.splice(i,1); },
+    requestAnimationFrame(fn) { frames.push(fn); },
+    async fetch(url, options) { requests.push({url, options}); return fetcher(url, options); }
+  };
+  vm.runInNewContext("const token='test-token';const initialState=" + JSON.stringify(initialState) + ';' + script, context);
+  return {main, form, events, clicks, requests, frames, timers, storage, location,
+    async retry() { const i = timers.findIndex(t => t.ms === 1000); assert.ok(i >= 0); await timers.splice(i,1)[0].fn(); await settle(); }};
+}
+const settle = () => new Promise(resolve => setImmediate(resolve));
+const response = state => ({ok:true, status:200, json:async () => ({state})});
+let resolveSubmit, statusCalls = 0;
+const one = harness('configuration', (url) => {
+  if (url === '/connect') return new Promise(resolve => { resolveSubmit = resolve; });
+  assert.equal(url, '/status');
+  if (++statusCalls === 1) throw new Error('simulated channel interruption');
+  return response('failed');
+});
+one.form.elements.network.value = 'Home Network';
+const submitted = one.events.submit({preventDefault(){}});
+assert.match(one.main.innerHTML, /Connecting…/);
+assert.match(one.main.innerHTML, /class="loading"/);
+assert.doesNotMatch(one.main.innerHTML, /<form|<input|<button|test-only-password|20|timeout/);
+assert.equal(one.form.elements.password.value, '');
+assert.equal(one.requests[0].options.body.get('password'), 'test-only-password');
+assert.deepEqual([...one.storage.entries()], [['display-setup-ssid','Home Network']]);
+resolveSubmit(response('connecting'));
+await submitted;
+await settle();
+assert.match(one.main.innerHTML, /Connecting…/);
+await one.retry();
+assert.match(one.main.innerHTML, /Couldn’t connect/);
+assert.match(one.main.innerHTML, /Try again/);
+one.clicks.click();
+assert.equal(one.location.assigned, '/?configure=1');
+const restored = harness('configuration', () => response('configuration'), one.storage.get('display-setup-ssid'));
+assert.equal(restored.form.elements.network.value, 'Home Network');
+let acknowledgements = 0;
+const two = harness('connecting', url => {
+  if (url === '/status') return response('success');
+  assert.equal(url, '/complete');
+  if (++acknowledgements === 1) throw new Error('simulated acknowledgement interruption');
+  return {ok:true, status:204};
+});
+await settle();
+assert.match(two.main.innerHTML, /Connected!/);
+assert.doesNotMatch(two.main.innerHTML, /<form|<input|<button|password|Retry/);
+assert.equal(acknowledgements, 0);
+two.frames.shift()();
+assert.equal(acknowledgements, 0);
+two.frames.shift()();
+await settle();
+assert.equal(acknowledgements, 1);
+await two.retry();
+assert.equal(acknowledgements, 2);
+assert.equal(two.timers.length, 0);
+for (const {url, options} of two.requests) {
+  assert.equal(options.body, undefined);
+  assert.equal(options.headers['X-Setup-Token'], 'test-token');
+  assert.ok(!url.includes('?'));
+}
+let posts = 0;
+const three = harness('configuration', url => {
+  if (url === '/connect') { ++posts; throw new Error('simulated lost submission'); }
+  return response('configuration');
+});
+three.form.elements.ssid.value = 'Hidden Network';
+await three.events.submit({preventDefault(){}});
+await settle();
+assert.match(three.main.innerHTML, /Couldn’t connect/);
+assert.equal(posts, 1);
+assert.equal(three.storage.get('display-setup-ssid'), 'Hidden Network');
+console.log('Browser script checks passed: immediate progress, interrupted poll, failure/retry, SSID retention, success paint ordering, interrupted acknowledgement, lost submission, and credential isolation.');
