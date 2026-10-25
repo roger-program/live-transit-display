@@ -16,6 +16,8 @@ struct View {
   std::string message;
 };
 std::string countdown(const Arrival &arrival, int64_t now);
+// Merge mailbox results without extending the lifetime of the last successful feed.
+void applySnapshot(Snapshot &current, Snapshot next);
 View viewAt(const Snapshot &snapshot, int64_t now, uint64_t uptime, bool clockValid);
 const char *requestMessage(RequestError error);
 } // namespace transit

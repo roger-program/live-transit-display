@@ -37,6 +37,7 @@ transit::FeedResult FeedClient::fetch(const std::vector<std::string> &selectors)
   }
   const auto url = std::string(localcfg::FeedOrigin) + transit::arrivalsPath(selectors);
   Response response;
+  response.body.reserve(8192);
   esp_http_client_config_t config{};
   config.url = url.c_str();
   config.cert_pem = localcfg::RootCa;

@@ -21,7 +21,7 @@ Waveshare ESP32-S3-RGB-Matrix controller (user-reported QFN56, board v0.2), with
 
 Waveshare RGB Matrix P2.5 64×32: 160×80 mm, HUB75, 1/16 scan, 5 V / 2.5 A. Internal SRAM holds the double-buffered DMA data; PSRAM remains available to the app. Brightness stays at 16/255.
 
-The controller map in `include/panel_config.h` includes green/blue compensation for the tested panel: logical G1/B1=6/5 and G2/B2=16/15. Published board wiring remains G1/B1=5/6 and G2/B2=15/16. Red and all control/address pins are unchanged. Timing and panel IC remain unvalidated: SHIFTREG, requested HZ_8M, phase false, latch blanking 2. The pinned S3 driver implements that clock selection through a 10 MHz path. Only `hub75-diagnostic` and `hub75-fixture` enable physical output. The user reports successful opi_opi startup, correct flash/PSRAM detection, pixel/row/column/text diagnostics and brightness 16. Green/blue compensation has been built but awaits physical retest.
+The controller map in `include/panel_config.h` includes green/blue compensation for the tested panel: logical G1/B1=6/5 and G2/B2=16/15. Published board wiring remains G1/B1=5/6 and G2/B2=15/16. Red and all control/address pins are unchanged. Timing and panel IC remain unvalidated: SHIFTREG, requested HZ_8M, phase false, latch blanking 2. The pinned S3 driver implements that clock selection through a 10 MHz path. Panel-enabled environments include `hub75-diagnostic`, `hub75-fixture`, the isolated visual diagnostics and `hub75-live`. The user reports successful opi_opi startup, correct flash/PSRAM detection, pixel/row/column/text diagnostics and brightness 16. Green/blue compensation has been built but awaits physical retest.
 
 ## Build and offline checks
 
@@ -39,6 +39,7 @@ Initial dependency installation needs internet access; subsequent tests use fixt
 
 | Environment | Behaviour |
 | --- | --- |
+| `hub75-live` | Normal live feed with the existing Waveshare HUB75 output enabled |
 | `esp32s3` | Live polling; `CONFIG` until local credentials/trust are supplied; panel disabled |
 | `fixture` | Historical feed replay from `generatedAt`; no Wi-Fi or SNTP; becomes stale at 120 seconds; panel disabled |
 | `diagnostic` | Serial-selected patterns; no network; panel disabled |
@@ -80,7 +81,7 @@ The current browser reference is **128×64**, despite earlier 64×32 experiments
 
 Countdowns use absolute UTC milliseconds: positive <60 seconds is `DUE`, otherwise floor minutes; entries at/before now disappear. `S` means scheduled, `?` means unverified; missing legacy provenance is never realtime. `!` in the header marks partial coverage. Empty groups show `NO PRED`; failed stops show `UNAVAIL`; stale stops show `STALE`. When space is insufficient, a single intact countdown takes priority; extreme values use `99+M`, and an empty group's narrow slot uses `NONE`.
 
-The local 120-second stale policy checks both `generatedAt` age and monotonic receipt age. It is an experiment policy, not proof of fresh vehicle data. Future feed clocks over five seconds ahead show `CLOCK`; minor skew is tolerated. Request failures immediately suppress predictions (`OFFLINE`, `AUTH`, `RETRY`, `FEED ERR`, `BAD FEED`). Polling is 30 seconds after completion, with 60-second failure/429 backoff and five minutes for 401/403; numeric `Retry-After` can extend it up to one hour. These intervals are not verified provider quotas.
+The local 120-second stale policy checks both `generatedAt` age and monotonic receipt age. It is an experiment policy, not proof of fresh vehicle data. Future feed clocks over five seconds ahead show `CLOCK`; minor skew is tolerated. Transient request failures retain the last valid snapshot until its original stale deadline, alternating arrival pages with a one-second error screen every five seconds. AUTH/CONFIG/CLOCK suppress predictions immediately. Polling is 30 seconds after completion, with 60-second failure/429 backoff and five minutes for 401/403; numeric `Retry-After` can extend it up to one hour. These intervals are not verified provider quotas.
 
 Before continuing, resolve the exact board/driver IC and wiring, trusted HTTPS endpoint/root CA, clock bootstrap reliability and acceptable 64×32 readability. Per-unit credentials/configuration ownership and support/trust-root lifetime remain later lifecycle decisions. No provisioning, OTA, enclosure or PCB phase is included here.
 
@@ -144,3 +145,7 @@ C2 is now the operational regular font for stop labels, destinations, mode and l
 Offline fixture/live modes accept b4, b8, b16 or b32 followed by Enter over the 115200-baud serial monitor. For example: `.venv/bin/pio device monitor --port /dev/cu.usbmodem1101 --baud 115200`, then type `b8` and Enter. CR, LF and CRLF are accepted. Changes reach the existing DMA driver on the next frame (nominally within 50 ms); reset restores 16/255. Invalid commands do not change brightness. Diagnostic mode retains its existing serial controls and brightness sweeps. These presets are an isolated prototype input; configuredBrightness is an ordinary byte that can later be assigned by device configuration without changing the rendering/driver interface. Values are not calibrated luminance.
 
 The sibling browser preview uses matching C2 masks, widths, spaces and apostrophe/accent folding. Detailed density scales ordinary C2 pixels by two; specialized detailed countdowns remain unchanged. Browser concept/identity typography comparisons are retained intentionally for research. Browser geometry, badge padding and countdown presentation still differ from the 64×32 firmware; glyph parity does not establish whole-frame equivalence. No hardware upload or physical readability measurement was performed.
+
+## First physical live-arrivals test
+
+See [configuration, hotspot, endpoint decision, build/upload and recovery steps](docs/live-arrivals.md). Normal live mode reuses the existing Wi-Fi/HTTPS/parser pipeline; no backend exposure, deployment or hardware flashing is automatic. Current configured brightness is 4/255; historical bring-up notes above record earlier brightness settings.

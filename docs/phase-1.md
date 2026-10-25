@@ -440,3 +440,44 @@ Replaced only isolated diagnostic A–D inputs: A #385322 (previous best referen
 Method for the pending physical test: compare each pair under fixed ambient light, distance and angle; record readability and recognizable green separately. More saturated candidates improving both is a hypothesis, not a verified outcome. No external facts verified or provider requests made; no ESP32 flashed.
 
 Observed validation: all 49 native firmware tests passed, including exact C2 badge foreground/background checks for all four pairs and unchanged operational raster regressions. hub75-badge-contrast built successfully. Firmware formatting and diff whitespace checks passed. No upload performed; physical readability and green identity remain pending evaluation.
+
+
+## Physical live-feed integration — 25 October 2026
+
+Inspection found an existing Arduino/PlatformIO Wi-Fi/HTTPS/background-task
+pipeline, bounded ArduinoJson Feed v1 parser, SNTP clock, local countdowns and
+isolated renderer/diagnostics. Reused these. Added panel-enabled hub75-live,
+last-valid-feed merge on transient request failures (original generation/receipt
+age preserved), a periodic error screen using the unchanged renderer, and safe
+connection/feed summaries. AUTH/CONFIG/CLOCK still suppress predictions. Existing
+120-second freshness and polling/backoff policies remain. No provider policy,
+new dependency or contract change. Normal typography, badge colours, paging,
+countdown pixels and configured brightness 4/255 remain.
+
+Observed validation at 2026-10-25T09:24:55Z: 51 native tests passed (previous 49
+plus interruption/recovery and local-expiry cases). Updated the existing request
+error test to assert its warning-screen phase; all established raster and
+comparison tests pass. All eight environments built: esp32s3, diagnostic,
+fixture, hub75-diagnostic, hub75-fixture, hub75-badge-contrast, hub75-live and
+hub75-typography. C++ formatting and generated fixture checks passed. Sibling
+backend: all 160 tests and type/lint/format checks passed. PlatformIO cache and
+local backend test listener access required sandbox permission. Builds used no
+real credentials. Wi-Fi interruption tests simulate the network task's error
+snapshot; they do not test a physical radio or TLS session.
+
+Direct live endpoint verified 2026-10-25T09:27:08.443Z–09:28:25.097Z:
+https://live-transit-feed.roger-80a.workers.dev. Auth/catalogue/Metro/Bus/mixed
+checks succeeded; diagnostic upstream responses were HTTP 200 for both modes.
+Prediction sets changed across requests. Actual firmware parser accepted four
+normalized captures in a temporary host harness. No upstream connectivity issue
+was reproduced. Deployed responses omit provenance/realtimeStatus/selected
+colours present in the current backend checkout; likely deployment drift, exact
+revision unconfirmed. Legacy unknown-provenance and colour fallbacks must remain.
+Recommendation: owner updates the intended backend revision and repeats checks
+before the intended physical test. No deployment or flash is automatic/authorized.
+See sibling feed docs/phase-1.md and sanitized evidence/deployed-feed-2026-10-25.
+
+Physical hotspot association, SNTP/CA bootstrap, heap headroom and uninterrupted
+LED output remain unverified. docs/live-arrivals.md records secure local
+configuration, chosen HTTPS origin, dynamically detected USB port, manual
+build/upload/monitor commands, state interpretation and interruption tests.

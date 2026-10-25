@@ -1,5 +1,6 @@
 #include "state.h"
 #include <algorithm>
+#include <utility>
 
 namespace transit {
 const char *requestMessage(RequestError error) {
@@ -34,9 +35,21 @@ std::string countdown(const Arrival &arrival, int64_t now) {
     prefix = "?";
   return prefix + (remaining < 60000 ? "DUE" : std::to_string(remaining / 60000) + "M");
 }
+void applySnapshot(Snapshot &current, Snapshot next) {
+  if (next.hasFeed && next.error == RequestError::None)
+    current = std::move(next);
+  else
+    current.error = next.error;
+}
 View viewAt(const Snapshot &snapshot, int64_t now, uint64_t uptime, bool clockValid) {
   View view;
-  if (snapshot.error != RequestError::None) {
+  const bool interrupted =
+      snapshot.error == RequestError::Network || snapshot.error == RequestError::Http ||
+      snapshot.error == RequestError::InvalidFeed || snapshot.error == RequestError::RateLimited;
+  // Reuse the existing full-screen status renderer for one second every five.
+  // Other frames retain the unmodified arrival layout and normal expiry rules.
+  if (snapshot.error != RequestError::None &&
+      (!interrupted || !snapshot.hasFeed || uptime % 5000 < 1000)) {
     view.message = requestMessage(snapshot.error);
     return view;
   }

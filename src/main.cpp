@@ -59,6 +59,24 @@ void printInfo() {
                 panelcfg::Enabled ? "enabled" : "disabled");
 }
 void publish(transit::Snapshot &next) {
+  // Safe summaries only: never print SSID, URL, token, body or SDK errors.
+  static transit::RequestError lastError = transit::RequestError::None;
+  if (next.hasFeed) {
+    unsigned arrivals = 0;
+    unsigned realtime = 0;
+    for (const auto &stop : next.feed.stops)
+      for (const auto &group : stop.groups)
+        for (const auto &arrival : group.arrivals) {
+          ++arrivals;
+          if (arrival.provenance == transit::Provenance::Realtime)
+            ++realtime;
+        }
+    Serial.printf("Feed OK; generatedAt=%lld; stops=%u; arrivals=%u; realtime=%u\n",
+                  static_cast<long long>(next.feed.generatedAt),
+                  static_cast<unsigned>(next.feed.stops.size()), arrivals, realtime);
+  } else if (next.error != lastError)
+    Serial.printf("Feed state: %s\n", transit::requestMessage(next.error));
+  lastError = next.error;
   xSemaphoreTake(mailboxMutex, portMAX_DELAY);
   mailbox = std::move(next);
   mailboxPending = true;
@@ -82,9 +100,15 @@ void networkTask(void *) {
   uint64_t reconnectAt = 0;
   uint64_t pollAt = 0;
   bool offlinePublished = false;
+  bool connected = false;
+  bool waitingForClock = false;
   while (true) {
     const uint64_t tick = uptimeMs();
     if (WiFi.status() != WL_CONNECTED) {
+      if (connected)
+        Serial.println("Wi-Fi disconnected; reconnecting");
+      connected = false;
+      waitingForClock = false;
       if (!offlinePublished) {
         transit::Snapshot next;
         next.error = transit::RequestError::Network;
@@ -95,20 +119,31 @@ void networkTask(void *) {
         WiFi.begin(localcfg::WifiSsid, localcfg::WifiPassword);
         reconnectAt = tick + 15000;
       }
-    } else if (!clockValid()) {
-      transit::Snapshot next;
-      next.error = transit::RequestError::Clock;
-      publish(next);
-    } else if (tick >= pollAt) {
-      auto result = client.fetch(selectors);
-      transit::Snapshot next;
-      next.error = result.error;
-      next.hasFeed = result.error == transit::RequestError::None;
-      next.feed = std::move(result.feed);
-      next.receivedAtMs = uptimeMs();
-      publish(next);
-      offlinePublished = false;
-      pollAt = uptimeMs() + result.retryMs;
+    } else {
+      if (!connected) {
+        Serial.println("Wi-Fi connected");
+        connected = true;
+        offlinePublished = false;
+      }
+      if (!clockValid()) {
+        if (!waitingForClock) {
+          transit::Snapshot next;
+          next.error = transit::RequestError::Clock;
+          publish(next);
+          waitingForClock = true;
+        }
+      } else if (tick >= pollAt) {
+        auto result = client.fetch(selectors);
+        transit::Snapshot next;
+        next.error = result.error;
+        next.hasFeed = result.error == transit::RequestError::None;
+        next.feed = std::move(result.feed);
+        next.receivedAtMs = uptimeMs();
+        publish(next);
+        offlinePublished = false;
+        pollAt = uptimeMs() + result.retryMs;
+        waitingForClock = false;
+      }
     }
     vTaskDelay(pdMS_TO_TICKS(250));
   }
@@ -120,7 +155,7 @@ void setup() {
   Serial.begin(115200);
   printInfo();
   if (APP_MODE != 1)
-    Serial.println("Brightness: b4, b8, b16, b32 then Enter; default 16/255");
+    Serial.println("Brightness: b4, b8, b16, b32 then Enter; reset uses configured brightness");
   if (!display.begin()) {
     Serial.println("Display initialization failed");
     while (true)
@@ -163,7 +198,7 @@ void loop() {
       if (mailboxPending) {
         if (snapshot.error != mailbox.error || snapshot.hasFeed != mailbox.hasFeed)
           animationStart = tick;
-        snapshot = std::move(mailbox);
+        transit::applySnapshot(snapshot, std::move(mailbox));
         mailboxPending = false;
       }
       xSemaphoreGive(mailboxMutex);

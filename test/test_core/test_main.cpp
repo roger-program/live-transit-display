@@ -154,7 +154,7 @@ void clock_and_request_errors_suppress_arrivals() {
   for (auto error : {RequestError::Network, RequestError::Auth, RequestError::RateLimited,
                      RequestError::InvalidFeed}) {
     snapshot.error = error;
-    auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+    auto view = viewAt(snapshot, snapshot.feed.generatedAt, 5000, true);
     TEST_ASSERT_TRUE(view.stops.empty());
     TEST_ASSERT_EQUAL_STRING(requestMessage(error), view.message.c_str());
   }
@@ -604,8 +604,53 @@ void reviewed_raster_regression() {
   TEST_ASSERT_EQUAL_UINT64(2220839326115014118ULL, pixelsHash(frame));
 }
 } // namespace
+void interruption_retains_feed_and_recovers() {
+  for (auto error : {RequestError::Network, RequestError::Http, RequestError::InvalidFeed,
+                     RequestError::RateLimited}) {
+    auto snapshot = sample();
+    const auto generatedAt = snapshot.feed.generatedAt;
+    Snapshot failed;
+    failed.error = error;
+    failed.receivedAtMs = 90000;
+    applySnapshot(snapshot, std::move(failed));
+    TEST_ASSERT_TRUE(snapshot.hasFeed);
+    TEST_ASSERT_EQUAL(1000, snapshot.receivedAtMs);
+    TEST_ASSERT_EQUAL_INT64(generatedAt, snapshot.feed.generatedAt);
+    const auto warning = viewAt(snapshot, generatedAt + 4000, 5000, true);
+    TEST_ASSERT_TRUE(warning.stops.empty());
+    TEST_ASSERT_EQUAL_STRING(requestMessage(error), warning.message.c_str());
+    const auto retained = viewAt(snapshot, generatedAt + 5000, 6000, true);
+    TEST_ASSERT_EQUAL(2, retained.stops.size());
+    TEST_ASSERT_EQUAL(4, retained.stops[0].groups.size());
+    TEST_ASSERT_EQUAL(2, retained.stops[1].groups.size());
+    const auto expired = viewAt(snapshot, generatedAt + 120000, 121000, true);
+    TEST_ASSERT_TRUE(expired.stops[0].status == StopStatus::Stale);
+    TEST_ASSERT_TRUE(expired.stops[0].groups.empty());
+    auto recovered = sample();
+    recovered.feed.generatedAt += 120000;
+    recovered.receivedAtMs = 121000;
+    applySnapshot(snapshot, std::move(recovered));
+    const auto healthy = viewAt(snapshot, generatedAt + 120000, 121000, true);
+    TEST_ASSERT_TRUE(snapshot.error == RequestError::None);
+    TEST_ASSERT_TRUE(healthy.message.empty());
+    TEST_ASSERT_TRUE(healthy.stops[0].status == StopStatus::Ok);
+  }
+}
+void interruption_still_expires_predictions() {
+  auto snapshot = sample();
+  snapshot.feed.stops[0].groups[0].arrivals[0].arrivalAt = snapshot.feed.generatedAt + 2000;
+  Snapshot failed;
+  failed.error = RequestError::Network;
+  applySnapshot(snapshot, std::move(failed));
+  const auto view = viewAt(snapshot, snapshot.feed.generatedAt + 5000, 6000, true);
+  TEST_ASSERT_EQUAL(1, view.stops[0].groups[0].arrivals.size());
+  TEST_ASSERT_EQUAL(2, snapshot.feed.stops[0].groups[0].arrivals.size());
+  TEST_ASSERT_EQUAL_STRING("CLOCK", viewAt(snapshot, 0, 6000, false).message.c_str());
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(interruption_retains_feed_and_recovers);
+  RUN_TEST(interruption_still_expires_predictions);
   RUN_TEST(protocol_fixture);
   RUN_TEST(forward_compatibility);
   RUN_TEST(legacy_fields);
