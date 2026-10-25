@@ -629,3 +629,25 @@ RAM bytes. Formatting, fixture consistency, diff whitespace and archive hashes
 passed. The partition CSV, PlatformIO settings and generated live partition
 binary match the preserved versions. Native cases do not emulate Wi-Fi, HTTP
 or NVS power-loss behaviour. No upload, erase, reset, repartition or deployment.
+
+
+## Focused Wi-Fi onboarding UX — 25 October 2026
+
+User requested simpler prototype credentials and a persistent readable setup
+screen. AP defaults are now lowercase metro-display / bcnmetro, separately
+configurable in lib/transit/src/wifi_setup_screen.h. The random HTTP form token
+remains. Five fixed C2 rows show SSID, PW plus password, LOWERCASE, OPEN HTTP and
+192.168.4.1 at y=0/6/12/20/26. This explicitly handles uppercase-only C2 glyphs
+without changing transport fonts or the renderer. No paging or scrolling.
+
+Removed setup inactivity expiry; the AP/page and credentials remain until verified
+Wi-Fi is saved and the existing five-second success shutdown completes. Prior
+NVS records, candidate verification, retry behaviour, migration fallback, and
+BOOT/serial recovery are unchanged. Reboot can recover the previous saved network
+when setup is abandoned. No partition, backend, environment or TLS changes.
+
+Verification: 59/59 native cases passed, including setup text coverage/width at
+64×32; hub75-live built with 932,353 application bytes and 46,484 static RAM bytes.
+These are software observations, not physical readability or radio tests. Updated
+docs/wifi-setup.md covers the no-timeout manual check and configurable prototype
+settings. No flash, erase, device connection or deployment performed.

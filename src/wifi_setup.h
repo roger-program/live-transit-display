@@ -15,10 +15,10 @@ public:
   bool active() const { return provisioning_; }
   void tick(uint64_t now);
   void request() { requested_ = true; }
-  bool render(transit::Framebuffer &frame, uint64_t now);
+  bool render(transit::Framebuffer &frame);
 
 private:
-  void start(uint64_t now);
+  void start();
   void connect(const String &ssid, const String &password, uint64_t now);
   void message(const String &status);
   bool authorized();
@@ -33,5 +33,5 @@ private:
   uint8_t activeSlot_ = 0;
   bool stored_ = false, setup_ = false, testing_ = false, success_ = false;
   bool storageReady_ = false, visible_ = false;
-  uint64_t attemptAt_ = 0, retryAt_ = 0, setupAt_ = 0, finishAt_ = 0;
+  uint64_t attemptAt_ = 0, retryAt_ = 0, finishAt_ = 0;
 };

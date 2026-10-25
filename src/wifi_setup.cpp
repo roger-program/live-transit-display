@@ -1,7 +1,7 @@
 #include "wifi_setup.h"
 #include "app_config.h"
-#include "renderer.h"
 #include "wifi_credentials.h"
+#include "wifi_setup_screen.h"
 #include <WiFi.h>
 #include <esp_system.h>
 #include <esp_timer.h>
@@ -154,7 +154,7 @@ void WifiSetup::begin() {
   if (stored_)
     connect(savedSsid_, savedPassword_, nowMs());
   else {
-    start(nowMs());
+    start();
     // Transitional development credentials are a candidate, never a permanent prerequisite.
     if (storageReady_ && !storage_.isKey("active") && !storage_.isKey("slot0") &&
         !storage_.isKey("slot1") && localcfg::WifiSsid[0]) {
@@ -165,21 +165,20 @@ void WifiSetup::begin() {
     }
   }
 }
-void WifiSetup::start(uint64_t now) {
+void WifiSetup::start() {
   if (setup_)
     return;
   WiFi.disconnect(false, false);
   WiFi.mode(WIFI_AP_STA);
   xSemaphoreTake(mutex_, portMAX_DELAY);
-  apName_ = "Transit-" + randomCode().substring(4);
-  apPassword_ = randomCode();
+  apName_ = provisioning::SetupSsid;
+  apPassword_ = provisioning::SetupPassword;
   token_ = randomCode() + randomCode() + randomCode() + randomCode();
   status_ = "Choose your network, then connect.";
   visible_ = true;
   xSemaphoreGive(mutex_);
   provisioning_ = true;
   setup_ = WiFi.softAP(apName_.c_str(), apPassword_.c_str(), 1, false, 1);
-  setupAt_ = now;
   if (setup_) {
     server_.begin();
     WiFi.scanDelete();
@@ -193,7 +192,7 @@ void WifiSetup::tick(uint64_t now) {
   if (!mutex_)
     return;
   if (requested_.exchange(false))
-    start(now);
+    start();
   if (setup_)
     server_.handleClient();
   if (testing_) {
@@ -238,7 +237,7 @@ void WifiSetup::tick(uint64_t now) {
       WiFi.scanNetworks(true);
     }
   }
-  if (setup_ && ((success_ && now >= finishAt_) || now - setupAt_ >= 600000)) {
+  if (setup_ && success_ && now >= finishAt_) {
     testing_ = false;
     candidateSsid_ = "";
     candidatePassword_ = "";
@@ -259,26 +258,12 @@ void WifiSetup::tick(uint64_t now) {
   if (!setup_ && stored_ && WiFi.status() != WL_CONNECTED && now >= retryAt_)
     connect(savedSsid_, savedPassword_, now);
 }
-bool WifiSetup::render(transit::Framebuffer &frame, uint64_t now) {
-  if (!mutex_ || xSemaphoreTake(mutex_, 0) != pdTRUE)
+bool WifiSetup::render(transit::Framebuffer &frame) {
+  if (!mutex_ || xSemaphoreTake(mutex_, portMAX_DELAY) != pdTRUE)
     return false;
   const bool visible = visible_;
-  if (visible) {
-    const unsigned page = (now / 4500) % 4;
-    const String title = page == 0   ? "JOIN WIFI"
-                         : page == 1 ? "PASSWORD"
-                         : page == 2 ? "OPEN HTTP"
-                                     : "SETUP";
-    const String detail = page == 0   ? apName_
-                          : page == 1 ? apPassword_
-                          : page == 2 ? "192.168.4.1"
-                                      : status_;
-    frame.clear();
-    transit::drawText(frame, title.c_str(), 1, 2, 0xffffff, 0, 64);
-    const int offset = transit::overflowOffset(transit::textWidth(detail.c_str()), 62, now % 4500);
-    transit::drawText(frame, detail.c_str(), 1, 13, 0xffffff, 1, 63, offset);
-    transit::drawText(frame, "HOLD BOOT", 1, 24, 0x808080, 0, 64);
-  }
+  if (visible)
+    provisioning::renderSetupScreen(frame, apName_.c_str(), apPassword_.c_str());
   xSemaphoreGive(mutex_);
   return visible;
 }

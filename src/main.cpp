@@ -232,7 +232,7 @@ void loop() {
     renderer.render(frame, view, now, tick - animationStart);
   }
   if (APP_MODE == 0)
-    wifiSetup.render(frame, tick);
+    wifiSetup.render(frame);
   display.present(frame, brightness);
   delay(50); // 20 fps; network/TLS work runs separately from animation.
 }

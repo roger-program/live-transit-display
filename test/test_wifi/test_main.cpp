@@ -1,4 +1,5 @@
 #include "wifi_credentials.h"
+#include "wifi_setup_screen.h"
 #include <unity.h>
 using namespace provisioning;
 void setUp() {}
@@ -34,8 +35,20 @@ void stored_record_validation() {
   record.password[64] = 'x';
   TEST_ASSERT_FALSE(validRecord(record));
 }
+void setup_credentials_fit_static_panel() {
+  TEST_ASSERT_EQUAL_STRING("metro-display", SetupSsid);
+  TEST_ASSERT_EQUAL_STRING("bcnmetro", SetupPassword);
+  TEST_ASSERT_TRUE(validCredentials(SetupSsid, SetupPassword));
+  for (const std::string &line :
+       {std::string(SetupSsid), "PW " + std::string(SetupPassword), std::string("LOWERCASE"),
+        std::string("OPEN HTTP"), std::string("192.168.4.1")}) {
+    TEST_ASSERT_TRUE(typography::c2Supports(line));
+    TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(line));
+  }
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(setup_credentials_fit_static_panel);
   RUN_TEST(credential_boundaries);
   RUN_TEST(raw_psk_validation);
   RUN_TEST(reject_embedded_null);

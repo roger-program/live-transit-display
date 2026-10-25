@@ -9,14 +9,16 @@ diagnostics are unchanged. Setup overlays instructions using existing drawing
 primitives. Normal feed fetching resumes when setup closes.
 
 Saved Wi-Fi credentials take priority. Without a valid saved record, the device
-starts a temporary protected `Transit-XXXX` AP. On an untouched namespace, if compiled development Wi-Fi
-credentials are present, it also tests them once and saves them only after a
+starts a protected lowercase `metro-display` AP with prototype password `bcnmetro`.
+On an untouched namespace, if compiled development Wi-Fi credentials are present, it also tests them once and saves them only after a
 successful association and DHCP address. This transitional migration keeps existing
 development builds usable. Empty compiled Wi-Fi fields are supported; feed origin,
 feed authentication and CA configuration still use the existing local header.
 
-The matrix cycles through AP SSID, generated eight-character password, HTTP
-address and status. Join that AP in phone Settings, accept remaining connected
+The 64×32 matrix shows a fixed screen containing the SSID, password, LOWERCASE
+instruction, OPEN HTTP and browser address. C2 glyphs are uppercase, so LOWERCASE
+explicitly applies to both credentials. There is no scrolling or rotating screen.
+Join that AP in phone Settings, accept remaining connected
 without internet if prompted, then explicitly open **http://192.168.4.1**.
 There is no captive-portal DNS/redirect service. The self-contained page has a
 network dropdown, manual SSID, password field and status/retry flow. A background
@@ -30,8 +32,9 @@ close after five seconds; reconnect the phone to its usual network. AP channel
 changes during home-network association can interrupt the phone connection; the
 matrix and retry/rejoin path are required physical checks.
 
-Setup expires after ten minutes. With prior credentials the device resumes using
-them; otherwise hold BOOT or use serial to reopen setup. A normal network outage
+Setup and its on-screen credentials remain available until configuration succeeds;
+there is no inactivity timeout. Rebooting returns to previously saved credentials
+if replacement has not succeeded. A normal network outage
 never opens setup or deletes credentials: retries continue every 15 seconds.
 Reboot and normal non-erasing firmware writes preserve NVS. Setup requests can be
 delayed by an in-flight bounded feed request; drawing remains in the main loop.
@@ -47,7 +50,11 @@ selected slot in place. The old slot remains after activation. No Wi-Fi erase or
 factory-reset endpoint is added. SSIDs/passwords are not printed or echoed into
 HTML. Submitted passwords travel only over the protected local setup network.
 
-The setup AP uses a new random password per session and accepts one client.
+The setup AP uses the shared prototype password `bcnmetro` and accepts one client.
+`SetupSsid` and `SetupPassword` in `lib/transit/src/wifi_setup_screen.h` are the
+configurable defaults; use device-specific credentials before production. Choose
+values that fit the fixed C2 rows (64 pixels); the password must be 8–63 bytes.
+The random per-session form token remains unchanged.
 HTTP binds to the AP address and checks the local destination, Host, Origin and a
 random form token; the page is not cached and rejects framing. It uses no CDN,
 cloud service or internet assets. This is a prototype WPA-protected HTTP portal,
@@ -136,8 +143,10 @@ available before separately authorizing an upload. Do not erase the working unit
    existing offline/stale rendering and no automatic provisioning/reset. Restore
    the AP and verify recovery without entering credentials again.
 6. **Return to setup:** after startup release BOOT, hold three seconds, and verify
-   setup. Repeat through `wifi` + Enter. Let setup time out and confirm old-network
-   recovery. Check GPIO0 mapping and access with the actual mounted panel. Verify
+   setup. Repeat through `wifi` + Enter. Leave setup open longer than ten minutes and
+   confirm SSID/password remain visible, the AP/page remain available and a failed
+   connection can still be retried. Reboot before a successful replacement and
+   confirm old-network recovery. Check GPIO0 mapping and access with the actual mounted panel. Verify
    holding the button during reset is not mistaken for this application feature.
 
 Record timestamps, phone/router models, memory headroom, AP channel handoff,
@@ -153,3 +162,14 @@ fixture consistency and diff whitespace passed. Native tests cover credential
 boundaries, raw PSKs, embedded nulls and stored version/termination; they do not
 emulate NVS commits, WebServer or radio association. Manual tests above remain
 pending. Archive hashes and unchanged partition/settings files were checked.
+
+## Focused prototype onboarding refinement — 25 October 2026
+
+Changed only setup-network defaults, fixed matrix instructions and setup lifetime.
+The five C2 rows are at y=0/6/12/20/26; all fit 64×32 without clipping. The
+13-character SSID fills 63 pixels and the password row includes a PW label.
+Credential storage/verification, reconnection, HTTP form protection and BOOT/serial
+recovery are unchanged. Setup closes after the existing success delay and normal
+arrivals resume. Fixed-screen fit/coverage regression added; 59/59 native tests
+passed and hub75-live built (932,353 application bytes, 46,484 static RAM bytes).
+Physical readability, association and long-idle checks remain manual. No flashing.
