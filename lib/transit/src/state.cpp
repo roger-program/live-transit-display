@@ -33,7 +33,7 @@ std::string countdown(const Arrival &arrival, int64_t now) {
     prefix = "S";
   else if (arrival.provenance == Provenance::Unknown)
     prefix = "?";
-  return prefix + (remaining < 60000 ? "DUE" : std::to_string(remaining / 60000) + "M");
+  return prefix + (std::to_string(remaining / 60000) + "'");
 }
 void applySnapshot(Snapshot &current, Snapshot next) {
   if (next.hasFeed && next.error == RequestError::None)

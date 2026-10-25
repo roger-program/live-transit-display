@@ -127,14 +127,14 @@ void preserve_identifiers_and_color() {
 }
 void countdown_boundaries() {
   Arrival a{100000, Provenance::Realtime, {}, {}};
-  TEST_ASSERT_EQUAL_STRING("1M", countdown(a, 40000).c_str());
-  TEST_ASSERT_EQUAL_STRING("DUE", countdown(a, 40001).c_str());
-  TEST_ASSERT_EQUAL_STRING("DUE", countdown(a, 99999).c_str());
+  TEST_ASSERT_EQUAL_STRING("1'", countdown(a, 40000).c_str());
+  TEST_ASSERT_EQUAL_STRING("0'", countdown(a, 40001).c_str());
+  TEST_ASSERT_EQUAL_STRING("0'", countdown(a, 99999).c_str());
   TEST_ASSERT_TRUE(countdown(a, 100000).empty());
   a.provenance = Provenance::Scheduled;
-  TEST_ASSERT_EQUAL_STRING("S1M", countdown(a, 40000).c_str());
+  TEST_ASSERT_EQUAL_STRING("S1'", countdown(a, 40000).c_str());
   a.provenance = Provenance::Unknown;
-  TEST_ASSERT_EQUAL_STRING("?DUE", countdown(a, 99999).c_str());
+  TEST_ASSERT_EQUAL_STRING("?0'", countdown(a, 99999).c_str());
 }
 void freshness_boundary_and_monotonic_guard() {
   auto snapshot = sample();
@@ -166,7 +166,7 @@ void partial_scheduled_and_expiry() {
   auto view = viewAt(snapshot, feed.generatedAt, 1000, true);
   TEST_ASSERT_TRUE(view.stops[2].status == StopStatus::Partial);
   TEST_ASSERT_EQUAL_STRING(
-      "SDUE", countdown(view.stops[3].groups[0].arrivals[0], feed.generatedAt).c_str());
+      "S0'", countdown(view.stops[3].groups[0].arrivals[0], feed.generatedAt).c_str());
   TEST_ASSERT_EQUAL(0, view.stops[7].groups.size());
   TEST_ASSERT_EQUAL(0, view.stops[8].groups.size());
   snapshot.feed.stops[3].groups[0].arrivals.resize(1);
@@ -586,22 +586,22 @@ void reviewed_raster_regression() {
     }
   // Active C2 typography raster baselines; exact glyph masks are checked separately.
   renderer.render(frame, view, snapshot.feed.generatedAt, 0);
-  TEST_ASSERT_EQUAL_UINT64(4652948382405536046ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(14124837897921310662ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 5 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(6892046344060526122ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(13708469641495778878ULL, pixelsHash(frame));
   // A header background-only substitution keeps text and geometry fixed.
   auto legacyHeader = frame;
   for (int y = 1; y < 8; ++y)
     for (int x = 1; x < 8; ++x)
       if (legacyHeader.pixel(x, y) == 0xc62a0f)
         legacyHeader.pixel(x, y, 0x42ac52);
-  TEST_ASSERT_EQUAL_UINT64(12972573383326975115ULL, pixelsHash(legacyHeader));
+  TEST_ASSERT_EQUAL_UINT64(5705371943769837879ULL, pixelsHash(legacyHeader));
   TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
   view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   renderer.render(frame, view, snapshot.feed.generatedAt, 2 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(1747568753111830010ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(17983623612294700526ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 3 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(2220839326115014118ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(9431929387809873746ULL, pixelsHash(frame));
 }
 } // namespace
 void interruption_retains_feed_and_recovers() {
@@ -647,6 +647,28 @@ void interruption_still_expires_predictions() {
   TEST_ASSERT_EQUAL(2, snapshot.feed.stops[0].groups[0].arrivals.size());
   TEST_ASSERT_EQUAL_STRING("CLOCK", viewAt(snapshot, 0, 6000, false).message.c_str());
 }
+void three_prediction_rows() {
+  Group group;
+  auto set = [&](std::initializer_list<int> minutes) {
+    group.arrivals.clear();
+    for (int minute : minutes)
+      group.arrivals.push_back({1001 + minute * 60000LL, Provenance::Realtime, "", ""});
+  };
+  set({0});
+  TEST_ASSERT_EQUAL_STRING("0'", arrivalText(group, 1000, 49).c_str());
+  set({2, 8});
+  TEST_ASSERT_EQUAL_STRING("2' 8'", arrivalText(group, 1000, 49).c_str());
+  set({0, 10, 19, 24});
+  TEST_ASSERT_EQUAL_STRING("0' 10' 19'", arrivalText(group, 1000, 49).c_str());
+  TEST_ASSERT_EQUAL_STRING("9' 18' 23'", arrivalText(group, 61001, 49).c_str());
+  set({12, 24, 38});
+  TEST_ASSERT_EQUAL_STRING("12' 24' 38'", arrivalText(group, 1000, 49).c_str());
+  TEST_ASSERT_EQUAL_STRING("12' 24'", arrivalText(group, 1000, 30).c_str());
+  TEST_ASSERT_TRUE(arrivalText(group, 1000, 10).empty());
+  set({99, 99, 99});
+  TEST_ASSERT_EQUAL_STRING("99' 99' 99'", arrivalText(group, 1000, 44).c_str());
+  TEST_ASSERT_EQUAL_STRING("99' 99'", arrivalText(group, 1000, 43).c_str());
+}
 int main() {
   UNITY_BEGIN();
   RUN_TEST(interruption_retains_feed_and_recovers);
@@ -659,6 +681,7 @@ int main() {
   RUN_TEST(bounded_resources);
   RUN_TEST(preserve_identifiers_and_color);
   RUN_TEST(countdown_boundaries);
+  RUN_TEST(three_prediction_rows);
   RUN_TEST(freshness_boundary_and_monotonic_guard);
   RUN_TEST(clock_and_request_errors_suppress_arrivals);
   RUN_TEST(partial_scheduled_and_expiry);

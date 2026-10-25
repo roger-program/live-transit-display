@@ -159,8 +159,22 @@ inline void render(transit::Framebuffer &frame, Face face, unsigned sample, uint
   auto view = sampleView(sample);
   transit::ArrivalRenderer baseline;
   baseline.render(frame, view, Now, phase);
+  const auto legacyLabel = [](const transit::Arrival &arrival) {
+    auto value = transit::countdown(arrival, Now);
+    if (value == "0'")
+      return std::string("DUE");
+    if (!value.empty())
+      value.back() = 'M';
+    return value;
+  };
+  const auto &legacyGroup = view.stops.front().groups.front();
+  const auto legacyArrivals =
+      legacyLabel(legacyGroup.arrivals[0]) + " " + legacyLabel(legacyGroup.arrivals[1]);
+  const int legacyLeft = 1 + std::min(30, c2Width(legacyGroup.line) + 2) + 2;
+  frame.rect(legacyLeft, 12, 63 - legacyLeft, 5, 0);
+  drawC2(frame, legacyArrivals, 63 - c2Width(legacyArrivals), 12, 0xaaff66, legacyLeft, 63);
   if (face == Face::A)
-    return; // Actual production renderer, no reconstructed baseline.
+    return; // Historical diagnostic arrival samples; other pixels use the live renderer.
   const auto &stop = view.stops.front();
   const auto &group = stop.groups.front();
   // Only the three existing text slots are replaced. All badges, separators,
@@ -179,8 +193,7 @@ inline void render(transit::Framebuffer &frame, Face face, unsigned sample, uint
     return;
   // Same immutable arrival content and operational right edge; first number uses
   // the browser's 5-column master, second uses its compact label digit.
-  const std::string arrivals =
-      transit::countdown(group.arrivals[0], Now) + " " + transit::countdown(group.arrivals[1], Now);
+  const std::string arrivals = legacyArrivals;
   draw(frame, face, arrivals, 63 - width(face, arrivals, true), 12, 0xaaff66, slotLeft, 63, 0,
        true);
 }

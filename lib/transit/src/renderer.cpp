@@ -75,27 +75,11 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     const int y = 12 + static_cast<int>(i) * spacing;
     badge(frame, group.line.empty() ? "?" : group.line, 1, y - 1,
           lineColor(group.lineColor, stop.mode), offset, group.lineTextColor);
-    std::string arrivals;
-    for (size_t a = 0; a < std::min(size_t(2), group.arrivals.size()); ++a) {
-      if (a)
-        arrivals += ' ';
-      arrivals += countdown(group.arrivals[a], now);
-    }
-    if (arrivals.empty())
-      arrivals = "NO PRED";
     const int badgeWidth = std::min(frame.width() / 2 - 2,
                                     typography::c2Width(group.line.empty() ? "?" : group.line) + 2);
     const int slotLeft = 1 + badgeWidth + 2;
     const int available = frame.width() - 1 - slotLeft;
-    // If two values cannot fit, retain the first intact instead of clipping ambiguity.
-    if (typography::c2Width(arrivals) > available && group.arrivals.size() > 1)
-      arrivals = countdown(group.arrivals.front(), now);
-    if (typography::c2Width(arrivals) > available)
-      arrivals = group.arrivals.empty()
-                     ? "NONE"
-                     : (group.arrivals.front().provenance == Provenance::Scheduled ? "S99+M"
-                        : group.arrivals.front().provenance == Provenance::Unknown ? "?99+M"
-                                                                                   : "99+M");
+    const std::string arrivals = arrivalText(group, now, available);
     const int arrivalLeft = std::max(slotLeft, frame.width() - 1 - typography::c2Width(arrivals));
     typography::drawC2(frame, arrivals, arrivalLeft + offset, y, Green,
                        std::max(1, arrivalLeft + offset),
@@ -114,6 +98,34 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
 }
 } // namespace
 
+std::string arrivalText(const Group &group, int64_t now, int available) {
+  std::string result;
+  size_t count = 0;
+  for (const auto &arrival : group.arrivals) {
+    const auto label = countdown(arrival, now);
+    if (label.empty())
+      continue;
+    const auto candidate = result.empty() ? label : result + " " + label;
+    if (typography::c2Width(candidate) > available)
+      break;
+    result = candidate;
+    if (++count == 3)
+      break;
+  }
+  if (!result.empty())
+    return result;
+  // Retain the existing out-of-range indicator, without clipping a large number.
+  for (const auto &arrival : group.arrivals) {
+    if (countdown(arrival, now).empty())
+      continue;
+    const std::string prefix = arrival.provenance == Provenance::Scheduled ? "S"
+                               : arrival.provenance == Provenance::Unknown ? "?"
+                                                                           : "";
+    const auto overflow = prefix + "99+'";
+    return typography::c2Width(overflow) <= available ? overflow : "";
+  }
+  return typography::c2Width("NO PRED") <= available ? "NO PRED" : "";
+}
 std::string pixelText(const std::string &utf8) {
   // Narrow embedded glyph policy: Catalan/Spanish accents transliterate for 5-row text.
   // Stored normalized labels are untouched. Unknown UTF-8 codepoints become one '?'.

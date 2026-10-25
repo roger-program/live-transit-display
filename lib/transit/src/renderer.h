@@ -12,6 +12,7 @@ struct Page {
   size_t servicePages = 1;
 };
 std::vector<Page> pagesFor(const View &view, int height);
+std::string arrivalText(const Group &group, int64_t now, int available);
 std::string pixelText(const std::string &utf8);
 int textWidth(const std::string &utf8);
 int overflowOffset(int inkWidth, int viewportWidth, uint64_t elapsed);
