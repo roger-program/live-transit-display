@@ -6,6 +6,8 @@
 #include "wifi_setup_screen.h"
 #include "wifi_setup_web.h"
 #include <WiFi.h>
+#include <dhcpserver/dhcpserver.h>
+#include <esp_netif.h>
 #include <esp_system.h>
 #include <esp_timer.h>
 #include <esp_wifi.h>
@@ -41,6 +43,25 @@ String escape(const String &value) {
     }
   }
   return out;
+}
+// Tell newly joined phones to use the setup AP for DNS; station DNS is untouched.
+bool advertiseSetupDns(IPAddress address) {
+  esp_netif_t *ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+  if (!ap)
+    return false;
+  const esp_err_t stopped = esp_netif_dhcps_stop(ap);
+  if (stopped != ESP_OK && stopped != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED)
+    return false;
+  esp_netif_dns_info_t dns{};
+  dns.ip.type = IPADDR_TYPE_V4;
+  dns.ip.u_addr.ip4.addr = static_cast<uint32_t>(address);
+  uint8_t offer = OFFER_DNS;
+  const bool configured = esp_netif_set_dns_info(ap, ESP_NETIF_DNS_MAIN, &dns) == ESP_OK &&
+                          esp_netif_dhcps_option(ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER,
+                                                 &offer, sizeof(offer)) == ESP_OK;
+  // Always restart DHCP, including if configuring the DNS offer failed.
+  const bool restarted = esp_netif_dhcps_start(ap) == ESP_OK;
+  return configured && restarted;
 }
 using provisioning::Credentials;
 } // namespace
@@ -284,6 +305,11 @@ void WifiSetup::start() {
   provisioning_ = true;
   setup_ = WiFi.softAP(apName_.c_str(), apPassword_.c_str(), 1, false, 1);
   if (setup_) {
+    dns_.setTTL(30);
+    dnsRunning_ = dns_.start(53, provisioning::SetupHostname, WiFi.softAPIP());
+    const bool advertised = advertiseSetupDns(WiFi.softAPIP());
+    if (!dnsRunning_ || !advertised)
+      Serial.println("Wi-Fi setup: local DNS unavailable; use http://192.168.4.1");
     server_.begin();
     Serial.println("Wi-Fi setup: AP and configuration page ready");
     WiFi.scanDelete();
@@ -299,8 +325,11 @@ void WifiSetup::tick(uint64_t now) {
     return;
   if (requested_.exchange(false))
     start();
-  if (setup_)
+  if (setup_) {
+    if (dnsRunning_)
+      dns_.processNextRequest(); // At most one queued datagram per network tick; no wait loop.
     server_.handleClient();
+  }
   if (testing_ && !attemptStarted_ && now >= connectAt_)
     connect(candidateSsid_, candidatePassword_, nowMs());
   if (testing_ && attemptStarted_) {
@@ -377,6 +406,8 @@ void WifiSetup::tick(uint64_t now) {
     testing_ = false;
     candidateSsid_ = "";
     candidatePassword_ = "";
+    dns_.stop();
+    dnsRunning_ = false;
     server_.stop();
     WiFi.softAPdisconnect(true);
     WiFi.mode(WIFI_STA);

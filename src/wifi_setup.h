@@ -1,6 +1,7 @@
 #pragma once
 #include "framebuffer.h"
 #include <Arduino.h>
+#include <DNSServer.h>
 #include <Preferences.h>
 #include <WebServer.h>
 #include <atomic>
@@ -25,6 +26,8 @@ private:
   void sendPage(int code = 200, bool configuration = false);
   const char *webState() const;
   WebServer server_{IPAddress(192, 168, 4, 1), 80};
+  DNSServer dns_;
+  bool dnsRunning_ = false;
   Preferences storage_;
   SemaphoreHandle_t mutex_ = nullptr;
   std::atomic<bool> requested_{false};

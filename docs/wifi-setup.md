@@ -15,13 +15,28 @@ successful association and DHCP address. This transitional migration keeps exist
 development builds usable. Empty compiled Wi-Fi fields are supported; feed origin,
 feed authentication and CA configuration still use the existing local header.
 
-The 64×32 matrix shows a fixed screen containing the actual uppercase SSID and
-password, OPEN HTTP and browser address, using the existing C2 bitmap font.
-There is no LOWERCASE instruction; arrival and badge typography are unchanged.
-There is no scrolling or rotating screen.
-Join that AP in phone Settings, accept remaining connected
-without internet if prompted, then explicitly open **http://192.168.4.1**.
-There is no captive-portal DNS/redirect service. The self-contained page has a
+The 64×32 matrix uses the existing uppercase C2 font with this fixed layout:
+
+```text
+1. WIFI
+METRO-DISPLAY
+BCNMETRO
+
+2. ABRE WEB
+METRO.CONF
+```
+
+Measured rows are respectively 27, 63, 40, 48 and 47 pixels wide, each five pixels
+high. Row origins are y=0, 6, 12, 21 and 27, occupying exactly 32 pixels. There is
+one blank row between lines and four blank rows between steps; no text is scaled,
+scrolled or rotated. Credentials match the actual SoftAP values.
+
+Join that AP in phone Settings, accept remaining connected without internet if
+prompted, then explicitly open **http://metro.conf/**. If hostname resolution fails,
+open **http://192.168.4.1/** (or **http://192.168.4.1:80/**) while still joined to
+METRO-DISPLAY. Include `http://` so the browser opens an address rather than a search
+or HTTPS connection. No internet, public domain, external backend or redirect is
+required. The self-contained page has a
 network dropdown, manual SSID, password field and status/retry flow. A background
 scan populates the initial list; refresh the page after scanning. A failed
 connection triggers another scan. Hidden SSIDs can be entered manually. Exact SSID
@@ -54,6 +69,52 @@ never opens setup or deletes credentials: retries continue every 15 seconds.
 Reboot and normal non-erasing firmware writes preserve NVS. Setup requests can be
 delayed by an in-flight bounded feed request; drawing remains in the main loop.
 
+## Local hostname and physical verification — 31 October 2026
+
+The previous implementation had no DNS server. Setup now uses DNSServer bundled
+with the pinned Arduino-ESP32 framework (no added package). After SoftAP starts,
+UDP port 53 resolves `metro.conf` to the setup IP; the library folds case, so
+`METRO.CONF` and mixed-case queries work. AP DHCP advertises the setup IP as DNS;
+station DNS is untouched. One DNS datagram is processed per network-task tick,
+with no polling/wait loop. HTTP Host and Origin checks accept the hostname,
+case-insensitively and with optional `:80`, alongside the existing numerical IP.
+Tokens, interface checks and relative browser requests remain in place.
+
+DNS remains available during Configuration, Connecting, Result and Retry,
+including the existing success-acknowledgement/grace interval. It stops before
+HTTP/AP shutdown, and starts again on the next setup session. A DNS startup or
+DHCP DNS-offer failure logs a safe fallback message; IP-based HTTP stays enabled.
+No wildcard DNS, HTTPS listener, automatic captive-portal redirect or external
+redirect is introduced. The bundled DNS library also recognizes a www-prefixed
+query, but HTTP deliberately accepts only `metro.conf` and the setup IP.
+
+Physical procedure (pending; do not assume host tests validate mobile DNS):
+
+1. Enter setup mode. Confirm the static five-line layout is readable, especially
+   the 63-pixel-wide SSID, with the four-pixel gap between steps.
+2. Connect a phone to **METRO-DISPLAY** using **BCNMETRO**. Stay connected when the
+   phone reports no internet. Forget/rejoin any cached setup network if necessary
+   to renew its DHCP/DNS settings.
+3. Open **http://metro.conf/** and confirm Configuration loads. Repeat with
+   **http://METRO.CONF/** and a mixed-case hostname.
+4. Open **http://192.168.4.1/** and confirm the same interface still loads.
+   Use this numerical address as the fallback if the hostname fails.
+5. From the hostname page, try an invalid home password, verify Connecting then
+   Retry, and confirm the selected SSID remains. Retry with valid home credentials,
+   verify Connected, and confirm arrivals resume and the setup AP disappears after
+   acknowledgement plus the existing five-second grace interval.
+6. Re-enter setup and confirm hostname/IP access works again. Repeat on available
+   iOS/Android phones, with mobile data and VPN/private DNS settings noted. From a
+   test computer joined to the AP, optionally query its IP directly as DNS before
+   and after setup exits to check DNS startup/shutdown and uppercase A queries.
+
+Limits: phones may bypass DHCP DNS through encrypted/private DNS, VPNs or mobile
+routing, cache an earlier failure, upgrade HTTP to HTTPS, or leave a network without
+internet. The IP fallback avoids DNS but still requires the phone to stay joined.
+The pinned DNS library handles simple single-question packets without additional
+records and returns IPv4 answers; EDNS/IPv6-specific resolver behavior is unverified.
+These changes have been compiled and host-tested, not physically verified.
+
 ## Storage and security boundary
 
 The existing default NVS partition is unchanged. Namespace `transit-wifi` stores
@@ -71,7 +132,7 @@ The setup AP uses the shared prototype password `BCNMETRO` and accepts one clien
 `SetupSsid` and `SetupPassword` in `lib/transit/src/wifi_setup_screen.h` are the
 configurable defaults; use device-specific credentials before production. Choose
 uppercase values supported by C2 that fit the fixed rows (SSID: 64 pixels; password:
-50 pixels after the PW label). C2 normalizes lowercase to uppercase, so future
+64 pixels). C2 normalizes lowercase to uppercase, so future
 credentials must match their displayed case. The password must be 8–63 bytes.
 The random per-session form token remains unchanged.
 HTTP binds to the AP address and checks the local destination, Host, Origin and a

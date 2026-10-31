@@ -43,7 +43,9 @@ void setup_credentials_fit_static_panel() {
   TEST_ASSERT_EQUAL_STRING("METRO-DISPLAY", SetupSsid);
   TEST_ASSERT_EQUAL_STRING("BCNMETRO", SetupPassword);
   TEST_ASSERT_TRUE(validCredentials(SetupSsid, SetupPassword));
-  for (const std::string &line : {std::string("OPEN HTTP"), std::string("192.168.4.1")}) {
+  for (const std::string &line :
+       {std::string("1. WIFI"), std::string(SetupSsid), std::string(SetupPassword),
+        std::string("2. ABRE WEB"), std::string("METRO.CONF")}) {
     TEST_ASSERT_TRUE(typography::c2Supports(line));
     TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(line));
   }
@@ -74,31 +76,35 @@ void setup_credentials_match_uppercase_screen() {
   TEST_ASSERT_EQUAL_STRING(SetupSsid, typography::c2Text(SetupSsid).c_str());
   TEST_ASSERT_EQUAL_STRING(SetupPassword, typography::c2Text(SetupPassword).c_str());
   TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(SetupSsid));
-  TEST_ASSERT_LESS_OR_EQUAL(64 - 14, typography::c2Width(SetupPassword));
+  TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(SetupPassword));
   transit::Framebuffer frame(64, 32), expected(64, 32);
   renderSetupScreen(frame, SetupSsid, SetupPassword);
-  typography::drawC2(expected, SetupSsid, 0, 0, 0xffffff, 0, 64);
-  typography::drawC2(expected, "PW", 0, 10, 0xffffff, 0, 64);
-  typography::drawC2(expected, SetupPassword, 14, 10, 0xffffff, 0, 64);
-  typography::drawC2(expected, "OPEN HTTP", 0, 20, 0xffffff, 0, 64);
-  typography::drawC2(expected, "192.168.4.1", 0, 26, 0xffffff, 0, 64);
+  typography::drawC2(expected, "1. WIFI", 0, 0, 0xffffff, 0, 64);
+  typography::drawC2(expected, SetupSsid, 0, 6, 0xffffff, 0, 64);
+  typography::drawC2(expected, SetupPassword, 0, 12, 0xffffff, 0, 64);
+  typography::drawC2(expected, "2. ABRE WEB", 0, 21, 0xffffff, 0, 64);
+  typography::drawC2(expected, "METRO.CONF", 0, 27, 0xffffff, 0, 64);
   for (int y = 0; y < 32; ++y)
     for (int x = 0; x < 64; ++x)
       TEST_ASSERT_EQUAL(expected.pixel(x, y), frame.pixel(x, y));
 }
 void setup_request_origin_validation() {
-  TEST_ASSERT_TRUE(setupHost("192.168.4.1"));
-  TEST_ASSERT_TRUE(setupHost("192.168.4.1:80"));
-  TEST_ASSERT_TRUE(
-      setupOrigin("")); // Some local clients omit Origin; form token is still required.
-  TEST_ASSERT_TRUE(setupOrigin("http://192.168.4.1"));
-  TEST_ASSERT_TRUE(setupOrigin("http://192.168.4.1:80"));
-  for (const std::string &value : {std::string("192.168.4.1.attacker.example"),
-                                   std::string("192.168.4.1:81"), std::string("localhost")})
-    TEST_ASSERT_FALSE(setupHost(value));
-  TEST_ASSERT_FALSE(setupOrigin("http://192.168.4.1.attacker.example"));
+  TEST_ASSERT_EQUAL_STRING("metro.conf", SetupHostname);
+  for (const std::string &host :
+       {"192.168.4.1", "192.168.4.1:80", "metro.conf", "METRO.CONF", "MeTrO.CoNf:80"}) {
+    TEST_ASSERT_TRUE(setupHost(host));
+    TEST_ASSERT_TRUE(setupOrigin("http://" + host));
+  }
+  TEST_ASSERT_TRUE(setupOrigin(""));
+  for (const std::string &host : {"192.168.4.1.attacker.example", "192.168.4.1:81", "localhost",
+                                  "metro.conf.attacker.example", "metro.conf:443", "www.metro.conf",
+                                  "metro.conf/", "user@metro.conf"}) {
+    TEST_ASSERT_FALSE(setupHost(host));
+    TEST_ASSERT_FALSE(setupOrigin("http://" + host));
+  }
   TEST_ASSERT_FALSE(setupOrigin("null"));
   TEST_ASSERT_FALSE(setupOrigin("https://192.168.4.1"));
+  TEST_ASSERT_FALSE(setupOrigin("https://metro.conf"));
 }
 void ssid_diagnostics_are_bounded_single_line() {
   TEST_ASSERT_EQUAL_STRING("Home Wi-Fi", diagnosticSsid("Home Wi-Fi").c_str());

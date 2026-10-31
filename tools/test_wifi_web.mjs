@@ -9,6 +9,15 @@ const pageSource = fs.readFileSync(new URL('../src/wifi_setup.cpp', import.meta.
 assert.match(pageSource, /<circle cx='12' cy='12' r='3'\/>/);
 assert.doesNotMatch(pageSource, /=[^\s"'<>`=]+\/>/);
 assert.match(pageSource, /<path data-password-slash visibility=hidden d='m3 3 18 18'\/>/);
+// Source-level lifecycle checks complement native address tests. UDP/DHCP behavior
+// still needs the physical phone procedure in docs/wifi-setup.md.
+const startSource = pageSource.split('void WifiSetup::start() {')[1].split('void WifiSetup::tick(')[0];
+assert.match(startSource, /if \(setup_\)\s*return;/);
+assert.match(startSource, /if \(setup_\) \{\s*dns_\.setTTL\(30\);\s*dnsRunning_ = dns_\.start\(53, provisioning::SetupHostname, WiFi.softAPIP\(\)\);/);
+assert.match(startSource, /advertiseSetupDns\(WiFi.softAPIP\(\)\)/);
+const tickSource = pageSource.split('void WifiSetup::tick(')[1].split('bool WifiSetup::render(')[0];
+assert.match(tickSource, /if \(setup_\) \{\s*if \(dnsRunning_\)\s*dns_\.processNextRequest\(\);/);
+assert.match(tickSource, /if \(setup_ && success_ && finishAt_ != 0 && now >= finishAt_\) \{[\s\S]*?dns_\.stop\(\);\s*dnsRunning_ = false;\s*server_\.stop\(\);\s*WiFi\.softAPdisconnect\(true\);/);
 function harness(initialState, fetcher, remembered = null) {
   const events = {}, clicks = {}, requests = [], timers = [], frames = [];
   const storage = new Map(remembered ? [['display-setup-ssid', remembered]] : []);

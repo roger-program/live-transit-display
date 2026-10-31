@@ -12,10 +12,11 @@ static_assert(sizeof(SetupPassword) >= 9 && sizeof(SetupPassword) <= 64,
 inline void renderSetupScreen(transit::Framebuffer &frame, const std::string &ssid,
                               const std::string &password) {
   frame.clear();
-  typography::drawC2(frame, ssid, 0, 0, 0xffffff, 0, frame.width());
-  typography::drawC2(frame, "PW", 0, 10, 0xffffff, 0, frame.width());
-  typography::drawC2(frame, password, 14, 10, 0xffffff, 0, frame.width());
-  typography::drawC2(frame, "OPEN HTTP", 0, 20, 0xffffff, 0, frame.width());
-  typography::drawC2(frame, "192.168.4.1", 0, 26, 0xffffff, 0, frame.width());
+  typography::drawC2(frame, "1. WIFI", 0, 0, 0xffffff, 0, frame.width());
+  typography::drawC2(frame, ssid, 0, 6, 0xffffff, 0, frame.width());
+  typography::drawC2(frame, password, 0, 12, 0xffffff, 0, frame.width());
+  // Five 5-pixel rows: one-pixel line gaps, four blank pixels between steps.
+  typography::drawC2(frame, "2. ABRE WEB", 0, 21, 0xffffff, 0, frame.width());
+  typography::drawC2(frame, "METRO.CONF", 0, 27, 0xffffff, 0, frame.width());
 }
 } // namespace provisioning
