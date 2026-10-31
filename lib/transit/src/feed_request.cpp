@@ -3,25 +3,6 @@
 #include <cctype>
 
 namespace transit {
-std::string arrivalsPath(const std::vector<std::string> &selectors) {
-  constexpr char Hex[] = "0123456789ABCDEF";
-  std::string path = "/v1/arrivals";
-  bool first = true;
-  for (const auto &selector : selectors) {
-    path += first ? "?stop=" : "&stop=";
-    first = false;
-    for (unsigned char c : selector) {
-      if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
-        path += char(c);
-      else {
-        path += '%';
-        path += Hex[c >> 4];
-        path += Hex[c & 15];
-      }
-    }
-  }
-  return path;
-}
 bool validOrigin(const std::string &origin) {
   if (origin.rfind("https://", 0) != 0 || origin.size() <= 8 || origin.size() > 256)
     return false;
@@ -52,6 +33,9 @@ FeedResult readResponse(int httpStatus, std::string_view body, const std::string
   if (httpStatus == 401 || httpStatus == 403) {
     result.error = RequestError::Auth;
     result.retryMs = 300000;
+  } else if (httpStatus == 409) {
+    result.error = RequestError::Configuration;
+    result.retryMs = 300000;
   } else if (httpStatus == 429) {
     result.error = RequestError::RateLimited;
     result.retryMs = 60000;
@@ -77,24 +61,5 @@ FeedResult readResponse(int httpStatus, std::string_view body, const std::string
       result.retryMs = std::max(result.retryMs, seconds * 1000);
   }
   return result;
-}
-Feed selectStops(const Feed &feed, const std::vector<std::string> &selectors) {
-  Feed selected;
-  selected.generatedAt = feed.generatedAt;
-  for (const auto &selector : selectors) {
-    auto found = std::find_if(feed.stops.begin(), feed.stops.end(), [&selector](const Stop &stop) {
-      return stop.mode + ":" + stop.id == selector;
-    });
-    if (found != feed.stops.end())
-      selected.stops.push_back(*found);
-    else {
-      Stop missing;
-      size_t colon = selector.find(':');
-      missing.mode = selector.substr(0, colon);
-      missing.id = selector.substr(colon + 1);
-      selected.stops.push_back(std::move(missing));
-    }
-  }
-  return selected;
 }
 } // namespace transit

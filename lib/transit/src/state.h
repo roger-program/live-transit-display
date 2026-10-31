@@ -4,7 +4,17 @@
 namespace transit {
 constexpr int64_t StaleAfterMs = 120000;
 constexpr int64_t FutureToleranceMs = 5000;
-enum class RequestError { None, NoConfig, Network, Auth, RateLimited, Http, InvalidFeed, Clock };
+enum class RequestError {
+  None,
+  NoConfig,
+  Configuration,
+  Network,
+  Auth,
+  RateLimited,
+  Http,
+  InvalidFeed,
+  Clock
+};
 struct Snapshot {
   Feed feed;
   bool hasFeed = false;

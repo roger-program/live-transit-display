@@ -809,3 +809,8 @@ Reliability adjustment: successful browser provisioning now has a 30-second AP s
 Observed automated verification: browser checks passed, including existing success paint/ack retry and connection flow plus source-level redirect/DNS lifecycle assertions. All 70 native tests passed, including probe-navigation policy, protected endpoint/POST exclusion, numerical Host/Origin restrictions, success shutdown deadlines and static framebuffer/width checks. hub75-live built successfully: 952,713 bytes flash, 46,988 bytes static RAM. Formatting/diff checks passed. These test policy and wiring, not over-the-air DNS/DHCP or real OS portal launch.
 
 Official sources checked 2026-10-31: [Apple](https://support.apple.com/en-gb/102554) describes captive login and Cancel/disassociation; [Android](https://developer.android.com/about/versions/11/features/captive-portal) describes HTTP probe/redirect detection and newer API support; [Microsoft NCSI](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview) describes expected-content comparison. Automatic UI launch or persistence is not guaranteed. Private DNS/VPN/HTTPS-only probes and the bundled DNS server's simple IPv4 packet handling remain compatibility limits. No new physical verification or flash performed. docs/wifi-setup.md contains the iPhone automatic/manual procedure and cross-platform follow-up checks.
+
+
+## 2026-10-31 — Personalized device feed integration
+
+See [device-feed.md](device-feed.md) for architecture inspection, separate persistent credential provisioning, failure policy, security limitations, observed builds/tests and pending physical checks. Selected existing test Device A; no credential replacement, backend deployment or hardware flash.

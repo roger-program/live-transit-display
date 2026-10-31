@@ -1,6 +1,6 @@
 # live-transit-display
 
-Prototype firmware for a Barcelona public-transport arrival display. Feed Protocol v1 remains unchanged; transport-provider integration stays in the sibling `live-transit-feed` repository. No provisioning, device registry or OTA is implemented.
+Prototype firmware for a Barcelona public-transport arrival display. Feed Protocol v1 remains unchanged; transport-provider integration stays in the sibling `live-transit-feed` repository. Device authentication uses a separately provisioned NVS partition; the registry and stop configuration live in the backend. OTA is not implemented. See [personalized feed setup](docs/device-feed.md) for the current live integration.
 
 ## Architecture
 
@@ -10,14 +10,14 @@ Prototype firmware for a Barcelona public-transport arrival display. Feed Protoc
 - `src/feed_client.*`: certificate-validated HTTPS, Bearer header, redirect refusal and bounded response capture.
 - `lib/transit/src/`: portable C++17 parser, request policy, model, countdown/state logic, bitmap renderer and RGB framebuffer. No Arduino, GPIO or provider API formats in this layer.
 - `src/display_driver.*`: HUB75 DMA adapter with double buffering; consumes only pixels and brightness.
-- `include/app_config.h`, `panel_config.h`: laboratory stop selection and isolated panel geometry/GPIO/timing. `secrets.h` is local and ignored.
+- `include/app_config.h`, `panel_config.h`: application settings and isolated panel geometry/GPIO/timing. `secrets.h` is local and ignored.
 - `fixtures/`, `test/`, `tools/`: historical/synthetic replay data, host tests and actual C++ raster previews.
 
 PlatformIO + Arduino was chosen over standalone ESP-IDF for the small prototype setup, existing Wi-Fi support and straightforward HUB75 integration. ESP-IDF gives finer SDK/configuration control; it is worth revisiting if measured constraints require it. This build pins Espressif32 6.12.0 / Arduino 2.0.17, ArduinoJson 6.21.5 and HUB75 DMA 3.0.14. Detailed reasoning, source review and test evidence: [docs/phase-1.md](docs/phase-1.md).
 
 ## Prototype hardware
 
-Waveshare ESP32-S3-RGB-Matrix controller (user-reported QFN56, board v0.2), with 32 MB octal flash and 16 MB octal PSRAM. The generic DevKitC definition is overridden with `opi_opi`, OPI flash at 80 MHz, 32 MB flash and a 4 MB factory application partition. The application-size limit matches that partition; remaining flash is unallocated. PSRAM capacity is detected by the SDK at boot, not selected by an arbitrary size macro. Actual detected capacity and usable heap still require a physical boot test. The user-reported ROM log explicitly enables octal flash; this supersedes the earlier QIO assumption from Waveshare’s setup screenshot. Exact flash manufacturer/model is not yet identified.
+Waveshare ESP32-S3-RGB-Matrix controller (user-reported QFN56, board v0.2), with 32 MB octal flash and 16 MB octal PSRAM. The generic DevKitC definition is overridden with `opi_opi`, OPI flash at 80 MHz, 32 MB flash and a 4 MB factory application partition. The application-size limit matches that partition; a separate identity partition follows the application; other flash is unallocated. PSRAM capacity is detected by the SDK at boot, not selected by an arbitrary size macro. Actual detected capacity and usable heap still require a physical boot test. The user-reported ROM log explicitly enables octal flash; this supersedes the earlier QIO assumption from Waveshare’s setup screenshot. Exact flash manufacturer/model is not yet identified.
 
 Waveshare RGB Matrix P2.5 64×32: 160×80 mm, HUB75, 1/16 scan, 5 V / 2.5 A. Internal SRAM holds the double-buffered DMA data; PSRAM remains available to the app. Brightness stays at 16/255.
 

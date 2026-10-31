@@ -1,5 +1,6 @@
 #include "badge_contrast.h"
 #include "brightness.h"
+#include "device_identity.h"
 #include "feed_request.h"
 #include "fixture.h"
 #include "regular_font.h"
@@ -184,8 +185,7 @@ void expiry_is_local_and_does_not_mutate_feed() {
   TEST_ASSERT_EQUAL(2, arrivals.size());
 }
 void request_path_and_credentials() {
-  TEST_ASSERT_EQUAL_STRING("/v1/arrivals?stop=tram%3Aends&stop=rail%3AA%26B%2B1",
-                           arrivalsPath({"tram:ends", "rail:A&B+1"}).c_str());
+  TEST_ASSERT_EQUAL_STRING("/v1/device/feed", DeviceFeedPath);
   TEST_ASSERT_TRUE(validOrigin("https://feed.example:443"));
   for (const auto &origin : {"http://example", "https://user@host", "https://host?a=1",
                              "https://host/", "https://host\n"})
@@ -205,13 +205,48 @@ void http_failures_and_backoff() {
   TEST_ASSERT_TRUE(readResponse(204, "", "").error == RequestError::InvalidFeed);
   TEST_ASSERT_TRUE(readResponse(200, FixtureJson, "").error == RequestError::None);
 }
-void requested_order_and_missing_stop() {
-  auto feed = selectStops(fixture(), {"bus:94", "fgc:opaque", "metro:6660122", "bus:94"});
-  TEST_ASSERT_EQUAL(4, feed.stops.size());
-  TEST_ASSERT_EQUAL_STRING("94", feed.stops[0].id.c_str());
-  TEST_ASSERT_TRUE(feed.stops[1].status == StopStatus::Unavailable);
-  TEST_ASSERT_EQUAL_STRING("opaque", feed.stops[1].id.c_str());
-  TEST_ASSERT_EQUAL(4, feed.stops[2].groups.size());
+void personalized_feed_states() {
+  const auto response = readResponse(200, FixtureJson, "");
+  TEST_ASSERT_TRUE(response.error == RequestError::None);
+  const auto original = fixture();
+  TEST_ASSERT_EQUAL(original.stops.size(), response.feed.stops.size());
+  for (size_t i = 0; i < original.stops.size(); ++i)
+    TEST_ASSERT_EQUAL_STRING(original.stops[i].id.c_str(), response.feed.stops[i].id.c_str());
+  const auto empty = readResponse(200, R"({"version":1,"generatedAt":1000,"stops":[]})", "");
+  TEST_ASSERT_TRUE(empty.error == RequestError::None);
+  Snapshot snapshot = sample();
+  Snapshot unconfigured;
+  const auto missing = readResponse(409, "ignored", "");
+  TEST_ASSERT_TRUE(missing.error == RequestError::Configuration);
+  TEST_ASSERT_EQUAL(300000, missing.retryMs);
+  unconfigured.error = missing.error;
+  applySnapshot(snapshot, std::move(unconfigured));
+  TEST_ASSERT_TRUE(snapshot.hasFeed);
+  TEST_ASSERT_EQUAL_STRING("ADD STOPS", viewAt(snapshot, 1000, 1000, true).message.c_str());
+  Snapshot cleared;
+  cleared.hasFeed = true;
+  cleared.feed = empty.feed;
+  cleared.receivedAtMs = 1000;
+  applySnapshot(snapshot, std::move(cleared));
+  TEST_ASSERT_TRUE(snapshot.feed.stops.empty());
+  TEST_ASSERT_EQUAL_STRING("ADD STOPS", viewAt(snapshot, 1000, 1000, true).message.c_str());
+  TEST_ASSERT_EQUAL(300000, readResponse(401, "ignored", "").retryMs);
+}
+void persistent_identity_validation() {
+  const std::string token = "dev1_" + std::string(64, 'a');
+  const std::string valid =
+      "{\"deviceId\":\"12345678-1234-1234-1234-123456789abc\",\"token\":\"" + token + "\"}";
+  DeviceIdentity identity;
+  TEST_ASSERT_TRUE(parseDeviceIdentity(valid, identity));
+  TEST_ASSERT_EQUAL_STRING(token.c_str(), identity.token.c_str());
+  for (const auto &bad : {std::string("{}"), std::string("null"), std::string(257, 'x'),
+                          std::string("{\"deviceId\":\"bad\",\"token\":\"bad\"}")}) {
+    TEST_ASSERT_FALSE(parseDeviceIdentity(bad, identity));
+    TEST_ASSERT_EQUAL_STRING(token.c_str(), identity.token.c_str());
+  }
+  auto bad = valid;
+  bad.replace(bad.find("dev1_"), 5, "oops_");
+  TEST_ASSERT_FALSE(parseDeviceIdentity(bad, identity));
 }
 void pagination_capacity_and_order() {
   auto snapshot = sample();
@@ -777,7 +812,8 @@ int main() {
   RUN_TEST(expiry_is_local_and_does_not_mutate_feed);
   RUN_TEST(request_path_and_credentials);
   RUN_TEST(http_failures_and_backoff);
-  RUN_TEST(requested_order_and_missing_stop);
+  RUN_TEST(personalized_feed_states);
+  RUN_TEST(persistent_identity_validation);
   RUN_TEST(pagination_capacity_and_order);
   RUN_TEST(label_reveal_and_utf8);
   RUN_TEST(raster_determinism_and_paging);

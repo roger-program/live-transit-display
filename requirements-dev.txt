@@ -1,2 +1,4 @@
 platformio==6.1.18
 clang-format==18.1.8
+# Offline device-auth image preparation only; no runtime firmware dependency.
+esp-idf-nvs-partition-gen==0.1.9

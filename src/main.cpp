@@ -93,9 +93,8 @@ void publish(transit::Snapshot &next) {
 }
 void networkTask(void *) {
   FeedClient client;
-  std::vector<std::string> selectors(std::begin(appcfg::Stops), std::end(appcfg::Stops));
   wifiSetup.begin();
-  if (!client.configured() || selectors.empty() || selectors.size() > transit::MaxStops) {
+  if (!client.begin()) {
     transit::Snapshot next;
     next.error = transit::RequestError::NoConfig;
     publish(next);
@@ -138,7 +137,7 @@ void networkTask(void *) {
           waitingForClock = true;
         }
       } else if (!wifiSetup.active() && tick >= pollAt) {
-        auto result = client.fetch(selectors);
+        auto result = client.fetch();
         transit::Snapshot next;
         next.error = result.error;
         next.hasFeed = result.error == transit::RequestError::None;

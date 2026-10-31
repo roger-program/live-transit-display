@@ -7,6 +7,8 @@ const char *requestMessage(RequestError error) {
   switch (error) {
   case RequestError::NoConfig:
     return "CONFIG";
+  case RequestError::Configuration:
+    return "ADD STOPS";
   case RequestError::Network:
     return "OFFLINE";
   case RequestError::Auth:

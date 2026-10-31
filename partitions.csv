@@ -2,4 +2,6 @@
 nvs, data, nvs, 0x9000, 0x5000,
 # 0xe000..0xffff stays outside NVS: PlatformIO writes its stock boot_app0 helper there.
 factory, app, factory, 0x10000, 0x400000,
+# Dedicated identity storage; normal firmware uploads leave it and Wi-Fi NVS untouched.
+device-auth, data, nvs, 0x410000, 0x6000,
 # Remaining flash is deliberately unallocated; no filesystem or OTA slots.

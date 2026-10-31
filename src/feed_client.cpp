@@ -2,6 +2,8 @@
 #include "app_config.h"
 #include <cstring>
 #include <esp_http_client.h>
+#include <nvs.h>
+#include <nvs_flash.h>
 #include <strings.h>
 
 namespace {
@@ -25,22 +27,42 @@ esp_err_t onHttpEvent(esp_http_client_event_t *event) {
   return ESP_OK;
 }
 } // namespace
-bool FeedClient::configured() const {
-  return transit::validOrigin(localcfg::FeedOrigin) &&
-         transit::validBearer(localcfg::BearerToken) && localcfg::RootCa[0];
+bool FeedClient::begin() {
+  identityReady_ = false;
+  // Never erase on init failure: this is independently provisioned persistent identity.
+  if (nvs_flash_init_partition("device-auth") != ESP_OK)
+    return false;
+  nvs_handle_t handle;
+  if (nvs_open_from_partition("device-auth", "identity", NVS_READONLY, &handle) != ESP_OK)
+    return false;
+  char record[transit::MaxIdentityBytes + 1]{};
+  size_t size = sizeof(record);
+  const auto status = nvs_get_str(handle, "record", record, &size);
+  nvs_close(handle);
+  if (status == ESP_OK && size > 1 && size <= sizeof(record))
+    identityReady_ = transit::parseDeviceIdentity(std::string_view(record, size - 1), identity_);
+  // Reduce the lifetime of the temporary plaintext copy.
+  volatile char *bytes = record;
+  for (size_t i = 0; i < sizeof(record); ++i)
+    bytes[i] = 0;
+  return configured();
 }
-transit::FeedResult FeedClient::fetch(const std::vector<std::string> &selectors) const {
+bool FeedClient::configured() const {
+  return transit::validOrigin(localcfg::FeedOrigin) && identityReady_ && localcfg::RootCa[0];
+}
+transit::FeedResult FeedClient::fetch() const {
   transit::FeedResult result;
   if (!configured()) {
     result.error = transit::RequestError::NoConfig;
     return result;
   }
-  const auto url = std::string(localcfg::FeedOrigin) + transit::arrivalsPath(selectors);
+  const auto url = std::string(localcfg::FeedOrigin) + transit::DeviceFeedPath;
   Response response;
   response.body.reserve(8192);
   esp_http_client_config_t config{};
   config.url = url.c_str();
   config.cert_pem = localcfg::RootCa;
+  config.skip_cert_common_name_check = false;
   config.timeout_ms = 10000;
   config.disable_auto_redirect = true; // Never forward Bearer credentials to another endpoint.
   config.event_handler = onHttpEvent;
@@ -50,7 +72,7 @@ transit::FeedResult FeedClient::fetch(const std::vector<std::string> &selectors)
     result.error = transit::RequestError::Network;
     return result;
   }
-  const auto bearer = std::string("Bearer ") + localcfg::BearerToken;
+  const auto bearer = std::string("Bearer ") + identity_.token;
   esp_http_client_set_header(client, "Authorization", bearer.c_str());
   esp_http_client_set_header(client, "Accept", "application/json");
   esp_http_client_set_header(client, "X-Firmware-Version", appcfg::FirmwareVersion);
@@ -65,7 +87,5 @@ transit::FeedResult FeedClient::fetch(const std::vector<std::string> &selectors)
     result.retryMs = 60000;
   } else
     result = transit::readResponse(status, response.body, response.retryAfter);
-  if (result.error == transit::RequestError::None)
-    result.feed = transit::selectStops(result.feed, selectors);
   return result;
 }

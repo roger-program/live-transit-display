@@ -1,3 +1,5 @@
+> Historical shared-token experiment. Superseded for live firmware on 2026-10-31 by [device-feed.md](device-feed.md). Do not follow the compiled token or stop-selection instructions below.
+
 # First physical live-arrivals test — 25 October 2026
 
 ## What is implemented
