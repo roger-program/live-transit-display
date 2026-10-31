@@ -17,6 +17,6 @@ inline void renderSetupScreen(transit::Framebuffer &frame, const std::string &ss
   typography::drawC2(frame, password, 0, 12, 0xffffff, 0, frame.width());
   // Five 5-pixel rows: one-pixel line gaps, four blank pixels between steps.
   typography::drawC2(frame, "2. ABRE WEB", 0, 21, 0xffffff, 0, frame.width());
-  typography::drawC2(frame, "METRO.CONF", 0, 27, 0xffffff, 0, frame.width());
+  typography::drawC2(frame, "192.168.4.1", 0, 27, 0xffffff, 0, frame.width());
 }
 } // namespace provisioning

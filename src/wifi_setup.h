@@ -23,6 +23,7 @@ private:
   void connect(const String &ssid, const String &password, uint64_t now);
   void message(const String &status);
   bool authorized();
+  void redirectToSetup();
   void sendPage(int code = 200, bool configuration = false);
   const char *webState() const;
   WebServer server_{IPAddress(192, 168, 4, 1), 80};

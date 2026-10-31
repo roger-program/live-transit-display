@@ -147,6 +147,15 @@ void WifiSetup::connect(const String &ssid, const String &password, uint64_t now
   attemptAt_ = now;
   retryAt_ = now + 15000;
 }
+void WifiSetup::redirectToSetup() {
+  if (server_.client().localIP() != WiFi.softAPIP()) {
+    server_.send(403, "text/plain", "Setup is available on the setup Wi-Fi only.");
+    return;
+  }
+  server_.sendHeader("Cache-Control", "no-store");
+  server_.sendHeader("Location", provisioning::SetupUrl);
+  server_.send(302, "text/plain", "Open http://192.168.4.1/");
+}
 bool WifiSetup::authorized() {
   const String origin = server_.header("Origin");
   const char *rejection =
@@ -202,9 +211,12 @@ void WifiSetup::begin() {
   const char *headers[] = {"Origin", "X-Setup-Token"};
   server_.collectHeaders(headers, 2);
   server_.on("/", HTTP_GET, [this]() {
-    if (server_.client().localIP() != WiFi.softAPIP() ||
-        !provisioning::setupHost(server_.hostHeader().c_str())) {
-      server_.send(400, "text/plain", "Open http://192.168.4.1");
+    if (server_.client().localIP() != WiFi.softAPIP()) {
+      server_.send(403, "text/plain", "Open http://192.168.4.1");
+      return;
+    }
+    if (provisioning::setupPortalRedirect("GET", server_.hostHeader().c_str(), "/")) {
+      redirectToSetup();
       return;
     }
     sendPage(200, server_.hasArg("configure"));
@@ -270,7 +282,16 @@ void WifiSetup::begin() {
     Serial.println("Wi-Fi setup: progress response sent; connection queued");
   });
   server_.onNotFound([this]() {
-    Serial.println("Wi-Fi setup: unrecognized HTTP route or method");
+    // Covers Apple hotspot-detect/library probes, Android generate_204/gen_204,
+    // Windows connecttest/ncsi/redirect and other HTTP navigation without OS tables.
+    const char *method = server_.method() == HTTP_GET    ? "GET"
+                         : server_.method() == HTTP_HEAD ? "HEAD"
+                                                         : "OTHER";
+    if (provisioning::setupPortalRedirect(method, server_.hostHeader().c_str(),
+                                          server_.uri().c_str())) {
+      redirectToSetup();
+      return;
+    }
     server_.send(404, "text/plain", "Open http://192.168.4.1");
   });
   if (stored_)
@@ -306,7 +327,7 @@ void WifiSetup::start() {
   setup_ = WiFi.softAP(apName_.c_str(), apPassword_.c_str(), 1, false, 1);
   if (setup_) {
     dns_.setTTL(30);
-    dnsRunning_ = dns_.start(53, provisioning::SetupHostname, WiFi.softAPIP());
+    dnsRunning_ = dns_.start(53, "*", WiFi.softAPIP());
     const bool advertised = advertiseSetupDns(WiFi.softAPIP());
     if (!dnsRunning_ || !advertised)
       Serial.println("Wi-Fi setup: local DNS unavailable; use http://192.168.4.1");
@@ -371,9 +392,9 @@ void WifiSetup::tick(uint64_t now) {
         stored_ = true;
         success_ = true;
         successPageSent_ = false;
-        // Browser setup waits for its success response before starting the AP shutdown grace.
-        // Compiled-credential migration has no browser response to wait for.
-        finishAt_ = browserSubmission_ ? 0 : nowMs() + 5000;
+        // Allow the browser to paint success and acknowledge for a five-second grace.
+        // If the OS closes its captive window, stop the AP after 30 seconds anyway.
+        finishAt_ = provisioning::setupSuccessDeadline(nowMs(), browserSubmission_);
         provisioning_ = false;
         xSemaphoreTake(mutex_, portMAX_DELAY);
         visible_ = false; // Arrivals resume even if the phone needs to rejoin for the success page.

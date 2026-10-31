@@ -45,7 +45,7 @@ void setup_credentials_fit_static_panel() {
   TEST_ASSERT_TRUE(validCredentials(SetupSsid, SetupPassword));
   for (const std::string &line :
        {std::string("1. WIFI"), std::string(SetupSsid), std::string(SetupPassword),
-        std::string("2. ABRE WEB"), std::string("METRO.CONF")}) {
+        std::string("2. ABRE WEB"), std::string("192.168.4.1")}) {
     TEST_ASSERT_TRUE(typography::c2Supports(line));
     TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(line));
   }
@@ -83,28 +83,48 @@ void setup_credentials_match_uppercase_screen() {
   typography::drawC2(expected, SetupSsid, 0, 6, 0xffffff, 0, 64);
   typography::drawC2(expected, SetupPassword, 0, 12, 0xffffff, 0, 64);
   typography::drawC2(expected, "2. ABRE WEB", 0, 21, 0xffffff, 0, 64);
-  typography::drawC2(expected, "METRO.CONF", 0, 27, 0xffffff, 0, 64);
+  typography::drawC2(expected, "192.168.4.1", 0, 27, 0xffffff, 0, 64);
   for (int y = 0; y < 32; ++y)
     for (int x = 0; x < 64; ++x)
       TEST_ASSERT_EQUAL(expected.pixel(x, y), frame.pixel(x, y));
 }
 void setup_request_origin_validation() {
-  TEST_ASSERT_EQUAL_STRING("metro.conf", SetupHostname);
-  for (const std::string &host :
-       {"192.168.4.1", "192.168.4.1:80", "metro.conf", "METRO.CONF", "MeTrO.CoNf:80"}) {
+  for (const std::string &host : {"192.168.4.1", "192.168.4.1:80"}) {
     TEST_ASSERT_TRUE(setupHost(host));
     TEST_ASSERT_TRUE(setupOrigin("http://" + host));
   }
   TEST_ASSERT_TRUE(setupOrigin(""));
   for (const std::string &host : {"192.168.4.1.attacker.example", "192.168.4.1:81", "localhost",
-                                  "metro.conf.attacker.example", "metro.conf:443", "www.metro.conf",
-                                  "metro.conf/", "user@metro.conf"}) {
+                                  "captive.apple.com", "www.msftconnecttest.com", "metro.conf"}) {
     TEST_ASSERT_FALSE(setupHost(host));
     TEST_ASSERT_FALSE(setupOrigin("http://" + host));
   }
   TEST_ASSERT_FALSE(setupOrigin("null"));
   TEST_ASSERT_FALSE(setupOrigin("https://192.168.4.1"));
-  TEST_ASSERT_FALSE(setupOrigin("https://metro.conf"));
+}
+void captive_probes_redirect_but_setup_endpoints_do_not() {
+  TEST_ASSERT_EQUAL_STRING("http://192.168.4.1/", SetupUrl);
+  for (const char *method : {"GET", "HEAD"}) {
+    for (const char *path :
+         {"/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/gen_204",
+          "/connecttest.txt", "/ncsi.txt", "/redirect", "/unknown"}) {
+      TEST_ASSERT_TRUE(setupPortalRedirect(method, "captive.apple.com", path));
+      TEST_ASSERT_TRUE(setupPortalRedirect(method, "192.168.4.1", path));
+    }
+    TEST_ASSERT_TRUE(setupPortalRedirect(method, "connectivitycheck.gstatic.com", "/"));
+    TEST_ASSERT_FALSE(setupPortalRedirect(method, "192.168.4.1", "/"));
+    TEST_ASSERT_FALSE(setupPortalRedirect(method, "192.168.4.1:80", "/"));
+    for (const char *path : {"/status", "/connect", "/complete"}) {
+      TEST_ASSERT_FALSE(setupPortalRedirect(method, "192.168.4.1", path));
+      TEST_ASSERT_FALSE(setupPortalRedirect(method, "captive.apple.com", path));
+    }
+  }
+  TEST_ASSERT_FALSE(setupPortalRedirect("POST", "captive.apple.com", "/unknown"));
+  TEST_ASSERT_FALSE(setupPortalRedirect("POST", "192.168.4.1", "/connect"));
+}
+void captive_window_closure_has_bounded_success_grace() {
+  TEST_ASSERT_EQUAL(31000, setupSuccessDeadline(1000, true));
+  TEST_ASSERT_EQUAL(6000, setupSuccessDeadline(1000, false));
 }
 void ssid_diagnostics_are_bounded_single_line() {
   TEST_ASSERT_EQUAL_STRING("Home Wi-Fi", diagnosticSsid("Home Wi-Fi").c_str());
@@ -177,6 +197,8 @@ void connecting_and_failure_content_excludes_configuration() {
 }
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(captive_probes_redirect_but_setup_endpoints_do_not);
+  RUN_TEST(captive_window_closure_has_bounded_success_grace);
   RUN_TEST(scan_names_are_exact_unique_and_strongest_first);
   RUN_TEST(setup_credentials_match_uppercase_screen);
   RUN_TEST(connecting_and_failure_content_excludes_configuration);

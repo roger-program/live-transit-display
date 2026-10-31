@@ -23,20 +23,20 @@ METRO-DISPLAY
 BCNMETRO
 
 2. ABRE WEB
-METRO.CONF
+192.168.4.1
 ```
 
-Measured rows are respectively 27, 63, 40, 48 and 47 pixels wide, each five pixels
+Measured rows are respectively 27, 63, 40, 48 and 42 pixels wide, each five pixels
 high. Row origins are y=0, 6, 12, 21 and 27, occupying exactly 32 pixels. There is
 one blank row between lines and four blank rows between steps; no text is scaled,
 scrolled or rotated. Credentials match the actual SoftAP values.
 
-Join that AP in phone Settings, accept remaining connected without internet if
-prompted, then explicitly open **http://metro.conf/**. If hostname resolution fails,
-open **http://192.168.4.1/** (or **http://192.168.4.1:80/**) while still joined to
-METRO-DISPLAY. Include `http://` so the browser opens an address rather than a search
-or HTTPS connection. No internet, public domain, external backend or redirect is
-required. The self-contained page has a
+Join that AP in phone Settings and wait for a possible captive login window.
+Automatic opening is a convenience, not a requirement. The reliable manual method
+is to remain connected to METRO-DISPLAY, open a regular browser, and explicitly
+visit **http://192.168.4.1/** (or **http://192.168.4.1:80/**). Include `http://` to
+avoid a browser search or HTTPS upgrade. Accept staying connected without internet
+if prompted. The self-contained page has a
 network dropdown, manual SSID, password field and status/retry flow. A background
 scan populates the initial list; refresh the page after scanning. A failed
 connection triggers another scan. Hidden SSIDs can be entered manually. Exact SSID
@@ -69,51 +69,75 @@ never opens setup or deletes credentials: retries continue every 15 seconds.
 Reboot and normal non-erasing firmware writes preserve NVS. Setup requests can be
 delayed by an in-flight bounded feed request; drawing remains in the main loop.
 
-## Local hostname and physical verification — 31 October 2026
+## Captive portal and physical verification — 31 October 2026
 
-The previous implementation had no DNS server. Setup now uses DNSServer bundled
-with the pinned Arduino-ESP32 framework (no added package). After SoftAP starts,
-UDP port 53 resolves `metro.conf` to the setup IP; the library folds case, so
-`METRO.CONF` and mixed-case queries work. AP DHCP advertises the setup IP as DNS;
-station DNS is untouched. One DNS datagram is processed per network-task tick,
-with no polling/wait loop. HTTP Host and Origin checks accept the hostname,
-case-insensitively and with optional `:80`, alongside the existing numerical IP.
-Tokens, interface checks and relative browser requests remain in place.
+Physical baseline reported by the user: iPhone provisioning works through
+192.168.4.1, while the previous named-address experiment failed. The numerical
+address is restored on the matrix and named-host code has been removed.
 
-DNS remains available during Configuration, Connecting, Result and Retry,
-including the existing success-acknowledgement/grace interval. It stops before
-HTTP/AP shutdown, and starts again on the next setup session. A DNS startup or
-DHCP DNS-offer failure logs a safe fallback message; IP-based HTTP stays enabled.
-No wildcard DNS, HTTPS listener, automatic captive-portal redirect or external
-redirect is introduced. The bundled DNS library also recognizes a www-prefixed
-query, but HTTP deliberately accepts only `metro.conf` and the setup IP.
+The bundled DNSServer now answers wildcard queries with 192.168.4.1 during setup.
+The existing AP DHCP offer advertises that DNS server. DNS processes one datagram
+per network-task tick and stops before HTTP/AP teardown. The direct-IP HTTP route
+works independently of DNS. No framework, external server, HTTPS, partition, OTA
+or cloud configuration was added.
 
-Physical procedure (pending; do not assume host tests validate mobile DNS):
+HTTP GET/HEAD connectivity probes and other unknown navigation paths receive
+302 + Location: http://192.168.4.1/ + Cache-Control: no-store. This covers Apple
+/hotspot-detect.html and /library/test/success.html, Android /generate_204 and
+/gen_204, and Windows /connecttest.txt, /ncsi.txt and /redirect. Root requests
+using probe hosts also redirect to the fixed IP. The AP interface is checked before
+redirecting; arbitrary Host values cannot control Location. POSTs and reserved
+/status, /connect, /complete endpoints never take the probe redirect path, and
+keep their existing interface, numerical-Host, Origin and token checks. Unknown
+non-navigation requests remain 404. We never return an internet-success probe
+payload or proxy traffic to an external site; this AP provides setup only.
 
-1. Enter setup mode. Confirm the static five-line layout is readable, especially
-   the 63-pixel-wide SSID, with the four-pixel gap between steps.
-2. Connect a phone to **METRO-DISPLAY** using **BCNMETRO**. Stay connected when the
-   phone reports no internet. Forget/rejoin any cached setup network if necessary
-   to renew its DHCP/DNS settings.
-3. Open **http://metro.conf/** and confirm Configuration loads. Repeat with
-   **http://METRO.CONF/** and a mixed-case hostname.
-4. Open **http://192.168.4.1/** and confirm the same interface still loads.
-   Use this numerical address as the fallback if the hostname fails.
-5. From the hostname page, try an invalid home password, verify Connecting then
-   Retry, and confirm the selected SSID remains. Retry with valid home credentials,
-   verify Connected, and confirm arrivals resume and the setup AP disappears after
-   acknowledgement plus the existing five-second grace interval.
-6. Re-enter setup and confirm hostname/IP access works again. Repeat on available
-   iOS/Android phones, with mobile data and VPN/private DNS settings noted. From a
-   test computer joined to the AP, optionally query its IP directly as DNS before
-   and after setup exits to check DNS startup/shutdown and uppercase A queries.
+After successful association, DHCP and NVS readback/activation, arrivals resume
+immediately. The success page can still paint and POST /complete, which starts the
+existing five-second shutdown grace once. If the OS closes the captive window or
+no acknowledgement arrives, the AP closes 30 seconds after successful saving.
+A failed connection keeps setup available for Retry and preserves the selected
+network and prior saved credentials. Nothing waits indefinitely on a captive UI.
 
-Limits: phones may bypass DHCP DNS through encrypted/private DNS, VPNs or mobile
-routing, cache an earlier failure, upgrade HTTP to HTTPS, or leave a network without
-internet. The IP fallback avoids DNS but still requires the phone to stay joined.
-The pinned DNS library handles simple single-question packets without additional
-records and returns IPv4 answers; EDNS/IPv6-specific resolver behavior is unverified.
-These changes have been compiled and host-tested, not physically verified.
+Physical procedure (pending for this build):
+
+1. Enter setup. Verify all five static rows fit and read correctly, including the
+   numerical IP, with a four-pixel gap between the two steps.
+2. On an iPhone, join **METRO-DISPLAY** with **BCNMETRO**. Record iOS version,
+   whether its login window opens automatically, and whether Configuration loads.
+3. Check scanning, manual SSID and password visibility. Try an invalid home
+   password; confirm Connecting → Retry and retained SSID. Then submit valid Wi-Fi.
+4. Verify Connected appears if the OS keeps the window open. If it closes early,
+   record that behavior; verify arrivals resume and the AP disappears within
+   30 seconds after saving. With an acknowledged success page, expect five seconds.
+5. Re-enter setup. Independently of automatic detection, open Safari and visit
+   **http://192.168.4.1/**. Complete configuration again and confirm arrivals resume.
+   If cancelling the captive window disconnects Wi-Fi, rejoin and select the
+   available option to remain connected without internet before opening Safari.
+6. Re-enter setup once more to verify DNS/HTTP restart. Repeat on available iPadOS,
+   Android, macOS and Windows devices; record versions, automatic popup versus
+   notification behavior, and manual fallback results.
+7. For a computer joined to the AP, optionally request the common probe paths
+   above with their original Host headers: expect a local 302, never an external
+   Location or internet-success payload. Check direct-IP root stays 200 and
+   tokenless protected endpoints stay rejected.
+
+Compatibility limits: automatic launch and success-window persistence are not
+guaranteed. Private/encrypted DNS, VPNs, cached network decisions, disabled probes,
+mobile routing, HTTPS-only probes or automatic network switching may prevent it.
+The firmware cannot intercept HTTPS and does not claim internet access. The bundled
+DNS implementation handles simple single-question IPv4 requests without additional
+records; EDNS/IPv6-specific behavior remains unverified. No DHCP captive-portal API
+option is added; this is conventional DNS + HTTP probe detection. The IP remains
+the primary displayed fallback.
+
+Sources verified 2026-10-31: [Apple captive Wi-Fi guidance](https://support.apple.com/en-gb/102554)
+describes login windows and warns that Cancel disconnects the device; it does not
+guarantee this implementation opens a window. [Android portal detection](https://developer.android.com/about/versions/11/features/captive-portal)
+describes HTTP probes/redirects and version-dependent detection. [Windows NCSI](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview)
+describes captive detection through responses differing from expected content.
+Closing on a connectivity change is treated here as a recovery scenario, not a
+verified behavior of every OS/version.
 
 ## Storage and security boundary
 

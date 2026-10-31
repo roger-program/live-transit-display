@@ -13,11 +13,14 @@ assert.match(pageSource, /<path data-password-slash visibility=hidden d='m3 3 18
 // still needs the physical phone procedure in docs/wifi-setup.md.
 const startSource = pageSource.split('void WifiSetup::start() {')[1].split('void WifiSetup::tick(')[0];
 assert.match(startSource, /if \(setup_\)\s*return;/);
-assert.match(startSource, /if \(setup_\) \{\s*dns_\.setTTL\(30\);\s*dnsRunning_ = dns_\.start\(53, provisioning::SetupHostname, WiFi.softAPIP\(\)\);/);
+assert.match(startSource, /if \(setup_\) \{\s*dns_\.setTTL\(30\);\s*dnsRunning_ = dns_\.start\(53, \"\*\", WiFi.softAPIP\(\)\);/);
 assert.match(startSource, /advertiseSetupDns\(WiFi.softAPIP\(\)\)/);
 const tickSource = pageSource.split('void WifiSetup::tick(')[1].split('bool WifiSetup::render(')[0];
 assert.match(tickSource, /if \(setup_\) \{\s*if \(dnsRunning_\)\s*dns_\.processNextRequest\(\);/);
 assert.match(tickSource, /if \(setup_ && success_ && finishAt_ != 0 && now >= finishAt_\) \{[\s\S]*?dns_\.stop\(\);\s*dnsRunning_ = false;\s*server_\.stop\(\);\s*WiFi\.softAPdisconnect\(true\);/);
+assert.match(pageSource, /sendHeader\("Location", provisioning::SetupUrl\)/);
+assert.match(pageSource, /server_\.send\(302,/);
+assert.match(pageSource, /finishAt_ = provisioning::setupSuccessDeadline\(nowMs\(\), browserSubmission_\)/);
 function harness(initialState, fetcher, remembered = null) {
   const events = {}, clicks = {}, requests = [], timers = [], frames = [];
   const storage = new Map(remembered ? [['display-setup-ssid', remembered]] : []);

@@ -2,21 +2,25 @@
 #include <cstdint>
 #include <string>
 namespace provisioning {
-inline constexpr char SetupHostname[] = "metro.conf";
-inline std::string setupAddressLowercase(std::string value) {
-  for (char &c : value)
-    if (c >= 'A' && c <= 'Z')
-      c += 'a' - 'A';
-  return value;
-}
+inline constexpr char SetupUrl[] = "http://192.168.4.1/";
 inline bool setupHost(const std::string &host) {
-  const std::string value = setupAddressLowercase(host);
-  return value == "192.168.4.1" || value == "192.168.4.1:80" || value == SetupHostname ||
-         value == std::string(SetupHostname) + ":80";
+  return host == "192.168.4.1" || host == "192.168.4.1:80";
 }
 inline bool setupOrigin(const std::string &origin) {
-  const std::string value = setupAddressLowercase(origin);
-  return value.empty() || (value.compare(0, 7, "http://") == 0 && setupHost(value.substr(7)));
+  return origin.empty() || origin == "http://192.168.4.1" || origin == "http://192.168.4.1:80";
+}
+// Redirect only navigation/probe requests. Never turn API calls or POSTs into redirects.
+inline bool setupPortalRedirect(const std::string &method, const std::string &host,
+                                const std::string &path) {
+  if (method != "GET" && method != "HEAD")
+    return false;
+  if (path == "/status" || path == "/connect" || path == "/complete")
+    return false;
+  return !setupHost(host) || path != "/";
+}
+// A closed captive window must not leave a successfully configured AP running forever.
+inline uint64_t setupSuccessDeadline(uint64_t now, bool browserSubmission) {
+  return now + (browserSubmission ? 30000 : 5000);
 }
 // SSIDs are untrusted bytes. Keep serial output bounded and on one line.
 inline std::string diagnosticSsid(const std::string &ssid) {
