@@ -81,9 +81,11 @@ if (form) {
   const ssid = form.elements.ssid;
   const password = form.elements.password;
   const passwordButton = main.querySelector('[data-password]');
+  const passwordSlash = passwordButton.querySelector('[data-password-slash]');
   passwordButton.addEventListener('click', () => {
     const visible = password.type === 'password';
     password.type = visible ? 'text' : 'password';
+    passwordSlash.setAttribute('visibility', visible ? 'visible' : 'hidden');
     passwordButton.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
     passwordButton.setAttribute('aria-pressed', String(visible));
   });

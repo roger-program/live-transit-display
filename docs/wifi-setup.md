@@ -9,15 +9,15 @@ diagnostics are unchanged. Setup overlays instructions using existing drawing
 primitives. Normal feed fetching resumes when setup closes.
 
 Saved Wi-Fi credentials take priority. Without a valid saved record, the device
-starts a protected lowercase `metro-display` AP with prototype password `bcnmetro`.
+starts a protected `METRO-DISPLAY` AP with prototype password `BCNMETRO`.
 On an untouched namespace, if compiled development Wi-Fi credentials are present, it also tests them once and saves them only after a
 successful association and DHCP address. This transitional migration keeps existing
 development builds usable. Empty compiled Wi-Fi fields are supported; feed origin,
 feed authentication and CA configuration still use the existing local header.
 
-The 64×32 matrix shows a fixed screen containing the actual lowercase SSID and
-password, OPEN HTTP and browser address. Setup-only lowercase glyphs complement
-the existing C2 drawing infrastructure; arrival and badge typography are unchanged.
+The 64×32 matrix shows a fixed screen containing the actual uppercase SSID and
+password, OPEN HTTP and browser address, using the existing C2 bitmap font.
+There is no LOWERCASE instruction; arrival and badge typography are unchanged.
 There is no scrolling or rotating screen.
 Join that AP in phone Settings, accept remaining connected
 without internet if prompted, then explicitly open **http://192.168.4.1**.
@@ -29,7 +29,9 @@ duplicates are merged using their strongest RSSI, then ordered strongest first.
 The existing limit is 40 unique networks, applied after merging and sorting.
 Names differing in case, whitespace or punctuation remain distinct. The password
 is hidden by default; an accessible eye button toggles visibility without changing
-its value or how credentials are submitted, validated or stored.
+its value or how credentials are submitted, validated or stored. The inline SVG eye
+shows a pupil initially (Show password), and a diagonal strike when visible
+(Hide password); button sizing and styling are unchanged.
 
 Form submission returns a complete progress page before the connection is
 started on a later network-task tick (at least one second after queueing).
@@ -65,10 +67,12 @@ escaped single-line diagnostics. Passwords and form tokens are never logged or
 echoed into HTML. Submitted passwords travel only over the protected local setup
 network.
 
-The setup AP uses the shared prototype password `bcnmetro` and accepts one client.
+The setup AP uses the shared prototype password `BCNMETRO` and accepts one client.
 `SetupSsid` and `SetupPassword` in `lib/transit/src/wifi_setup_screen.h` are the
 configurable defaults; use device-specific credentials before production. Choose
-values that fit the fixed C2 rows (64 pixels); the password must be 8–63 bytes.
+uppercase values supported by C2 that fit the fixed rows (SSID: 64 pixels; password:
+50 pixels after the PW label). C2 normalizes lowercase to uppercase, so future
+credentials must match their displayed case. The password must be 8–63 bytes.
 The random per-session form token remains unchanged.
 HTTP binds to the AP address and checks the local destination, Host, Origin and a
 random form token; the page is not cached and rejects framing. It uses no CDN,

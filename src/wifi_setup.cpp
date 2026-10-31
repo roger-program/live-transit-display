@@ -102,8 +102,11 @@ void WifiSetup::sendPage(int code, bool configuration) {
         "<input id=wifi-password name=password type=password maxlength=64 autocomplete=off>"
         "<button type=button data-password aria-controls=wifi-password aria-label='Show password' "
         "aria-pressed=false><svg viewBox='0 0 24 24' width=24 height=24 aria-hidden=true "
-        "fill=none stroke=currentColor stroke-width=2><path d='M2 12Q12 0 22 12Q12 24 2 12Z'/>"
-        "<circle cx=12 cy=12 r=3/></svg></button></div><button>Connect</button></form>";
+        "fill=none stroke=currentColor stroke-width=2 stroke-linecap=round stroke-linejoin=round>"
+        "<path d='M2.062 12a1 1 0 0 1 0-.694 10.75 10.75 0 0 1 19.876 0 "
+        "1 1 0 0 1 0 .694 10.75 10.75 0 0 1-19.876 0'/><circle cx='12' cy='12' r='3'/>"
+        "<path data-password-slash visibility=hidden d='m3 3 18 18'/>"
+        "</svg></button></div><button>Connect</button></form>";
   }
   page += "</main><script nonce='" + token_ + "'>const token='" + token_ +
           "';const initialState='" + state + "';" + provisioning::WifiSetupScript +

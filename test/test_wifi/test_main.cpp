@@ -40,8 +40,8 @@ void stored_record_validation() {
   TEST_ASSERT_FALSE(validRecord(record));
 }
 void setup_credentials_fit_static_panel() {
-  TEST_ASSERT_EQUAL_STRING("metro-display", SetupSsid);
-  TEST_ASSERT_EQUAL_STRING("bcnmetro", SetupPassword);
+  TEST_ASSERT_EQUAL_STRING("METRO-DISPLAY", SetupSsid);
+  TEST_ASSERT_EQUAL_STRING("BCNMETRO", SetupPassword);
   TEST_ASSERT_TRUE(validCredentials(SetupSsid, SetupPassword));
   for (const std::string &line : {std::string("OPEN HTTP"), std::string("192.168.4.1")}) {
     TEST_ASSERT_TRUE(typography::c2Supports(line));
@@ -68,31 +68,23 @@ void scan_names_are_exact_unique_and_strongest_first() {
   sortWifiNetworks(empty);
   TEST_ASSERT_TRUE(empty.empty());
 }
-void setup_credentials_preserve_lowercase_pixels() {
-  TEST_ASSERT_LESS_OR_EQUAL(64, setupTextWidth(SetupSsid));
-  TEST_ASSERT_LESS_OR_EQUAL(64 - 14, setupTextWidth(SetupPassword));
-  for (char c : std::string(SetupSsid) + SetupPassword)
-    if (c >= 'a' && c <= 'z')
-      TEST_ASSERT_NOT_NULL(setupLowercase(c));
-  transit::Framebuffer frame(64, 32);
+void setup_credentials_match_uppercase_screen() {
+  TEST_ASSERT_TRUE(typography::c2Supports(SetupSsid));
+  TEST_ASSERT_TRUE(typography::c2Supports(SetupPassword));
+  TEST_ASSERT_EQUAL_STRING(SetupSsid, typography::c2Text(SetupSsid).c_str());
+  TEST_ASSERT_EQUAL_STRING(SetupPassword, typography::c2Text(SetupPassword).c_str());
+  TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(SetupSsid));
+  TEST_ASSERT_LESS_OR_EQUAL(64 - 14, typography::c2Width(SetupPassword));
+  transit::Framebuffer frame(64, 32), expected(64, 32);
   renderSetupScreen(frame, SetupSsid, SetupPassword);
-  // Verify every password pixel, including the blank top rows of lowercase bodies.
-  int x = 14;
-  for (char c : std::string(SetupPassword)) {
-    const auto *glyph = setupLowercase(c);
-    for (int y = 0; y < 7; ++y)
-      for (int col = 0; col <= glyph->columns; ++col) {
-        const bool ink =
-            col < glyph->columns && (glyph->rows[y] & (1 << (glyph->columns - 1 - col)));
-        TEST_ASSERT_EQUAL(ink ? 0xffffff : 0, frame.pixel(x + col, y + 10));
-      }
-    x += glyph->columns + 1;
-  }
-  for (int y : {7, 8, 9, 17, 18, 19, 25, 31})
-    for (int col = 0; col < 64; ++col)
-      TEST_ASSERT_EQUAL(0, frame.pixel(col, y));
-  // Arrival text retains its established uppercase normalization.
-  TEST_ASSERT_EQUAL_STRING("BCNMETRO", typography::c2Text(SetupPassword).c_str());
+  typography::drawC2(expected, SetupSsid, 0, 0, 0xffffff, 0, 64);
+  typography::drawC2(expected, "PW", 0, 10, 0xffffff, 0, 64);
+  typography::drawC2(expected, SetupPassword, 14, 10, 0xffffff, 0, 64);
+  typography::drawC2(expected, "OPEN HTTP", 0, 20, 0xffffff, 0, 64);
+  typography::drawC2(expected, "192.168.4.1", 0, 26, 0xffffff, 0, 64);
+  for (int y = 0; y < 32; ++y)
+    for (int x = 0; x < 64; ++x)
+      TEST_ASSERT_EQUAL(expected.pixel(x, y), frame.pixel(x, y));
 }
 void setup_request_origin_validation() {
   TEST_ASSERT_TRUE(setupHost("192.168.4.1"));
@@ -180,7 +172,7 @@ void connecting_and_failure_content_excludes_configuration() {
 int main() {
   UNITY_BEGIN();
   RUN_TEST(scan_names_are_exact_unique_and_strongest_first);
-  RUN_TEST(setup_credentials_preserve_lowercase_pixels);
+  RUN_TEST(setup_credentials_match_uppercase_screen);
   RUN_TEST(connecting_and_failure_content_excludes_configuration);
   RUN_TEST(boot_hold_debounces_and_triggers_once);
   RUN_TEST(boot_hold_at_first_sample_and_short_press);

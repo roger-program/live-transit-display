@@ -3,6 +3,12 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const header = fs.readFileSync(new URL('../lib/transit/src/wifi_setup_web.h', import.meta.url), 'utf8');
 const script = header.match(/R"JS\(([\s\S]*?)\)JS"/)[1];
+// An unquoted value adjacent to /> consumes the slash in HTML parsing. In SVG,
+// that breaks the pupil radius and nests the following slash inside the circle.
+const pageSource = fs.readFileSync(new URL('../src/wifi_setup.cpp', import.meta.url), 'utf8');
+assert.match(pageSource, /<circle cx='12' cy='12' r='3'\/>/);
+assert.doesNotMatch(pageSource, /=[^\s"'<>`=]+\/>/);
+assert.match(pageSource, /<path data-password-slash visibility=hidden d='m3 3 18 18'\/>/);
 function harness(initialState, fetcher, remembered = null) {
   const events = {}, clicks = {}, requests = [], timers = [], frames = [];
   const storage = new Map(remembered ? [['display-setup-ssid', remembered]] : []);
@@ -11,6 +17,8 @@ function harness(initialState, fetcher, remembered = null) {
   network.focus = function() { this.focused = true; };
   const controls = Object.fromEntries(['[data-manual]', '[data-scanned]', '#manual-network', '[data-password]'].map(key =>
     [key, {hidden:false, setAttribute(k,v) { this[k] = v; }, addEventListener(k,f) { this[k] = f; }}]));
+  const slash = {visibility:'hidden', setAttribute(k,v) { this[k] = v; }};
+  controls['[data-password]'].querySelector = () => slash;
   const form = {elements:{network, ssid, password:{value:'test-only-password', type:'password'}, token:{value:'test-token'}},
     addEventListener(k, f) { events[k] = f; }, reset() { for (const x of Object.values(this.elements)) x.value = ''; }};
   const button = {addEventListener(k, f) { clicks[k] = f; }};
@@ -28,7 +36,7 @@ function harness(initialState, fetcher, remembered = null) {
     async fetch(url, options) { requests.push({url, options}); return fetcher(url, options); }
   };
   vm.runInNewContext("const token='test-token';const initialState=" + JSON.stringify(initialState) + ';' + script, context);
-  return {main, form, controls, events, clicks, requests, frames, timers, storage, location,
+  return {main, form, controls, slash, events, clicks, requests, frames, timers, storage, location,
     async retry() { const i = timers.findIndex(t => t.ms === 1000); assert.ok(i >= 0); await timers.splice(i,1)[0].fn(); await settle(); }};
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
@@ -41,13 +49,16 @@ const one = harness('configuration', (url) => {
   return response('failed');
 });
 assert.equal(one.form.elements.password.type, 'password');
+assert.equal(one.slash.visibility, 'hidden');
 one.controls['[data-password]'].click();
 assert.equal(one.form.elements.password.type, 'text');
+assert.equal(one.slash.visibility, 'visible');
 assert.equal(one.form.elements.password.value, 'test-only-password');
 assert.equal(one.controls['[data-password]']['aria-label'], 'Hide password');
 assert.equal(one.controls['[data-password]']['aria-pressed'], 'true');
 one.controls['[data-password]'].click();
 assert.equal(one.form.elements.password.type, 'password');
+assert.equal(one.slash.visibility, 'hidden');
 assert.equal(one.form.elements.password.value, 'test-only-password');
 assert.equal(one.controls['[data-password]']['aria-label'], 'Show password');
 assert.equal(one.controls['[data-password]']['aria-pressed'], 'false');
