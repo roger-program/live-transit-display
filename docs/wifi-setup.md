@@ -15,15 +15,21 @@ successful association and DHCP address. This transitional migration keeps exist
 development builds usable. Empty compiled Wi-Fi fields are supported; feed origin,
 feed authentication and CA configuration still use the existing local header.
 
-The 64×32 matrix shows a fixed screen containing the SSID, password, LOWERCASE
-instruction, OPEN HTTP and browser address. C2 glyphs are uppercase, so LOWERCASE
-explicitly applies to both credentials. There is no scrolling or rotating screen.
+The 64×32 matrix shows a fixed screen containing the actual lowercase SSID and
+password, OPEN HTTP and browser address. Setup-only lowercase glyphs complement
+the existing C2 drawing infrastructure; arrival and badge typography are unchanged.
+There is no scrolling or rotating screen.
 Join that AP in phone Settings, accept remaining connected
 without internet if prompted, then explicitly open **http://192.168.4.1**.
 There is no captive-portal DNS/redirect service. The self-contained page has a
 network dropdown, manual SSID, password field and status/retry flow. A background
 scan populates the initial list; refresh the page after scanning. A failed
-connection triggers another scan. Hidden SSIDs can be entered manually.
+connection triggers another scan. Hidden SSIDs can be entered manually. Exact SSID
+duplicates are merged using their strongest RSSI, then ordered strongest first.
+The existing limit is 40 unique networks, applied after merging and sorting.
+Names differing in case, whitespace or punctuation remain distinct. The password
+is hidden by default; an accessible eye button toggles visibility without changing
+its value or how credentials are submitted, validated or stored.
 
 Form submission returns a complete progress page before the connection is
 started on a later network-task tick (at least one second after queueing).

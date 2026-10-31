@@ -1,5 +1,6 @@
 #include "setup_button.h"
 #include "wifi_credentials.h"
+#include "wifi_networks.h"
 #include "wifi_setup_diagnostics.h"
 #include "wifi_setup_screen.h"
 #include "wifi_setup_web.h"
@@ -42,12 +43,56 @@ void setup_credentials_fit_static_panel() {
   TEST_ASSERT_EQUAL_STRING("metro-display", SetupSsid);
   TEST_ASSERT_EQUAL_STRING("bcnmetro", SetupPassword);
   TEST_ASSERT_TRUE(validCredentials(SetupSsid, SetupPassword));
-  for (const std::string &line :
-       {std::string(SetupSsid), "PW " + std::string(SetupPassword), std::string("LOWERCASE"),
-        std::string("OPEN HTTP"), std::string("192.168.4.1")}) {
+  for (const std::string &line : {std::string("OPEN HTTP"), std::string("192.168.4.1")}) {
     TEST_ASSERT_TRUE(typography::c2Supports(line));
     TEST_ASSERT_LESS_OR_EQUAL(64, typography::c2Width(line));
   }
+}
+void scan_names_are_exact_unique_and_strongest_first() {
+  std::vector<WifiNetwork> networks;
+  addWifiNetwork(networks, "Mesh", -80);
+  addWifiNetwork(networks, "Mesh", -35);
+  addWifiNetwork(networks, "Mesh", -70);
+  addWifiNetwork(networks, "mesh", -50);
+  addWifiNetwork(networks, "Mesh ", -60);
+  addWifiNetwork(networks, "Mesh-Guest", -90);
+  addWifiNetwork(networks, "", -10);
+  sortWifiNetworks(networks);
+  TEST_ASSERT_EQUAL(4, networks.size());
+  TEST_ASSERT_EQUAL_STRING("Mesh", networks[0].ssid.c_str());
+  TEST_ASSERT_EQUAL(-35, networks[0].rssi);
+  TEST_ASSERT_EQUAL_STRING("mesh", networks[1].ssid.c_str());
+  TEST_ASSERT_EQUAL_STRING("Mesh ", networks[2].ssid.c_str());
+  TEST_ASSERT_EQUAL_STRING("Mesh-Guest", networks[3].ssid.c_str());
+  std::vector<WifiNetwork> empty;
+  sortWifiNetworks(empty);
+  TEST_ASSERT_TRUE(empty.empty());
+}
+void setup_credentials_preserve_lowercase_pixels() {
+  TEST_ASSERT_LESS_OR_EQUAL(64, setupTextWidth(SetupSsid));
+  TEST_ASSERT_LESS_OR_EQUAL(64 - 14, setupTextWidth(SetupPassword));
+  for (char c : std::string(SetupSsid) + SetupPassword)
+    if (c >= 'a' && c <= 'z')
+      TEST_ASSERT_NOT_NULL(setupLowercase(c));
+  transit::Framebuffer frame(64, 32);
+  renderSetupScreen(frame, SetupSsid, SetupPassword);
+  // Verify every password pixel, including the blank top rows of lowercase bodies.
+  int x = 14;
+  for (char c : std::string(SetupPassword)) {
+    const auto *glyph = setupLowercase(c);
+    for (int y = 0; y < 7; ++y)
+      for (int col = 0; col <= glyph->columns; ++col) {
+        const bool ink =
+            col < glyph->columns && (glyph->rows[y] & (1 << (glyph->columns - 1 - col)));
+        TEST_ASSERT_EQUAL(ink ? 0xffffff : 0, frame.pixel(x + col, y + 10));
+      }
+    x += glyph->columns + 1;
+  }
+  for (int y : {7, 8, 9, 17, 18, 19, 25, 31})
+    for (int col = 0; col < 64; ++col)
+      TEST_ASSERT_EQUAL(0, frame.pixel(col, y));
+  // Arrival text retains its established uppercase normalization.
+  TEST_ASSERT_EQUAL_STRING("BCNMETRO", typography::c2Text(SetupPassword).c_str());
 }
 void setup_request_origin_validation() {
   TEST_ASSERT_TRUE(setupHost("192.168.4.1"));
@@ -134,6 +179,8 @@ void connecting_and_failure_content_excludes_configuration() {
 }
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(scan_names_are_exact_unique_and_strongest_first);
+  RUN_TEST(setup_credentials_preserve_lowercase_pixels);
   RUN_TEST(connecting_and_failure_content_excludes_configuration);
   RUN_TEST(boot_hold_debounces_and_triggers_once);
   RUN_TEST(boot_hold_at_first_sample_and_short_press);

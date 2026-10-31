@@ -9,9 +9,9 @@ function harness(initialState, fetcher, remembered = null) {
   const network = {value:'', options:[{value:''},{value:'Home Network'}], addEventListener(k, f) { events[k] = f; }};
   const ssid = {value:'', focus() { this.focused = true; }};
   network.focus = function() { this.focused = true; };
-  const controls = Object.fromEntries(['[data-manual]', '[data-scanned]', '#manual-network'].map(key =>
+  const controls = Object.fromEntries(['[data-manual]', '[data-scanned]', '#manual-network', '[data-password]'].map(key =>
     [key, {hidden:false, setAttribute(k,v) { this[k] = v; }, addEventListener(k,f) { this[k] = f; }}]));
-  const form = {elements:{network, ssid, password:{value:'test-only-password'}, token:{value:'test-token'}},
+  const form = {elements:{network, ssid, password:{value:'test-only-password', type:'password'}, token:{value:'test-token'}},
     addEventListener(k, f) { events[k] = f; }, reset() { for (const x of Object.values(this.elements)) x.value = ''; }};
   const button = {addEventListener(k, f) { clicks[k] = f; }};
   const main = {innerHTML:initialState === 'configuration' ? '<form></form>' : '',
@@ -40,6 +40,17 @@ const one = harness('configuration', (url) => {
   if (++statusCalls === 1) throw new Error('simulated channel interruption');
   return response('failed');
 });
+assert.equal(one.form.elements.password.type, 'password');
+one.controls['[data-password]'].click();
+assert.equal(one.form.elements.password.type, 'text');
+assert.equal(one.form.elements.password.value, 'test-only-password');
+assert.equal(one.controls['[data-password]']['aria-label'], 'Hide password');
+assert.equal(one.controls['[data-password]']['aria-pressed'], 'true');
+one.controls['[data-password]'].click();
+assert.equal(one.form.elements.password.type, 'password');
+assert.equal(one.form.elements.password.value, 'test-only-password');
+assert.equal(one.controls['[data-password]']['aria-label'], 'Show password');
+assert.equal(one.controls['[data-password]']['aria-pressed'], 'false');
 one.form.elements.network.value = 'Home Network';
 const submitted = one.events.submit({preventDefault(){}});
 assert.match(one.main.innerHTML, /Connecting…/);

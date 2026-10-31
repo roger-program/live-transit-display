@@ -1,6 +1,7 @@
 #include "wifi_setup.h"
 #include "app_config.h"
 #include "wifi_credentials.h"
+#include "wifi_networks.h"
 #include "wifi_setup_diagnostics.h"
 #include "wifi_setup_screen.h"
 #include "wifi_setup_web.h"
@@ -72,16 +73,21 @@ void WifiSetup::sendPage(int code, bool configuration) {
             "'><label>Wi-Fi network<select name=network><option value=''>Choose a network</option>";
     bool selectedInList = false;
     const int count = WiFi.scanComplete();
-    if (count >= 0) {
-      for (int i = 0; i < count && i < 40; ++i) {
-        const String name = WiFi.SSID(i);
-        const bool selected = !selectedInList && name == selectedSsid_;
-        if (selected)
-          selectedInList = true;
-        const String safe = escape(name);
-        page += "<option value='" + safe + "'" + (selected ? " selected" : "") + ">" + safe +
-                "</option>";
-      }
+    std::vector<provisioning::WifiNetwork> networks;
+    for (int i = 0; i < count; ++i) {
+      const String name = WiFi.SSID(i);
+      provisioning::addWifiNetwork(networks, std::string(name.c_str(), name.length()),
+                                   WiFi.RSSI(i));
+    }
+    provisioning::sortWifiNetworks(networks);
+    // Apply the existing display limit after deduplication and signal sorting.
+    for (size_t i = 0; i < networks.size() && i < 40; ++i) {
+      const String name(networks[i].ssid.c_str());
+      const bool selected = name == selectedSsid_;
+      selectedInList = selectedInList || selected;
+      const String safe = escape(name);
+      page +=
+          "<option value='" + safe + "'" + (selected ? " selected" : "") + ">" + safe + "</option>";
     }
     page +=
         "</select></label>"
@@ -92,8 +98,12 @@ void WifiSetup::sendPage(int code, bool configuration) {
         "autocomplete=off value='" +
         (selectedInList ? String("") : escape(selectedSsid_)) +
         "'></label><button type=button class=link data-scanned>Use scanned network list</button>"
-        "</div><label>Password<input name=password type=password maxlength=64 "
-        "autocomplete=off></label><button>Connect</button></form>";
+        "</div><label for=wifi-password>Password</label><div class=password-field>"
+        "<input id=wifi-password name=password type=password maxlength=64 autocomplete=off>"
+        "<button type=button data-password aria-controls=wifi-password aria-label='Show password' "
+        "aria-pressed=false><svg viewBox='0 0 24 24' width=24 height=24 aria-hidden=true "
+        "fill=none stroke=currentColor stroke-width=2><path d='M2 12Q12 0 22 12Q12 24 2 12Z'/>"
+        "<circle cx=12 cy=12 r=3/></svg></button></div><button>Connect</button></form>";
   }
   page += "</main><script nonce='" + token_ + "'>const token='" + token_ +
           "';const initialState='" + state + "';" + provisioning::WifiSetupScript +

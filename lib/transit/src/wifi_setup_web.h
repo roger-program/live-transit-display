@@ -10,6 +10,9 @@ inline constexpr char WifiPageHead[] =
     "margin:.4rem 0 1rem}label{display:block}"
     ".link{width:auto;padding:.3rem 0;color:#555;background:none;border:0;"
     "text-decoration:underline;font-size:.9em;text-align:left;cursor:pointer}"
+    ".password-field{display:flex;align-items:stretch;gap:.4rem}"
+    ".password-field input{min-width:0;flex:1}.password-field button{width:3rem;"
+    "padding:.5rem;display:grid;place-items:center}"
     ".loading{width:1.6rem;height:1.6rem;border:2px solid #ddd;border-top-color:#666;"
     "border-radius:50%;margin:2rem 0;animation:turn 1s linear infinite}"
     "@keyframes turn{to{transform:rotate(360deg)}}"
@@ -76,6 +79,14 @@ const form = main.querySelector('form');
 if (form) {
   const network = form.elements.network;
   const ssid = form.elements.ssid;
+  const password = form.elements.password;
+  const passwordButton = main.querySelector('[data-password]');
+  passwordButton.addEventListener('click', () => {
+    const visible = password.type === 'password';
+    password.type = visible ? 'text' : 'password';
+    passwordButton.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+    passwordButton.setAttribute('aria-pressed', String(visible));
+  });
   const manualButton = main.querySelector('[data-manual]');
   const scannedButton = main.querySelector('[data-scanned]');
   const manualFields = main.querySelector('#manual-network');
