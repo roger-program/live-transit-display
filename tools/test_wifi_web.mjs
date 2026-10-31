@@ -7,16 +7,19 @@ function harness(initialState, fetcher, remembered = null) {
   const events = {}, clicks = {}, requests = [], timers = [], frames = [];
   const storage = new Map(remembered ? [['display-setup-ssid', remembered]] : []);
   const network = {value:'', options:[{value:''},{value:'Home Network'}], addEventListener(k, f) { events[k] = f; }};
-  const ssid = {value:''};
+  const ssid = {value:'', focus() { this.focused = true; }};
+  network.focus = function() { this.focused = true; };
+  const controls = Object.fromEntries(['[data-manual]', '[data-scanned]', '#manual-network'].map(key =>
+    [key, {hidden:false, setAttribute(k,v) { this[k] = v; }, addEventListener(k,f) { this[k] = f; }}]));
   const form = {elements:{network, ssid, password:{value:'test-only-password'}, token:{value:'test-token'}},
     addEventListener(k, f) { events[k] = f; }, reset() { for (const x of Object.values(this.elements)) x.value = ''; }};
   const button = {addEventListener(k, f) { clicks[k] = f; }};
   const main = {innerHTML:initialState === 'configuration' ? '<form></form>' : '',
-    querySelector(k) { return k === 'form' ? (initialState === 'configuration' ? form : null) : button; }};
+    querySelector(k) { return k === 'form' ? (initialState === 'configuration' ? form : null) : controls[k] ?? button; }};
   const location = {assign(v) { this.assigned = v; }, replace(v) { this.replaced = v; }};
   const context = {
     document:{querySelector:() => main}, location, URLSearchParams, AbortController,
-    FormData:class { constructor(f) { this.values = Object.entries(f.elements).map(([k,v]) => [k,v.value]); }
+    FormData:class { constructor(f) { this.values = Object.entries(f.elements).filter(([,v]) => !v.disabled).map(([k,v]) => [k,v.value]); }
       [Symbol.iterator]() { return this.values[Symbol.iterator](); } },
     sessionStorage:{getItem:k => storage.get(k) ?? null, setItem:(k,v) => storage.set(k,v)},
     setTimeout(fn, ms) { const t = {fn, ms}; timers.push(t); return t; },
@@ -25,7 +28,7 @@ function harness(initialState, fetcher, remembered = null) {
     async fetch(url, options) { requests.push({url, options}); return fetcher(url, options); }
   };
   vm.runInNewContext("const token='test-token';const initialState=" + JSON.stringify(initialState) + ';' + script, context);
-  return {main, form, events, clicks, requests, frames, timers, storage, location,
+  return {main, form, controls, events, clicks, requests, frames, timers, storage, location,
     async retry() { const i = timers.findIndex(t => t.ms === 1000); assert.ok(i >= 0); await timers.splice(i,1)[0].fn(); await settle(); }};
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
@@ -85,10 +88,34 @@ const three = harness('configuration', url => {
   if (url === '/connect') { ++posts; throw new Error('simulated lost submission'); }
   return response('configuration');
 });
+assert.equal(three.controls['#manual-network'].hidden, true);
+assert.equal(three.form.elements.ssid.disabled, true);
+three.controls['[data-manual]'].click();
+assert.equal(three.controls['#manual-network'].hidden, false);
+assert.equal(three.controls['[data-manual]']['aria-expanded'], 'true');
+assert.equal(three.form.elements.network.disabled, true);
+assert.equal(three.form.elements.ssid.focused, true);
+assert.equal(three.form.elements.password.disabled, undefined);
 three.form.elements.ssid.value = 'Hidden Network';
+three.form.elements.network.value = 'Home Network';
 await three.events.submit({preventDefault(){}});
 await settle();
 assert.match(three.main.innerHTML, /Couldn’t connect/);
 assert.equal(posts, 1);
 assert.equal(three.storage.get('display-setup-ssid'), 'Hidden Network');
+assert.equal(three.requests[0].options.body.get('ssid'), 'Hidden Network');
+assert.equal(three.requests[0].options.body.has('network'), false);
+const manualRetry = harness('configuration', () => response('configuration'), 'Hidden Network');
+assert.equal(manualRetry.form.elements.ssid.value, 'Hidden Network');
+assert.equal(manualRetry.controls['#manual-network'].hidden, false);
+manualRetry.controls['[data-scanned]'].click();
+assert.equal(manualRetry.controls['#manual-network'].hidden, true);
+assert.equal(manualRetry.form.elements.network.disabled, false);
+assert.equal(manualRetry.form.elements.network.focused, true);
+assert.equal(manualRetry.form.elements.ssid.disabled, true);
+manualRetry.form.elements.network.value = 'Home Network';
+await manualRetry.events.submit({preventDefault(){}});
+assert.equal(manualRetry.requests[0].options.body.has('ssid'), false);
+assert.equal(manualRetry.requests[0].options.body.get('network'), 'Home Network');
+assert.equal(manualRetry.storage.get('display-setup-ssid'), 'Home Network');
 console.log('Browser script checks passed: immediate progress, interrupted poll, failure/retry, SSID retention, success paint ordering, interrupted acknowledgement, lost submission, and credential isolation.');

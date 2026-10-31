@@ -66,11 +66,10 @@ void WifiSetup::sendPage(int code, bool configuration) {
   else if (state == "failed")
     page += provisioning::WifiFailureContent;
   else {
-    page +=
-        "<h1>Connect your display</h1><p>Choose your Wi-Fi network.</p>"
-        "<form method=post action=/connect><input type=hidden name=token value='" +
-        token_ +
-        "'><label>Wi-Fi network<select name=network><option value=''>Enter a name below</option>";
+    page += "<h1>Connect your display</h1><p>Choose your Wi-Fi network.</p>"
+            "<form method=post action=/connect><input type=hidden name=token value='" +
+            token_ +
+            "'><label>Wi-Fi network<select name=network><option value=''>Choose a network</option>";
     bool selectedInList = false;
     const int count = WiFi.scanComplete();
     if (count >= 0) {
@@ -84,11 +83,17 @@ void WifiSetup::sendPage(int code, bool configuration) {
                 "</option>";
       }
     }
-    page += "</select></label><label>Network name (optional)<input name=ssid maxlength=32 "
-            "autocomplete=off value='" +
-            (selectedInList ? String("") : escape(selectedSsid_)) +
-            "'></label><label>Password<input name=password type=password maxlength=64 "
-            "autocomplete=off></label><button>Connect</button></form>";
+    page +=
+        "</select></label>"
+        "<button type=button class=link data-manual aria-controls=manual-network "
+        "aria-expanded=false>Can’t find your network? Enter it manually</button>"
+        "<div id=manual-network hidden><label>Network name (manual entry)<input name=ssid "
+        "maxlength=32 "
+        "autocomplete=off value='" +
+        (selectedInList ? String("") : escape(selectedSsid_)) +
+        "'></label><button type=button class=link data-scanned>Use scanned network list</button>"
+        "</div><label>Password<input name=password type=password maxlength=64 "
+        "autocomplete=off></label><button>Connect</button></form>";
   }
   page += "</main><script nonce='" + token_ + "'>const token='" + token_ +
           "';const initialState='" + state + "';" + provisioning::WifiSetupScript +

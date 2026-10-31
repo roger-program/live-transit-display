@@ -744,3 +744,9 @@ and credential isolation. It is a mocked browser check, not a physical radio or
 visual browser test. Formatting, fixture consistency and whitespace checks passed.
 Updated docs/wifi-setup.md records the full current flow and manual phone checks.
 No flashing, erasure, deployment, device connection or partition change.
+
+### Wi-Fi manual-entry disclosure — 2026-10-31
+
+Changed only the onboarding page and its browser-script checks. The scanned list remains the default; “Can’t find your network? Enter it manually” reveals a labeled manual-entry field and a return-to-list control. The inactive input is disabled so only the active SSID is submitted; the password stays visible in either mode. Existing firmware-selected SSIDs and session-stored SSIDs restore the network on retry, including names absent from the scan. Provisioning, NVS, buttons, and Configuration → Connecting → Result behavior are unchanged.
+
+Observed validation: `node tools/test_wifi_web.mjs` passed, including mode switching, inactive-field exclusion, hidden-network retry retention and the existing connection/result checks. `pio test -e native` passed all 66 tests. `pio run -e hub75-live` succeeded (943,549 bytes flash; 46,556 bytes static RAM). Formatting checked with the existing formatter. These are host checks and a compilation result; mobile layout and connection behavior have not been retested on hardware. No flashing performed.

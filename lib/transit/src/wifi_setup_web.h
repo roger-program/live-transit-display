@@ -8,6 +8,8 @@ inline constexpr char WifiPageHead[] =
     "main{padding:2rem 0}h1{margin:0 0 2rem}p{margin:1.5rem 0;line-height:1.6}"
     "input,select,button{font:inherit;box-sizing:border-box;width:100%;padding:.8rem;"
     "margin:.4rem 0 1rem}label{display:block}"
+    ".link{width:auto;padding:.3rem 0;color:#555;background:none;border:0;"
+    "text-decoration:underline;font-size:.9em;text-align:left;cursor:pointer}"
     ".loading{width:1.6rem;height:1.6rem;border:2px solid #ddd;border-top-color:#666;"
     "border-radius:50%;margin:2rem 0;animation:turn 1s linear infinite}"
     "@keyframes turn{to{transform:rotate(360deg)}}"
@@ -74,6 +76,22 @@ const form = main.querySelector('form');
 if (form) {
   const network = form.elements.network;
   const ssid = form.elements.ssid;
+  const manualButton = main.querySelector('[data-manual]');
+  const scannedButton = main.querySelector('[data-scanned]');
+  const manualFields = main.querySelector('#manual-network');
+  let manual = false;
+  function selectMode(value) {
+    manual = value;
+    manualFields.hidden = !manual;
+    manualButton.hidden = manual;
+    manualButton.setAttribute('aria-expanded', String(manual));
+    network.disabled = manual;
+    ssid.disabled = !manual;
+    ssid.required = manual;
+    network.required = !manual;
+  }
+  manualButton.addEventListener('click', () => { selectMode(true); ssid.focus(); });
+  scannedButton.addEventListener('click', () => { selectMode(false); network.focus(); });
   try {
     const remembered = sessionStorage.getItem('display-setup-ssid');
     if (remembered && !ssid.value && !network.value) {
@@ -81,11 +99,11 @@ if (form) {
       else ssid.value = remembered;
     }
   } catch (_) {}
-  network.addEventListener('change', () => { ssid.value = ''; });
+  selectMode(Boolean(ssid.value));
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const body = new URLSearchParams(new FormData(form));
-    try { sessionStorage.setItem('display-setup-ssid', ssid.value || network.value); } catch (_) {}
+    try { sessionStorage.setItem('display-setup-ssid', manual ? ssid.value : network.value); } catch (_) {}
     form.reset(); // Do not keep the submitted password in the rendered DOM.
     connecting();
     try {
