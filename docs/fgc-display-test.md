@@ -1,6 +1,8 @@
 # Local FGC physical-display preparation — 7 November 2026
 
-**Current revision:** [Explicit destination rows](#explicit-destination-rows--7-november-2026) with the [consolidated provisional palette](#consolidated-provisional-palette--7-november-2026). Comparison sections below are historical; A/B/C and darker-background variants are removed.
+**Current operator colour: #72900F/white, pending physical validation.** See [green update](#operator-green-and-physical-feedback--7-november-2026).
+
+**Destination revision:** [Explicit destination rows](#explicit-destination-rows--7-november-2026) with the [consolidated provisional palette](#consolidated-provisional-palette--7-november-2026). Comparison sections below are historical; A/B/C and darker-background variants are removed.
 
 Local implementation/build preparation only. **Not flashed or physically validated.** Backend code, deployment, device configuration and browser simulator are unchanged. Central tracking remains in the sibling feed repository.
 
@@ -171,3 +173,17 @@ Current FGC binary `.pio/build/hub75-fgc-fixture/firmware.bin`: 310,512 bytes, S
 Compatibility/limits: Feed v1 structure/version remain unchanged, but old renderers lack explicit-break semantics; keep this optional mapping confined to the experiment until separately authorized rollout with compatible firmware. Maximum two 5-pixel-high destination rows, 62-pixel width; very long rows reveal quickly within existing page timing, not an unlimited reading interval. Glyphs/accents and the poor FGC operator symbol remain separate issues. See sibling [destination presentation policy](../../live-transit-feed/docs/fgc-visual-identity.md#explicit-destination-rows--7-november-2026).
 
 Files changed in firmware: lib/transit/src/renderer.h, lib/transit/src/renderer.cpp, fixtures/fgc.json, generated include/fixture.h, test/test_core/test_main.cpp, docs/fgc-display-test.md and docs/phase-1.md.
+
+
+## Operator green and physical feedback — 7 November 2026
+
+Updated common FGC firmware asset background #006B3B → #00834A; symbol foreground remains #FFFFFF. Both normal firmware and offline diagnostic use this same registry entry. Shared backend presentation colour matches; no new protocol field. Bitmap rows/dimensions, line colours, typography/layout, destinations, scrolling, brightness, three predictions and production settings are unchanged.
+
+User-reported physical 64×32 validation, 7 November 2026: L8/S1/S2 black foregrounds accepted provisionally; generic two-line destination rendering and independent scrolling validated. Exact tested build/time/duration/photos not supplied; not agent-observed. Do not infer live-source/freshness/outage acceptance. New #00834A green awaits physical validation, and bitmap redesign/recognition remains pending.
+
+Verification for this colour-only revision: 75 native tests (including exact operator pixels/fallback and unchanged destination regressions), 14 focused feed/presentation/preview tests, backend types/lint/format and firmware format/generated-fixture checks passed; diagnostic build passed. No normal/live target rebuild was needed; its shared asset source is updated, not its previous binary. Current diagnostic `.pio/build/hub75-fgc-fixture/firmware.bin`: 310,512 bytes; SHA-256 `752f8d4310096650d9753f8fd8a1a9e7b41123aac1da178943285f0982e2a3c5`. Prior artifact hashes are historical; exact known-good restore file is unchanged. No device connection, flash or deployment.
+
+
+## Operator background #72900F — 7 November 2026
+
+User refinement supersedes #00834A: common firmware operator asset and shared backend presentation now #72900F/white. Bitmap, dimensions, line colours and all rendering behavior unchanged. 75 native tests, 14 focused backend presentation/replay tests and formatting check passed; FGC diagnostic built. Current binary .pio/build/hub75-fgc-fixture/firmware.bin: 310512 bytes, SHA-256 54d277f3c1eb7088e4f2e1c3def41397f3f30ca56bc2a5b7c35f9f24bbe6f8eb. No flash/deployment; physical validation of this colour pending. Previously reported line/destination acceptance remains unchanged.

@@ -852,3 +852,13 @@ Following user-reported physical LED tests, selected palette is now white L6/L7 
 ## Generic explicit destination rows — 7 November 2026
 
 Implemented generic newline presentation rows plus shared scroll phase/pauses/reset in the existing renderer; no FGC string logic. Unconfigured Metro/bus wrap/scroll stays unchanged. Four existing FGC fixture cases cover stationary/overflow rows with unchanged colours/font/brightness/three predictions. 75 native tests, 2 identity tests, formatting/generated fixtures and all 9 builds passed; backend 220 tests/type/lint/format passed. No flash/deployment. [Detailed method, pixel measurements, limits and artifact](fgc-display-test.md#explicit-destination-rows--7-november-2026).
+
+
+## FGC operator green and physical feedback — 7 November 2026
+
+Changed only the common operator asset background to #00834A with white foreground and unchanged bitmap/dimensions; backend presentation mirrors it. User reports physical provisional acceptance of L8/S1/S2 black labels and validation of two-line destinations/independent scrolling. New operator green remains pending physical validation; bitmap redesign unresolved. 75 native tests, focused 14 backend presentation/preview tests, type/lint/format/generated checks and diagnostic build passed. No flash/deployment. [Current artifact and scope](fgc-display-test.md#operator-green-and-physical-feedback--7-november-2026).
+
+
+## Operator colour refinement — 7 November 2026
+
+Changed shared FGC asset background to #72900F/white, superseding #00834A. No other presentation changes. 75 native and 14 focused backend tests passed; diagnostic build succeeded, not flashed/deployed. Physical colour validation pending. Current artifact recorded in docs/fgc-display-test.md.

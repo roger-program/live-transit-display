@@ -894,7 +894,7 @@ void generic_operator_symbol_and_fallback() {
     for (int x = 0; x < 64; ++x) {
       if (x >= 1 && x < 8 && y >= 1 && y < 8) {
         const bool ink = y >= 2 && y < 7 && (expected[y - 2] & (1U << (7 - x)));
-        TEST_ASSERT_EQUAL_HEX32(ink ? 0xffffff : 0x006b3b, symbolFrame.pixel(x, y));
+        TEST_ASSERT_EQUAL_HEX32(ink ? 0xffffff : 0x72900f, symbolFrame.pixel(x, y));
       } else
         TEST_ASSERT_EQUAL_HEX32(baseline.pixel(x, y), symbolFrame.pixel(x, y));
     }
