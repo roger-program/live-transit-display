@@ -46,7 +46,8 @@ void badge(Framebuffer &frame, const std::string &label, int x, int y, Color col
                      std::min(frame.width() - 1, x + offset + width));
 }
 void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t now,
-              uint64_t pageTime, uint64_t stopTime, int offset, bool header, bool content) {
+              uint64_t pageTime, uint64_t stopTime, uint64_t destinationTime, int offset,
+              bool header, bool content) {
   const auto &stop = view.stops[page.stopIndex];
   if (header) {
     const auto *symbol = operatorSymbolFor(stop.operatorId);
@@ -101,12 +102,12 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
     const auto lines = destinationLines(group.destination, frame.width() - 2);
     for (size_t line = 0; line < lines.size(); ++line) {
       const int destinationY = y + 8 + static_cast<int>(line) * 6;
-      typography::drawC2(frame, lines[line], 1 + offset, destinationY, White,
-                         std::max(1, 1 + offset),
-                         std::min(frame.width() - 1, frame.width() - 1 + offset),
-                         lines.size() == 2 ? 0
-                                           : overflowOffset(typography::c2Width(lines[line]),
-                                                            frame.width() - 2, pageTime));
+      typography::drawC2(
+          frame, lines[line], 1 + offset, destinationY, White, std::max(1, 1 + offset),
+          std::min(frame.width() - 1, frame.width() - 1 + offset),
+          overflowOffset(typography::c2Width(lines[line]), frame.width() - 2,
+                         group.destination.find('\n') != std::string::npos ? destinationTime
+                                                                           : pageTime));
     }
   }
 }
@@ -114,6 +115,14 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
 } // namespace
 
 std::vector<std::string> destinationLines(const std::string &text, int available) {
+  // Explicit presentation breaks opt in to independently clipped rows. Further
+  // breaks become spaces so information is retained within the two-row limit.
+  const auto split = text.find('\n');
+  if (split != std::string::npos) {
+    auto second = text.substr(split + 1);
+    std::replace(second.begin(), second.end(), '\n', ' ');
+    return {typography::c2Text(text.substr(0, split)), typography::c2Text(second)};
+  }
   const auto label = typography::c2Text(text);
   if (typography::c2Width(label) <= available)
     return {label};
@@ -265,17 +274,25 @@ void ArrivalRenderer::render(Framebuffer &frame, const View &view, int64_t now, 
   const auto &next = pages[nextIndex];
   const uint64_t time = elapsed % PageDurationMs;
   const uint64_t stopTime = time + page.servicePage * PageDurationMs;
+  std::string key = std::to_string(page.stopIndex) + ":" + std::to_string(page.groupStart);
+  for (size_t i = 0; i < page.groupCount; ++i)
+    key += "\x1f" + view.stops[page.stopIndex].groups[page.groupStart + i].destination;
+  if (key != destinationKey_ || elapsed < destinationStartedAt_) {
+    destinationKey_ = key;
+    destinationStartedAt_ = elapsed;
+  }
+  const uint64_t destinationTime = (elapsed - destinationStartedAt_) % PageDurationMs;
   int shift =
       pages.size() <= 1 || time < 3000 ? 0 : static_cast<int>((time - 3000) * frame.width() / 300);
   const bool sameStop = page.stopIndex == next.stopIndex;
   if (shift && sameStop) {
-    drawPage(frame, view, page, now, time, stopTime, 0, true, false);
-    drawPage(frame, view, page, now, time, stopTime, -shift, false, true);
-    drawPage(frame, view, next, now, 0, stopTime, frame.width() - shift, false, true);
+    drawPage(frame, view, page, now, time, stopTime, destinationTime, 0, true, false);
+    drawPage(frame, view, page, now, time, stopTime, destinationTime, -shift, false, true);
+    drawPage(frame, view, next, now, 0, stopTime, 0, frame.width() - shift, false, true);
   } else {
-    drawPage(frame, view, page, now, time, stopTime, -shift, true, true);
+    drawPage(frame, view, page, now, time, stopTime, destinationTime, -shift, true, true);
     if (shift)
-      drawPage(frame, view, next, now, 0, 0, frame.width() - shift, true, true);
+      drawPage(frame, view, next, now, 0, 0, 0, frame.width() - shift, true, true);
   }
 }
 uint8_t renderDiagnostic(Framebuffer &frame, Diagnostic mode, uint64_t elapsed) {

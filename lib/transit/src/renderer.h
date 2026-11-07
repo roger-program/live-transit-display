@@ -25,6 +25,9 @@ public:
   virtual void render(Framebuffer &frame, const View &view, int64_t now, uint64_t elapsed) = 0;
 };
 class ArrivalRenderer final : public Renderer {
+  std::string destinationKey_;
+  uint64_t destinationStartedAt_ = 0;
+
 public:
   void render(Framebuffer &frame, const View &view, int64_t now, uint64_t elapsed) override;
 };

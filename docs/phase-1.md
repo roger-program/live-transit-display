@@ -847,3 +847,8 @@ Offline FGC diagnostic now cycles original-background A/B/C foregrounds (#FFFFFF
 Following user-reported physical LED tests, selected palette is now white L6/L7 and black L8/L12/S1/S2 over original backgrounds. Operator uses provisional #006B3B/white with unchanged mask and slot. Offline diagnostic restored to eight pages and three synthetic predictions; all comparison variants/aliases removed. Backend presentation configuration controls line colours through existing wire fields; no operator-colour wire support added, compiled registry matches the shared preview presentation. Metro/bus and production settings unchanged.
 
 74 native tests, formatting/generated-fixture checks and target-only build passed; backend 218 tests/types/lint/format and cross-repository palette agreement passed. No flash/deployment. [Current palette/artifact and outstanding display issues](fgc-display-test.md#consolidated-provisional-palette--7-november-2026).
+
+
+## Generic explicit destination rows — 7 November 2026
+
+Implemented generic newline presentation rows plus shared scroll phase/pauses/reset in the existing renderer; no FGC string logic. Unconfigured Metro/bus wrap/scroll stays unchanged. Four existing FGC fixture cases cover stationary/overflow rows with unchanged colours/font/brightness/three predictions. 75 native tests, 2 identity tests, formatting/generated fixtures and all 9 builds passed; backend 220 tests/type/lint/format passed. No flash/deployment. [Detailed method, pixel measurements, limits and artifact](fgc-display-test.md#explicit-destination-rows--7-november-2026).

@@ -54,7 +54,7 @@
           "line": "L8",
           "lineColor": "#E27AB4",
           "lineTextColor": "#000000",
-          "destination": "Moli Nou - Ciutat Cooperativa",
+          "destination": "MOLI NOU\nCIUTAT COOPERATIVA",
           "arrivals": [
             {
               "arrivalAt": 1794078095690,
@@ -94,7 +94,7 @@
           "line": "S1",
           "lineColor": "#DC6F2D",
           "lineTextColor": "#000000",
-          "destination": "Terrassa Nacions Unides",
+          "destination": "TERRASSA\nNACIONS UNIDES",
           "arrivals": [
             {
               "arrivalAt": 1794078095690,
@@ -164,7 +164,7 @@
           "line": "L7",
           "lineColor": "#AE621C",
           "lineTextColor": "#FFFFFF",
-          "destination": "Barcelona - Placa Catalunya",
+          "destination": "BARCELONA\nPL. CATALUNYA",
           "arrivals": [
             {
               "arrivalAt": 1794078095690,

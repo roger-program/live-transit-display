@@ -536,6 +536,56 @@ void destination_wrapping_and_geometry() {
         TEST_ASSERT_EQUAL_HEX32(expected.pixel(x, y), frame.pixel(x, y));
   }
 }
+void explicit_destination_rows_scroll_and_reset() {
+  const auto moli = destinationLines("MOLI NOU\nCIUTAT COOPERATIVA", 62);
+  TEST_ASSERT_EQUAL(2, moli.size());
+  TEST_ASSERT_EQUAL_STRING("MOLI NOU", moli[0].c_str());
+  TEST_ASSERT_EQUAL(37, typography::c2Width(moli[0]));
+  TEST_ASSERT_EQUAL(85, typography::c2Width(moli[1]));
+  TEST_ASSERT_EQUAL(65, typography::c2Width("NACIONS UNIDES"));
+  TEST_ASSERT_EQUAL(59, typography::c2Width("PL. CATALUNYA"));
+  for (const auto &label : {"TERRASSA\nNACIONS UNIDES", "BARCELONA\nPL. CATALUNYA"})
+    TEST_ASSERT_EQUAL(2, destinationLines(label, 62).size());
+  const auto sabadell = destinationLines("Sabadell Parc del Nord", 62);
+  TEST_ASSERT_EQUAL(2, sabadell.size());
+  TEST_ASSERT_EQUAL_STRING("SABADELL", sabadell[0].c_str());
+  TEST_ASSERT_EQUAL_STRING("PARC DEL NORD", sabadell[1].c_str());
+  TEST_ASSERT_EQUAL_STRING("TWO THREE", destinationLines("ONE\nTWO\nTHREE", 62)[1].c_str());
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  view.stops.resize(1);
+  view.stops[0].groups.resize(1);
+  for (const auto &label :
+       {"MOLI NOU\nCIUTAT COOPERATIVA", "FIRST LONG DESTINATION\nSECOND LONG DESTINATION"}) {
+    view.stops[0].groups[0].destination = label;
+    const auto lines = destinationLines(label, 62);
+    ArrivalRenderer renderer;
+    Framebuffer baseline(64, 32);
+    renderer.render(baseline, view, snapshot.feed.generatedAt, 0);
+    for (uint64_t elapsed : {700ULL, 1050ULL, 1300ULL, 2000ULL, 2600ULL}) {
+      Framebuffer actual(64, 32), expected(64, 32);
+      renderer.render(actual, view, snapshot.feed.generatedAt, elapsed);
+      for (size_t line = 0; line < 2; ++line)
+        typography::drawC2(expected, lines[line], 1, 20 + line * 6, 0xe8eee8, 1, 63,
+                           overflowOffset(typography::c2Width(lines[line]), 62, elapsed));
+      for (int y = 18; y < 32; ++y)
+        for (int x = 0; x < 64; ++x)
+          TEST_ASSERT_EQUAL_HEX32(expected.pixel(x, y), actual.pixel(x, y));
+      for (int y = 10; y < 18; ++y)
+        for (int x = 0; x < 64; ++x)
+          TEST_ASSERT_EQUAL_HEX32(baseline.pixel(x, y), actual.pixel(x, y));
+    }
+    // An in-place destination change starts at the leading pause, not midway.
+    view.stops[0].groups[0].destination = "CHANGED LONG NAME\nANOTHER LONG DESTINATION";
+    Framebuffer changed(64, 32), fresh(64, 32);
+    renderer.render(changed, view, snapshot.feed.generatedAt, 2700);
+    ArrivalRenderer freshRenderer;
+    freshRenderer.render(fresh, view, snapshot.feed.generatedAt, 0);
+    for (int y = 18; y < 32; ++y)
+      for (int x = 0; x < 64; ++x)
+        TEST_ASSERT_EQUAL_HEX32(fresh.pixel(x, y), changed.pixel(x, y));
+  }
+}
 void explicit_badge_foregrounds() {
   for (const char *ink : {"#000000", "#FFFFFF"}) {
     auto snapshot = sample();
@@ -876,7 +926,7 @@ void fgc_local_fixture_uses_normal_state_and_renderer() {
     TEST_ASSERT_EQUAL_STRING("#FFFFFF", g.lineTextColor.c_str());
   }
   TEST_ASSERT_EQUAL_STRING("Av. Tibidabo", pd.groups[0].destination.c_str());
-  TEST_ASSERT_EQUAL_STRING("Barcelona - Placa Catalunya", pd.groups[1].destination.c_str());
+  TEST_ASSERT_EQUAL_STRING("BARCELONA\nPL. CATALUNYA", pd.groups[1].destination.c_str());
   for (const auto &stop : snapshot.feed.stops) {
     TEST_ASSERT_EQUAL_STRING("FGC", stop.operatorId.c_str());
     for (const auto &group : stop.groups) {
@@ -929,6 +979,7 @@ int main() {
   RUN_TEST(badge_typography_comparisons);
   RUN_TEST(pagination_without_indicators);
   RUN_TEST(destination_wrapping_and_geometry);
+  RUN_TEST(explicit_destination_rows_scroll_and_reset);
   RUN_TEST(explicit_badge_foregrounds);
   RUN_TEST(bus_stop_badge_is_independent_of_line_colors);
   RUN_TEST(operational_badge_uses_regular_x);
