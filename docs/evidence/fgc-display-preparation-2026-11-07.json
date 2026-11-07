@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-07",
+  "scope": "local offline synthetic FGC firmware preparation",
+  "flashed": false,
+  "physical_validation": false,
+  "backend_or_deployment_changed": false,
+  "native_tests_passed": 74,
+  "identity_tests_passed": 2,
+  "build_environments_passed": 9,
+  "format_and_generated_fixture_checks": "passed",
+  "application_bytes": 308544,
+  "application_sha256": "ccdde45c95e5bf615a734f16ba5ec23952edf5bc79c98e000f9264e838f389fd",
+  "application_path": ".pio/build/hub75-fgc-fixture/firmware.bin",
+  "partition_table_matches_live_build": true,
+  "partition_csv_matches_HEAD": true,
+  "application_offset": "0x10000",
+  "device_auth_offset": "0x410000"
+}

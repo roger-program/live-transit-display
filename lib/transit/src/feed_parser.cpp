@@ -94,6 +94,9 @@ ParseResult parseFeed(std::string_view json, Feed &output) {
         !item["groups"].is<JsonArrayConst>() || !item.as<JsonObjectConst>().containsKey("name"))
       return ParseResult::Invalid;
     stop.status = status(label);
+    if (item.as<JsonObjectConst>().containsKey("operator") &&
+        !text(item["operator"], stop.operatorId))
+      return ParseResult::Invalid;
     if (!item["name"].isNull()) {
       if (!text(item["name"], stop.name))
         return ParseResult::Invalid;

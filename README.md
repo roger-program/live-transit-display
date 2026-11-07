@@ -156,3 +156,7 @@ The live firmware supports a protected local setup AP, saved NVS credentials,
 BOOT long-press and `wifi` serial recovery. See [Wi-Fi setup](docs/wifi-setup.md)
 for migration behaviour, manual acceptance tests and the preserved-build restore
 procedure. No automatic upload is part of setup development.
+
+## Isolated local FGC display test
+
+Build `pio run -e hub75-fgc-fixture` for a synthetic offline 64×32 replay at fixed brightness 4/255. The regular renderer supports an optional generic operator ID/symbol registry; existing Metro/bus fallback is preserved. No Wi-Fi, identity or persistent-storage access in this test entry point. Normal production environments/partitions remain unchanged. Build/test preparation does not flash the board. [Minimal manual application-only test and restoration procedure](docs/fgc-display-test.md).

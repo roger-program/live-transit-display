@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "generatedAt": 1794077915690,
+  "stops": [
+    {
+      "mode": "rail",
+      "operator": "FGC",
+      "stop": "fgc:PC",
+      "name": "PL. CATALUNYA",
+      "status": "ok",
+      "realtimeStatus": "unknown",
+      "groups": [
+        {
+          "line": "L6",
+          "lineColor": "#867EC4",
+          "lineTextColor": "#ffffff",
+          "destination": "Sarria",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L7",
+          "lineColor": "#AE621C",
+          "lineTextColor": "#ffffff",
+          "destination": "Av. Tibidabo",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L8",
+          "lineColor": "#E27AB4",
+          "lineTextColor": "#ffffff",
+          "destination": "Moli Nou - Ciutat Cooperativa",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L12",
+          "lineColor": "#B6B3E1",
+          "lineTextColor": "#000000",
+          "destination": "Reina Elisenda",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "S1",
+          "lineColor": "#DC6F2D",
+          "lineTextColor": "#ffffff",
+          "destination": "Terrassa Nacions Unides",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "S2",
+          "lineColor": "#93BC44",
+          "lineTextColor": "#ffffff",
+          "destination": "Sabadell Parc del Nord",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "rail",
+      "operator": "FGC",
+      "stop": "fgc:PD",
+      "name": "PADUA",
+      "status": "ok",
+      "realtimeStatus": "unknown",
+      "groups": [
+        {
+          "line": "L7",
+          "lineColor": "#AE621C",
+          "lineTextColor": "#ffffff",
+          "destination": "Av. Tibidabo",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        },
+        {
+          "line": "L7",
+          "lineColor": "#AE621C",
+          "lineTextColor": "#ffffff",
+          "destination": "Barcelona - Placa Catalunya",
+          "arrivals": [
+            {
+              "arrivalAt": 1794078095690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078335690,
+              "provenance": "unknown"
+            },
+            {
+              "arrivalAt": 1794078635690,
+              "provenance": "unknown"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -22,6 +22,8 @@ struct Group {
 };
 struct Stop {
   std::string mode;
+  std::string operatorId; // Optional presentation identity, independent of
+                          // transport mode.
   std::string id;
   std::string name;
   bool nameKnown = false;

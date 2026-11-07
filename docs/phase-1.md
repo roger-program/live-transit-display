@@ -814,3 +814,14 @@ Official sources checked 2026-10-31: [Apple](https://support.apple.com/en-gb/102
 ## 2026-10-31 — Personalized device feed integration
 
 See [device-feed.md](device-feed.md) for architecture inspection, separate persistent credential provisioning, failure policy, security limitations, observed builds/tests and pending physical checks. Selected existing test Device A; no credential replacement, backend deployment or hardware flash.
+
+
+## FGC physical-display preparation — 7 November 2026
+
+Local implementation only; no hardware commands, flash, physical observations, backend changes or deployment. Inspected parser/model, renderer/font/paging, normal application/Wi-Fi/identity paths, panel configuration, partition layout, build environments and existing regression tests before implementation. Added optional stop `operator` presentation and a generic compiled bitmap registry, with the unchanged reviewed FGC symbol. Missing/unknown IDs retain existing Metro/bus/rail fallback. Required Feed v1 fields/version remain unchanged; backend does not yet emit this optional local extension.
+
+The isolated `hub75-fgc-fixture` entry uses the standard parser/state/renderer, selected colours and short names, brightness 4/255, synthetic unknown-provenance predictions, eight pages and the normal 120-second stale transition. No accented-font work, configuration/provisioning calls or Wi-Fi startup. Existing board/panel/production settings and partition CSV are unchanged. Arduino framework startup remains unchanged, including default-NVS initialization/recovery; application isolation does not establish byte-for-byte physical persistence. No OTA slot/layout was added.
+
+Verification: `make check` passed format and generated-fixture checks, 74 native cases, 2 identity-image tests and all 9 build environments. Initial target compilation exposed a missing parser include; corrected before the final successful check. Restored the existing pinned NVS-generator dependency in the local virtual environment; no declared dependency changes. FGC/live compiled partition tables match; tracked partition CSV matches HEAD; image fits before device-auth. [Build evidence](evidence/fgc-display-preparation-2026-11-07.json). Physical recognition, colours, persistence/restoration and native-source accuracy remain unverified.
+
+Next: user-controlled application-only test and restoration using [the minimal procedure](fgc-display-test.md). Do not use a full-image upload/erase. The existing header-width limitation remains; PL. CATALUNYA scrolls through the unchanged renderer. This is a rendering/state test, not a production or commercial FGC integration.

@@ -3,6 +3,7 @@
 #include "device_identity.h"
 #include "feed_request.h"
 #include "fixture.h"
+#include "operator_symbols.h"
 #include "regular_font.h"
 #include "renderer.h"
 #include <ArduinoJson.h>
@@ -792,8 +793,95 @@ void three_prediction_framebuffer() {
     }
   }
 }
+void optional_operator_presentation() {
+  Feed feed;
+  TEST_ASSERT_TRUE(fixture().stops[0].operatorId.empty());
+  const auto json = edited([](JsonDocument &doc) {
+    doc["stops"][0]["operator"] = "FGC";
+    doc["stops"][0]["mode"] = "rail";
+  });
+  TEST_ASSERT_TRUE(parseFeed(json, feed) == ParseResult::Ok);
+  TEST_ASSERT_EQUAL_STRING("FGC", feed.stops[0].operatorId.c_str());
+  TEST_ASSERT_EQUAL_STRING("rail", feed.stops[0].mode.c_str());
+  const auto before = feed.stops[0].operatorId;
+  for (const auto &bad : {edited([](JsonDocument &doc) { doc["stops"][0]["operator"] = 7; }),
+                          edited([](JsonDocument &doc) { doc["stops"][0]["operator"] = nullptr; }),
+                          edited([](JsonDocument &doc) { doc["stops"][0]["operator"] = true; }),
+                          edited([](JsonDocument &doc) {
+                            doc["stops"][0]["operator"] = std::string(MaxStringBytes + 1, 'x');
+                          })}) {
+    TEST_ASSERT_TRUE(parseFeed(bad, feed) == ParseResult::Invalid);
+    TEST_ASSERT_EQUAL_STRING(before.c_str(), feed.stops[0].operatorId.c_str());
+  }
+  TEST_ASSERT_NULL(operatorSymbolFor("not-registered"));
+}
+void generic_operator_symbol_and_fallback() {
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  view.stops.resize(1);
+  ArrivalRenderer renderer;
+  for (const char *mode : {"metro", "bus", "rail"}) {
+    view.stops[0].mode = mode;
+    view.stops[0].operatorId.clear();
+    Framebuffer legacy(64, 32), unknown(64, 32);
+    renderer.render(legacy, view, snapshot.feed.generatedAt, 0);
+    view.stops[0].operatorId = "future-operator";
+    renderer.render(unknown, view, snapshot.feed.generatedAt, 0);
+    for (int y = 0; y < 32; ++y)
+      for (int x = 0; x < 64; ++x)
+        TEST_ASSERT_EQUAL_HEX32(legacy.pixel(x, y), unknown.pixel(x, y));
+  }
+  view.stops[0].mode = "rail";
+  view.stops[0].operatorId.clear();
+  Framebuffer baseline(64, 32), symbolFrame(64, 32);
+  renderer.render(baseline, view, snapshot.feed.generatedAt, 0);
+  view.stops[0].operatorId = "FGC";
+  renderer.render(symbolFrame, view, snapshot.feed.generatedAt, 0);
+  const auto *symbol = operatorSymbolFor(view.stops[0].operatorId);
+  TEST_ASSERT_NOT_NULL(symbol);
+  const uint8_t expected[] = {22, 41, 85, 74, 52};
+  for (int y = 0; y < 32; ++y)
+    for (int x = 0; x < 64; ++x) {
+      if (x >= 1 && x < 8 && y >= 1 && y < 8) {
+        const bool ink = y >= 2 && y < 7 && (expected[y - 2] & (1U << (7 - x)));
+        TEST_ASSERT_EQUAL_HEX32(ink ? 0xffffff : 0xa1d341, symbolFrame.pixel(x, y));
+      } else
+        TEST_ASSERT_EQUAL_HEX32(baseline.pixel(x, y), symbolFrame.pixel(x, y));
+    }
+}
+void fgc_local_fixture_uses_normal_state_and_renderer() {
+  Snapshot snapshot;
+  TEST_ASSERT_TRUE(parseFeed(FgcFixtureJson, snapshot.feed) == ParseResult::Ok);
+  snapshot.hasFeed = true;
+  snapshot.receivedAtMs = 1000;
+  TEST_ASSERT_EQUAL(2, snapshot.feed.stops.size());
+  TEST_ASSERT_EQUAL_STRING("PL. CATALUNYA", snapshot.feed.stops[0].name.c_str());
+  TEST_ASSERT_EQUAL_STRING("FGC", snapshot.feed.stops[0].operatorId.c_str());
+  const char *backgrounds[] = {"#867EC4", "#AE621C", "#E27AB4", "#B6B3E1", "#DC6F2D", "#93BC44"};
+  TEST_ASSERT_EQUAL(6, snapshot.feed.stops[0].groups.size());
+  for (size_t i = 0; i < 6; ++i) {
+    const auto &group = snapshot.feed.stops[0].groups[i];
+    TEST_ASSERT_EQUAL_STRING(backgrounds[i], group.lineColor.c_str());
+    TEST_ASSERT_EQUAL_STRING(i == 3 ? "#000000" : "#ffffff", group.lineTextColor.c_str());
+    for (const auto &arrival : group.arrivals)
+      TEST_ASSERT_TRUE(arrival.provenance == Provenance::Unknown);
+  }
+  const auto now = snapshot.feed.generatedAt;
+  const auto live = viewAt(snapshot, now, 1000, true);
+  TEST_ASSERT_EQUAL(8, pagesFor(live, 32).size());
+  TEST_ASSERT_EQUAL_STRING("Av. Tibidabo", snapshot.feed.stops[1].groups[0].destination.c_str());
+  TEST_ASSERT_EQUAL_STRING("Barcelona - Placa Catalunya",
+                           snapshot.feed.stops[1].groups[1].destination.c_str());
+  const auto stale = viewAt(snapshot, now + StaleAfterMs, 1000 + StaleAfterMs, true);
+  TEST_ASSERT_TRUE(stale.stops[0].status == StopStatus::Stale);
+  TEST_ASSERT_TRUE(stale.stops[0].groups.empty());
+  TEST_ASSERT_EQUAL_STRING("FGC", stale.stops[0].operatorId.c_str());
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(optional_operator_presentation);
+  RUN_TEST(generic_operator_symbol_and_fallback);
+  RUN_TEST(fgc_local_fixture_uses_normal_state_and_renderer);
   RUN_TEST(interruption_retains_feed_and_recovers);
   RUN_TEST(interruption_still_expires_predictions);
   RUN_TEST(protocol_fixture);

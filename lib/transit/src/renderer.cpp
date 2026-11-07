@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "font.h"
+#include "operator_symbols.h"
 #include "regular_font.h"
 #include <algorithm>
 #include <climits>
@@ -48,12 +49,24 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
               uint64_t pageTime, uint64_t stopTime, int offset, bool header, bool content) {
   const auto &stop = view.stops[page.stopIndex];
   if (header) {
-    const std::string mode = stop.mode == "metro" ? "M" : stop.mode == "bus" ? "B" : "?";
-    badge(frame, mode, 1, 1,
-          stop.mode == "metro" ? 0xe53935
-          : stop.mode == "bus" ? 0xc62a0f
-                               : Grey,
-          offset, stop.mode == "bus" ? "#FFFFFF" : "");
+    const auto *symbol = operatorSymbolFor(stop.operatorId);
+    if (symbol) {
+      // Generic 7x7 slot: the same geometry as the existing Metro M badge.
+      frame.rect(1 + offset, 1, 7, 7, symbol->background);
+      const int left = 1 + offset + (7 - symbol->width) / 2;
+      const int top = 1 + (7 - symbol->height) / 2;
+      for (unsigned y = 0; y < symbol->height; ++y)
+        for (unsigned x = 0; x < symbol->width; ++x)
+          if (symbol->rows[y] & (1U << (symbol->width - 1 - x)))
+            frame.rect(left + x, top + y, 1, 1, symbol->foreground);
+    } else {
+      const std::string mode = stop.mode == "metro" ? "M" : stop.mode == "bus" ? "B" : "?";
+      badge(frame, mode, 1, 1,
+            stop.mode == "metro" ? 0xe53935
+            : stop.mode == "bus" ? 0xc62a0f
+                                 : Grey,
+            offset, stop.mode == "bus" ? "#FFFFFF" : "");
+    }
     const std::string name = stop.nameKnown ? stop.name : stop.mode + ":" + stop.id;
     const int right = frame.width() - 1 - (stop.status == StopStatus::Partial ? 6 : 0);
     typography::drawC2(frame, name, 10 + offset, 2, White, std::max(1, 10 + offset),
