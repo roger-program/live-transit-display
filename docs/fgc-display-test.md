@@ -1,5 +1,7 @@
 # Local FGC physical-display preparation — 7 November 2026
 
+**Current revision:** see [Consolidated provisional palette](#consolidated-provisional-palette--7-november-2026). Comparison sections below are historical; A/B/C and darker-background variants are removed.
+
 Local implementation/build preparation only. **Not flashed or physically validated.** Backend code, deployment, device configuration and browser simulator are unchanged. Central tracking remains in the sibling feed repository.
 
 ## Minimal architecture change
@@ -130,3 +132,25 @@ The generic renderer places this at x=1..7, y=2..6 within the 7×7 background at
 Inspection/inference: the FGC mask has 12 orthogonally connected foreground components, joined into one only when diagonal adjacency counts; its zigzags rely heavily on corner contacts. Metro M has fewer such components (3) and long vertical strokes. Component count is descriptive, not a perceptual quality test. The reference mark's thick curved interlocking strokes are severely simplified at 7×5; whether this is recognizable is not established by bit correctness. Panel configuration identifies a P2.5 panel; physical LED gaps/optics and viewing distance may weaken diagonal joins, but current pitch/gaps, optical bloom and panel timing were not measured in this task. No source evidence of a symbol-specific spacing/scaling bug; overall physical display faults cannot be ruled out by source inspection alone.
 
 Recommendation (not implemented): treat this as a representation/resolution problem, not a colour-only problem. At the fixed 7×7 badge size, reconsider whether the full FGC mark is an appropriate symbol. One bounded hand-tuned bitmap refinement could improve continuous strokes, but should not be assumed to preserve recognizable branding; if recognition remains poor, choose an explicitly approved simpler identifier or review a larger badge separately. No firmware layout or symbol redesign is authorized by this inspection.
+
+
+## Consolidated provisional palette — 7 November 2026
+
+User-confirmed provisional line palette following user-reported physical LED colour tests. Original backgrounds; selected foregrounds mirror backend FGC_PRESENTATION via ordinary lineColor/lineTextColor, not firmware colour-selection logic:
+
+| Line | Background | Foreground |
+| --- | --- | --- |
+| L6 | #867EC4 | #FFFFFF |
+| L7 | #AE621C | #FFFFFF |
+| L8 | #E27AB4 | #000000 |
+| L12 | #B6B3E1 | #000000 |
+| S1 | #DC6F2D | #000000 |
+| S2 | #93BC44 | #000000 |
+
+FGC operator background is now provisional #006B3B, symbol #FFFFFF. The 7×5 mask, 7×7 slot, coordinates and dimensions are unchanged. Only registry presentation colour changes; shared renderer untouched. Private preview operator colour is sourced from shared backend presentation configuration. Feed v1 has no operator-colour fields, so firmware still uses a matching compiled asset registry; no wire extension was introduced.
+
+Removed all background/foreground comparison pages, diagnostic symbol aliases and variant-only reporting/assertions. Navigation returns to eight pages: PC L6, L7, L8, L12, S1, S2, then PADUA L7 Tibidabo and L7 Catalunya. Serial n advances; automatic paging remains 3.3 seconds. Three predictions per group, times, synthetic realtime provenance, global brightness 4/255, normal 120-second stale gate, typography/layout and production configurations are unchanged. Serial continues identifying data as synthetic, not live. Metro/bus untouched.
+
+Final verification: 74/74 native cases passed, including selected palette, eight-page ordering, absence of variant registry entries, unchanged mask pixels over new green, three unprefixed predictions and stale suppression. Formatting/generated-fixture checks and FGC-only build passed. Backend 218 tests/type/lint/format passed; explicit cross-repository comparison verified all eight fixture groups match shared presentation colours. Current binary `.pio/build/hub75-fgc-fixture/firmware.bin`: 309,184 bytes, SHA-256 `1652c8413ecbf210b19cbef40fd348e1127ed945b9408b815a63c50821a6fb3a`. Supersedes historical diagnostic hashes. No live replacement built, device connection/flash or deployment. Exact October 31 restore artifact remains separate/unchanged.
+
+Outstanding: poor physical operator-symbol recognition (user-reported), bitmap/representation redesign pending; darker operator green is provisional and not newly hardware-validated. L12 typography review, native header overflow and deferred accents remain. Pàdua native live coverage/accuracy, quota accounting and licensing/attribution are independent of these colour tests. Next: separate symbol review, with no assumption that recolouring solves the shape problem.

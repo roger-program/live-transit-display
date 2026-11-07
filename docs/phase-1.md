@@ -840,3 +840,10 @@ Added adjacent original/75%-RGB background variants for L6/L8/S1/S2, white foreg
 ## Foreground A/B/C and operator-symbol inspection — 7 November 2026
 
 Offline FGC diagnostic now cycles original-background A/B/C foregrounds (#FFFFFF/#999999/#666666) for white-text line badges and the unchanged FGC symbol mask. L12 text stays black. Diagnostic-only registry aliases select symbol colours without production changes; shared renderer/brightness/layout/fonts/three predictions remain unchanged. 74 native tests, formatting/generated fixtures and target-only build passed; no flash/deployment. User reported poor physical symbol recognition; code inspection finds correct pixel mapping but a heavily fragmented 7×5 approximation, suggesting representation/resolution limits. No shape redesign. [Palette/order, current artifact and diagnosis](fgc-display-test.md#foreground-abc-diagnostic-and-symbol-inspection--7-november-2026).
+
+
+## Consolidated FGC provisional colours — 7 November 2026
+
+Following user-reported physical LED tests, selected palette is now white L6/L7 and black L8/L12/S1/S2 over original backgrounds. Operator uses provisional #006B3B/white with unchanged mask and slot. Offline diagnostic restored to eight pages and three synthetic predictions; all comparison variants/aliases removed. Backend presentation configuration controls line colours through existing wire fields; no operator-colour wire support added, compiled registry matches the shared preview presentation. Metro/bus and production settings unchanged.
+
+74 native tests, formatting/generated-fixture checks and target-only build passed; backend 218 tests/types/lint/format and cross-repository palette agreement passed. No flash/deployment. [Current palette/artifact and outstanding display issues](fgc-display-test.md#consolidated-provisional-palette--7-november-2026).

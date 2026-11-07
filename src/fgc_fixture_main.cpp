@@ -21,10 +21,6 @@ transit::Snapshot snapshot;
 uint64_t replayStart = 0;
 uint64_t animationOffset = 0;
 size_t reportedPage = static_cast<size_t>(-1);
-constexpr const char *VariantLabels[] = {"A #FFFFFF", "B #999999", "C #666666"};
-static_assert(transit::OperatorSymbols[1].foreground == 0x999999 &&
-                  transit::OperatorSymbols[2].foreground == 0x666666,
-              "Diagnostic symbol foreground variants must match the fixture");
 uint64_t tickMs() { return static_cast<uint64_t>(esp_timer_get_time() / 1000); }
 void report() {
   Serial.println("FGC synthetic fixture; 64x32; brightness=4/255; offline application; no "
@@ -81,14 +77,13 @@ void loop() {
     if (index != reportedPage) {
       reportedPage = index;
       const auto &page = pages[index];
-      if (page.groupCount && pages.size() == 24) {
+      if (page.groupCount) {
         const auto &stop = view.stops[page.stopIndex];
         const auto &group = stop.groups[page.groupStart];
-        Serial.printf("Page %u/%u: %s | %s | %s | %s | background %s | text %s\n",
+        Serial.printf("Page %u/%u: %s | %s | %s | background %s | text %s\n",
                       static_cast<unsigned>(index + 1), static_cast<unsigned>(pages.size()),
-                      VariantLabels[page.stopIndex / 2], stop.name.c_str(), group.line.c_str(),
-                      group.destination.c_str(), group.lineColor.c_str(),
-                      group.lineTextColor.c_str());
+                      stop.name.c_str(), group.line.c_str(), group.destination.c_str(),
+                      group.lineColor.c_str(), group.lineTextColor.c_str());
       } else
         Serial.println("STALE / no predictions; r restarts the synthetic comparison.");
     }
