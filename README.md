@@ -160,3 +160,8 @@ procedure. No automatic upload is part of setup development.
 ## Isolated local FGC display test
 
 Build `pio run -e hub75-fgc-fixture` for a synthetic offline 64×32 replay at fixed brightness 4/255. The regular renderer supports an optional generic operator ID/symbol registry; existing Metro/bus fallback is preserved. No Wi-Fi, identity or persistent-storage access in this test entry point. Normal production environments/partitions remain unchanged. Build/test preparation does not flash the board. [Minimal manual application-only test and restoration procedure](docs/fgc-display-test.md).
+
+
+### FGC normal live application — prepared locally
+
+FGC rendering is shared with the existing APP_MODE 0 hub75-live application, including generic operator identity and destination rows. The diagnostic fixture is not used for real arrivals. The rebuilt live image and host/native verification are recorded in [phase-1](docs/phase-1.md#fgc-live-application-integration-preparation); [central integration/activation gates](../live-transit-feed/docs/fgc-live-integration.md) apply before any deployment/flash. Existing identity/Wi-Fi/partitions/settings are unchanged.

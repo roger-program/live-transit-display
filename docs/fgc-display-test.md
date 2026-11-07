@@ -1,6 +1,6 @@
 # Local FGC physical-display preparation — 7 November 2026
 
-**Current operator colour: #72900F/white, pending physical validation.** See [green update](#operator-green-and-physical-feedback--7-november-2026).
+**Current operator colour: #00834A/white, pending physical validation.** See [green update](#operator-green-and-physical-feedback--7-november-2026).
 
 **Destination revision:** [Explicit destination rows](#explicit-destination-rows--7-november-2026) with the [consolidated provisional palette](#consolidated-provisional-palette--7-november-2026). Comparison sections below are historical; A/B/C and darker-background variants are removed.
 
@@ -187,3 +187,8 @@ Verification for this colour-only revision: 75 native tests (including exact ope
 ## Operator background #72900F — 7 November 2026
 
 User refinement supersedes #00834A: common firmware operator asset and shared backend presentation now #72900F/white. Bitmap, dimensions, line colours and all rendering behavior unchanged. 75 native tests, 14 focused backend presentation/replay tests and formatting check passed; FGC diagnostic built. Current binary .pio/build/hub75-fgc-fixture/firmware.bin: 310512 bytes, SHA-256 54d277f3c1eb7088e4f2e1c3def41397f3f30ca56bc2a5b7c35f9f24bbe6f8eb. No flash/deployment; physical validation of this colour pending. Previously reported line/destination acceptance remains unchanged.
+
+
+## Transition to normal live application (prepared locally)
+
+Latest requested live palette uses operator #00834A/white; bitmap and all line/destination rendering remain unchanged. Prototype physical acceptance is user-reported, with minor visuals deferred. Do not use this offline fixture as the live application. Normal hub75-live is built against the shared renderer and existing authenticated device polling; no new provisioning or Wi-Fi setup. [Local build/evidence](phase-1.md#fgc-live-application-integration-preparation), [central activation/rollback gates](../../live-transit-feed/docs/fgc-live-integration.md). No flash/deployment performed.

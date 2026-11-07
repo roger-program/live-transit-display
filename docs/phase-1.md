@@ -862,3 +862,12 @@ Changed only the common operator asset background to #00834A with white foregrou
 ## Operator colour refinement — 7 November 2026
 
 Changed shared FGC asset background to #72900F/white, superseding #00834A. No other presentation changes. 75 native and 14 focused backend tests passed; diagnostic build succeeded, not flashed/deployed. Physical colour validation pending. Current artifact recorded in docs/fgc-display-test.md.
+
+
+## FGC live application integration preparation
+
+Inspected the normal main.cpp path: APP_MODE 0 initializes existing Wi-Fi/identity/HTTPS polling and uses the shared ArrivalRenderer/Feed v1 parser. FGC registry and explicit destination rows already existed in that shared library. No separate transport polling, fixture entry point or main-loop change was necessary. Backend now emits the optional operator ID accepted by this parser; latest user selection restores FGC #00834A/white, with unchanged mask/dimensions, line palette and destination behavior. No firmware device configuration, auth, Wi-Fi, panel settings or partitions changed.
+
+75 native cases passed, format check passed, and the normal hub75-live target built. Host-only tools/check_feed.cpp parsed/rendered both the actual local Worker response (two stale stops/two pages) and a separately synthetic fresh PD fixture (one stop/two destination pages), verifying green operator pixels. This adds no device code or hardware access. Live binary size/hash, table comparison and rollback recheck: [safe artifact evidence](evidence/fgc-live-preparation.json). Compiled table matches supplied partitions-backup.bin, CSV unchanged, application fits before device-auth; there are no OTA slots. Exact known-good October 31 image was rehashed unchanged, not replaced by this build.
+
+User reports current prototype physical rendering validation complete, with minor refinements deferred. This local build was not flashed; fresh native arrivals remain unobserved in the local backend check. No production settings, secrets or identity storage was read/changed. Central architecture, rollout/resource/quota/freshness/attribution gates and manual activation/rollback remain in sibling [live integration plan](../../live-transit-feed/docs/fgc-live-integration.md). Next action is review, not flash; the offline diagnostic is not a substitute for this live application.

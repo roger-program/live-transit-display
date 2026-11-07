@@ -1,0 +1,13 @@
+{
+  "live_binary_bytes": 954336,
+  "live_binary_sha256": "0d2616754752f90319131e038b3d9f65a3a0c62b0e2d2b96fcb47397c028a1a5",
+  "partition_table_matches_supplied_backup": true,
+  "partition_csv_unchanged": true,
+  "application_offset": "0x10000",
+  "sector_end_exclusive": "0xf9000",
+  "identity_offset": "0x410000",
+  "exact_restore_file_reverified": true,
+  "host_actual_stale_feed": "2 stops / 2 pages; parsed/rendered; operator pixels verified",
+  "host_synthetic_fresh_feed": "1 stop / 2 destination pages; parsed/rendered; operator pixels verified",
+  "flashed": false
+}

@@ -13,7 +13,7 @@ struct OperatorSymbol {
 // data. FGC is the unchanged 7x5 mask from the private simulator's
 // user-reference study.
 inline constexpr OperatorSymbol OperatorSymbols[] = {
-    {"FGC", 7, 5, {22, 41, 85, 74, 52, 0, 0}, 0x72900f, 0xffffff},
+    {"FGC", 7, 5, {22, 41, 85, 74, 52, 0, 0}, 0x00834a, 0xffffff},
 };
 inline const OperatorSymbol *operatorSymbolFor(const std::string &id) {
   for (const auto &symbol : OperatorSymbols)
