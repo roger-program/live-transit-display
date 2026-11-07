@@ -73,3 +73,11 @@ If the table, chip, size, write verification or display initialization differs f
 ## Recorded preparation result
 
 Final `make check`: formatting and generated-fixture checks passed; 74/74 native cases, 2/2 identity-image tests and 9/9 build environments passed. FGC/live compiled partition tables match, and the partition CSV is unchanged from HEAD. The application fits before device-auth. [Artifact size/hash and scope](evidence/fgc-display-preparation-2026-11-07.json). No device was accessed or flashed.
+
+## Softer-white diagnostic revision — 7 November 2026
+
+FGC diagnostic only: seven formerly white line-label foregrounds in `fixtures/fgc.json` now use #D9D9D9; L12 black and all backgrounds remain unchanged. The operator asset foreground uses #D9D9D9 only under the existing FGC_FIXTURE_TEST compile flag. Normal builds retain the original pure-white symbol and existing Metro/bus presentation. No renderer, typography, layout, prediction count, brightness or freshness change. Structural comparison against HEAD confirmed the fixture differs only in those seven foreground values.
+
+The ? countdown prefix is intentional: all synthetic arrivals retain provenance unknown. `state.cpp::countdown` prefixes unknown predictions with ?, scheduled with S, realtime with no marker; the renderer also retains the unknown prefix for overflow labels. This is unrelated to font/accent replacement. No provenance/countdown changes were made.
+
+Verification: 74/74 native tests passed, including unchanged default-symbol/fallback pixels and updated fixture palette assertions. Diagnostic compile-time assertion checks its softened symbol foreground. Formatting/generated-fixture checks and FGC build passed. Current binary `.pio/build/hub75-fgc-fixture/firmware.bin`: 308,544 bytes; SHA-256 `26efe8f54c249e07c31987dea3049ac13a0b1bd552223e3c26a8bfca04a316c2`. This supersedes the earlier diagnostic artifact hash, not its historical preparation record. No build of the live target, flash or deployment occurred. Exact known-good restore application remains separate and unchanged; see central phase-1 record. Next: separately authorized physical comparison.

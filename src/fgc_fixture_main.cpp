@@ -2,6 +2,7 @@
 #include "display_driver.h"
 #include "feed_parser.h"
 #include "fixture.h"
+#include "operator_symbols.h"
 #include "renderer.h"
 #include <Arduino.h>
 #include <esp_log.h>
@@ -11,6 +12,8 @@ namespace {
 // Deliberately no app_config/secrets, Wi-Fi, provisioning or persistent
 // storage.
 constexpr uint8_t TestBrightness = 4;
+static_assert(transit::OperatorSymbols[0].foreground == 0xd9d9d9,
+              "FGC diagnostic symbol must use the softer foreground");
 PrototypeDisplay display;
 transit::Framebuffer frame(64, 32);
 transit::ArrivalRenderer renderer;

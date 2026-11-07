@@ -825,3 +825,8 @@ The isolated `hub75-fgc-fixture` entry uses the standard parser/state/renderer, 
 Verification: `make check` passed format and generated-fixture checks, 74 native cases, 2 identity-image tests and all 9 build environments. Initial target compilation exposed a missing parser include; corrected before the final successful check. Restored the existing pinned NVS-generator dependency in the local virtual environment; no declared dependency changes. FGC/live compiled partition tables match; tracked partition CSV matches HEAD; image fits before device-auth. [Build evidence](evidence/fgc-display-preparation-2026-11-07.json). Physical recognition, colours, persistence/restoration and native-source accuracy remain unverified.
 
 Next: user-controlled application-only test and restoration using [the minimal procedure](fgc-display-test.md). Do not use a full-image upload/erase. The existing header-width limitation remains; PL. CATALUNYA scrolls through the unchanged renderer. This is a rendering/state test, not a production or commercial FGC integration.
+
+
+## FGC softer-white offline diagnostic — 7 November 2026
+
+Changed only diagnostic line foregrounds and compile-flag-scoped FGC symbol foreground to #D9D9D9. Black/backgrounds, bitmap shape, typography/layout, three predictions per group, provenance/freshness and normal Metro/bus defaults are unchanged. Fixture comparison permits only the seven white-to-soft-white replacements. Unknown provenance explains ? countdown prefixes; no semantic changes. 74 native tests, format/generated-fixture checks and target-only build passed. Current artifact/hash and details: [diagnostic revision](fgc-display-test.md#softer-white-diagnostic-revision--7-november-2026). Not flashed/deployed; physical results pending.

@@ -13,7 +13,7 @@
         {
           "line": "L6",
           "lineColor": "#867EC4",
-          "lineTextColor": "#ffffff",
+          "lineTextColor": "#D9D9D9",
           "destination": "Sarria",
           "arrivals": [
             {
@@ -33,7 +33,7 @@
         {
           "line": "L7",
           "lineColor": "#AE621C",
-          "lineTextColor": "#ffffff",
+          "lineTextColor": "#D9D9D9",
           "destination": "Av. Tibidabo",
           "arrivals": [
             {
@@ -53,7 +53,7 @@
         {
           "line": "L8",
           "lineColor": "#E27AB4",
-          "lineTextColor": "#ffffff",
+          "lineTextColor": "#D9D9D9",
           "destination": "Moli Nou - Ciutat Cooperativa",
           "arrivals": [
             {
@@ -93,7 +93,7 @@
         {
           "line": "S1",
           "lineColor": "#DC6F2D",
-          "lineTextColor": "#ffffff",
+          "lineTextColor": "#D9D9D9",
           "destination": "Terrassa Nacions Unides",
           "arrivals": [
             {
@@ -113,7 +113,7 @@
         {
           "line": "S2",
           "lineColor": "#93BC44",
-          "lineTextColor": "#ffffff",
+          "lineTextColor": "#D9D9D9",
           "destination": "Sabadell Parc del Nord",
           "arrivals": [
             {
@@ -143,7 +143,7 @@
         {
           "line": "L7",
           "lineColor": "#AE621C",
-          "lineTextColor": "#ffffff",
+          "lineTextColor": "#D9D9D9",
           "destination": "Av. Tibidabo",
           "arrivals": [
             {
@@ -163,7 +163,7 @@
         {
           "line": "L7",
           "lineColor": "#AE621C",
-          "lineTextColor": "#ffffff",
+          "lineTextColor": "#D9D9D9",
           "destination": "Barcelona - Placa Catalunya",
           "arrivals": [
             {

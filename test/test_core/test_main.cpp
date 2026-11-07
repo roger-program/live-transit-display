@@ -862,7 +862,7 @@ void fgc_local_fixture_uses_normal_state_and_renderer() {
   for (size_t i = 0; i < 6; ++i) {
     const auto &group = snapshot.feed.stops[0].groups[i];
     TEST_ASSERT_EQUAL_STRING(backgrounds[i], group.lineColor.c_str());
-    TEST_ASSERT_EQUAL_STRING(i == 3 ? "#000000" : "#ffffff", group.lineTextColor.c_str());
+    TEST_ASSERT_EQUAL_STRING(i == 3 ? "#000000" : "#D9D9D9", group.lineTextColor.c_str());
     for (const auto &arrival : group.arrivals)
       TEST_ASSERT_TRUE(arrival.provenance == Provenance::Unknown);
   }
