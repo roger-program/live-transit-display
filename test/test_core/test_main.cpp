@@ -854,24 +854,53 @@ void fgc_local_fixture_uses_normal_state_and_renderer() {
   TEST_ASSERT_TRUE(parseFeed(FgcFixtureJson, snapshot.feed) == ParseResult::Ok);
   snapshot.hasFeed = true;
   snapshot.receivedAtMs = 1000;
-  TEST_ASSERT_EQUAL(2, snapshot.feed.stops.size());
-  TEST_ASSERT_EQUAL_STRING("PL. CATALUNYA", snapshot.feed.stops[0].name.c_str());
-  TEST_ASSERT_EQUAL_STRING("FGC", snapshot.feed.stops[0].operatorId.c_str());
+  TEST_ASSERT_EQUAL(6, snapshot.feed.stops.size());
   const char *backgrounds[] = {"#867EC4", "#AE621C", "#E27AB4", "#B6B3E1", "#DC6F2D", "#93BC44"};
-  TEST_ASSERT_EQUAL(6, snapshot.feed.stops[0].groups.size());
-  for (size_t i = 0; i < 6; ++i) {
-    const auto &group = snapshot.feed.stops[0].groups[i];
-    TEST_ASSERT_EQUAL_STRING(backgrounds[i], group.lineColor.c_str());
-    TEST_ASSERT_EQUAL_STRING(i == 3 ? "#000000" : "#D9D9D9", group.lineTextColor.c_str());
-    for (const auto &arrival : group.arrivals)
-      TEST_ASSERT_TRUE(arrival.provenance == Provenance::Unknown);
-  }
+  const char *foregrounds[] = {"#FFFFFF", "#999999", "#666666"};
+  const char *operators[] = {"FGC", "FGC-TEST-B", "FGC-TEST-C"};
   const auto now = snapshot.feed.generatedAt;
   const auto live = viewAt(snapshot, now, 1000, true);
-  TEST_ASSERT_EQUAL(8, pagesFor(live, 32).size());
-  TEST_ASSERT_EQUAL_STRING("Av. Tibidabo", snapshot.feed.stops[1].groups[0].destination.c_str());
-  TEST_ASSERT_EQUAL_STRING("Barcelona - Placa Catalunya",
-                           snapshot.feed.stops[1].groups[1].destination.c_str());
+  const auto pages = pagesFor(live, 32);
+  TEST_ASSERT_EQUAL(24, pages.size());
+  for (size_t variant = 0; variant < 3; ++variant) {
+    const auto &pc = snapshot.feed.stops[variant * 2];
+    const auto &pd = snapshot.feed.stops[variant * 2 + 1];
+    TEST_ASSERT_EQUAL_STRING("PL. CATALUNYA", pc.name.c_str());
+    TEST_ASSERT_EQUAL_STRING(operators[variant], pc.operatorId.c_str());
+    TEST_ASSERT_EQUAL_STRING(operators[variant], pd.operatorId.c_str());
+    TEST_ASSERT_EQUAL(6, pc.groups.size());
+    TEST_ASSERT_EQUAL(2, pd.groups.size());
+    for (size_t g = 0; g < 6; ++g) {
+      TEST_ASSERT_EQUAL_STRING(backgrounds[g], pc.groups[g].lineColor.c_str());
+      TEST_ASSERT_EQUAL_STRING(g == 3 ? "#000000" : foregrounds[variant],
+                               pc.groups[g].lineTextColor.c_str());
+      TEST_ASSERT_EQUAL(variant * 2, pages[variant * 8 + g].stopIndex);
+      TEST_ASSERT_EQUAL(g, pages[variant * 8 + g].groupStart);
+    }
+    for (const auto &g : pd.groups) {
+      TEST_ASSERT_EQUAL_STRING("#AE621C", g.lineColor.c_str());
+      TEST_ASSERT_EQUAL_STRING(foregrounds[variant], g.lineTextColor.c_str());
+    }
+    TEST_ASSERT_EQUAL_STRING("Av. Tibidabo", pd.groups[0].destination.c_str());
+    TEST_ASSERT_EQUAL_STRING("Barcelona - Placa Catalunya", pd.groups[1].destination.c_str());
+  }
+  for (size_t s = 0; s < snapshot.feed.stops.size(); ++s) {
+    const auto &stop = snapshot.feed.stops[s];
+    for (size_t g = 0; g < stop.groups.size(); ++g) {
+      const auto &group = stop.groups[g];
+      const auto &original = snapshot.feed.stops[s % 2].groups[g];
+      TEST_ASSERT_EQUAL(3, group.arrivals.size());
+      TEST_ASSERT_EQUAL_STRING(original.destination.c_str(), group.destination.c_str());
+      TEST_ASSERT_EQUAL_STRING("3' 7' 12'", arrivalText(group, now, 53).c_str());
+      for (size_t i = 0; i < 3; ++i) {
+        TEST_ASSERT_TRUE(group.arrivals[i].provenance == Provenance::Realtime);
+        TEST_ASSERT_EQUAL_INT64(original.arrivals[i].arrivalAt, group.arrivals[i].arrivalAt);
+      }
+    }
+  }
+  // Extra symbol IDs must not alter the production/default registry.
+  TEST_ASSERT_NULL(operatorSymbolFor("FGC-TEST-B"));
+  TEST_ASSERT_NULL(operatorSymbolFor("FGC-TEST-C"));
   const auto stale = viewAt(snapshot, now + StaleAfterMs, 1000 + StaleAfterMs, true);
   TEST_ASSERT_TRUE(stale.stops[0].status == StopStatus::Stale);
   TEST_ASSERT_TRUE(stale.stops[0].groups.empty());

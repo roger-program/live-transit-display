@@ -81,3 +81,52 @@ FGC diagnostic only: seven formerly white line-label foregrounds in `fixtures/fg
 The ? countdown prefix is intentional: all synthetic arrivals retain provenance unknown. `state.cpp::countdown` prefixes unknown predictions with ?, scheduled with S, realtime with no marker; the renderer also retains the unknown prefix for overflow labels. This is unrelated to font/accent replacement. No provenance/countdown changes were made.
 
 Verification: 74/74 native tests passed, including unchanged default-symbol/fallback pixels and updated fixture palette assertions. Diagnostic compile-time assertion checks its softened symbol foreground. Formatting/generated-fixture checks and FGC build passed. Current binary `.pio/build/hub75-fgc-fixture/firmware.bin`: 308,544 bytes; SHA-256 `26efe8f54c249e07c31987dea3049ac13a0b1bd552223e3c26a8bfca04a316c2`. This supersedes the earlier diagnostic artifact hash, not its historical preparation record. No build of the live target, flash or deployment occurred. Exact known-good restore application remains separate and unchanged; see central phase-1 record. Next: separately authorized physical comparison.
+
+
+## Background A/B diagnostic revision — 7 November 2026
+
+Supersedes softer-white experiment for this offline diagnostic only. Restored #FFFFFF for all formerly white line foregrounds and FGC symbol, retaining L12 black, #B6B3E1, typography and existing renderer. The now-unnecessary diagnostic symbol colour conditional is removed; normal builds retain exactly their original white asset. All backgrounds except four explicit B duplicates are retained. B scales encoded RGB channels by 0.75 with nearest rounding (halves up); this is approximately 25% lower channel values, not a measured 25% reduction in panel luminance. No production/Metro/bus/backend changes.
+
+| Line | A original | B darker |
+| --- | --- | --- |
+| L6 | #867EC4 | #655F93 |
+| L8 | #E27AB4 | #AA5C87 |
+| S1 | #DC6F2D | #A55322 |
+| S2 | #93BC44 | #6E8D33 |
+
+Navigation order (normal 3.3-second pages and existing n control): PC L6 A, L6 B, L7 unchanged (#AE621C), L8 A, L8 B, L12 unchanged (#B6B3E1/black), S1 A, S1 B, S2 A, S2 B, PADUA L7 Av. Tibidabo, PADUA L7 Barcelona - Placa Catalunya, then repeat. The diagnostic reports each current page/variant/background over serial, also on automatic transitions; i repeats the current report. No extra display text or layout changes.
+
+Arrivals are explicitly simulated realtime-style predictions (provenance realtime and realtimeStatus available) solely in the offline fixture, so normal countdown formatting emits no ? or S prefix. Serial still states synthetic/offline/not live. This is not evidence of actual realtime FGC coverage. Existing generated timestamp, three predictions per group, prediction times and 120-second stale gate are unchanged; r restarts replay. More pages still fit in the unchanged stale window.
+
+Verification: 74/74 native cases, formatting/generated-fixture checks and FGC-only build passed. Tests check exact palette/order, 12 pages, three unprefixed countdowns, matched A/B destinations/times, default operator/fallback pixels and stale suppression. Additional fixture check confirmed original prediction times and L12 presentation unchanged. No live build, flash or deployment. Binary `.pio/build/hub75-fgc-fixture/firmware.bin`: 310,544 bytes, SHA-256 `02c5e83a48637769294087b690c14344eb95a0df5e69701f0313b019826f7bd4`. Hardware A/B judgement remains pending.
+
+
+## Foreground A/B/C diagnostic and symbol inspection — 7 November 2026
+
+Supersedes background A/B for the current diagnostic. A #FFFFFF, B #999999, C #666666 apply to every formerly white line-label foreground and the FGC operator symbol. Original line backgrounds are restored for all variants: L6 #867EC4, L7 #AE621C, L8 #E27AB4, L12 #B6B3E1, S1 #DC6F2D, S2 #93BC44. L12 remains #000000 in all variants, while the operator symbol follows A/B/C even on L12 pages. Operator background remains #A1D341.
+
+Implementation is fixture presentation data: three copies of the PC/PD pair, preserving canonical stop IDs/names, destinations and times; only diagnostic operator aliases differ. FGC-TEST-B/C symbol entries exist solely under FGC_FIXTURE_TEST and copy exactly the original mask. They are absent in normal builds. Shared renderer/driver, layout, fonts and global brightness 4/255 are unchanged. Three synthetic realtime-style predictions per group and the normal stale gate remain. No new generic Feed v1 fields or production behavior.
+
+Existing n/automatic navigation cycles 24 pages: variant A PC L6/L7/L8/L12/S1/S2 then PADUA L7 Tibidabo/Catalunya; repeat the same eight pages for B, then C, then A. Serial identifies variant, foreground, station/line/destination and background for each page. Full automatic cycle is 79.2 seconds, inside the existing 120-second stale window; r restarts replay, i repeats the current report.
+
+Verification: 74 native cases passed, including all original backgrounds, exact variant foregrounds, L12 black, 24-page mapping, unchanged destinations/times, three unprefixed countdowns, stale suppression, and absence of diagnostic operator aliases in default builds. Diagnostic compile-time assertions validate symbol foregrounds. Format/generated-fixture checks and FGC-only build passed. Current binary `.pio/build/hub75-fgc-fixture/firmware.bin`: 314,144 bytes; SHA-256 `1540e16c1d48675104b2d008621169d8876a5e19ce7479a1c227ad83370d2bc4`. No production build, flash/deployment or simulator work.
+
+### Operator bitmap findings (inspection only)
+
+User reports poor physical FGC-logo recognition independently of badge colours (7 November 2026). This is user-reported hardware feedback; no fresh hardware observation/photo analysis by the agent. No bitmap geometry/pattern redesign was performed.
+
+Verified mask: width 7, height 5, rows decimal 22/41/85/74/52 (hex 16/29/55/4A/34), 16 lit pixels of 35. Pattern, # = foreground:
+
+```text
+..#.##.
+.#.#..#
+#.#.#.#
+#..#.#.
+.##.#..
+```
+
+The generic renderer places this at x=1..7, y=2..6 within the 7×7 background at (1,1), with one top/bottom background row and no horizontal inset. Metro uses its C2 M glyph, 5×5 rows 17/27/21/17/17, at x=2..6/y=2..6 inside the same 7×7 slot, with one-pixel margins on all sides. Metro is a letter approximation rather than a full logo. Both use integer framebuffer pixels and the same RGB888 driver; no scaling, filtering, antialiasing or added pixel spacing occurs. Existing raster tests verify the FGC mask's software placement. This establishes correct rendering of the stored mask, not faithful recognition of the reference logo.
+
+Inspection/inference: the FGC mask has 12 orthogonally connected foreground components, joined into one only when diagonal adjacency counts; its zigzags rely heavily on corner contacts. Metro M has fewer such components (3) and long vertical strokes. Component count is descriptive, not a perceptual quality test. The reference mark's thick curved interlocking strokes are severely simplified at 7×5; whether this is recognizable is not established by bit correctness. Panel configuration identifies a P2.5 panel; physical LED gaps/optics and viewing distance may weaken diagonal joins, but current pitch/gaps, optical bloom and panel timing were not measured in this task. No source evidence of a symbol-specific spacing/scaling bug; overall physical display faults cannot be ruled out by source inspection alone.
+
+Recommendation (not implemented): treat this as a representation/resolution problem, not a colour-only problem. At the fixed 7×7 badge size, reconsider whether the full FGC mark is an appropriate symbol. One bounded hand-tuned bitmap refinement could improve continuous strokes, but should not be assumed to preserve recognizable branding; if recognition remains poor, choose an explicitly approved simpler identifier or review a larger badge separately. No firmware layout or symbol redesign is authorized by this inspection.

@@ -830,3 +830,13 @@ Next: user-controlled application-only test and restoration using [the minimal p
 ## FGC softer-white offline diagnostic — 7 November 2026
 
 Changed only diagnostic line foregrounds and compile-flag-scoped FGC symbol foreground to #D9D9D9. Black/backgrounds, bitmap shape, typography/layout, three predictions per group, provenance/freshness and normal Metro/bus defaults are unchanged. Fixture comparison permits only the seven white-to-soft-white replacements. Unknown provenance explains ? countdown prefixes; no semantic changes. 74 native tests, format/generated-fixture checks and target-only build passed. Current artifact/hash and details: [diagnostic revision](fgc-display-test.md#softer-white-diagnostic-revision--7-november-2026). Not flashed/deployed; physical results pending.
+
+
+## Offline FGC badge background A/B — 7 November 2026
+
+Added adjacent original/75%-RGB background variants for L6/L8/S1/S2, white foregrounds restored, L7 backgrounds and L12 presentation retained. Existing fonts/layout/countdown slots unchanged; only synthetic provenance now requests unprefixed realtime-style countdowns. Serial identifies current variant/background on normal or n navigation. 74 native cases, format/generated-fixture checks and FGC-only build passed; no hardware/production operations. [Exact palette, order and artifact](fgc-display-test.md#background-ab-diagnostic-revision--7-november-2026).
+
+
+## Foreground A/B/C and operator-symbol inspection — 7 November 2026
+
+Offline FGC diagnostic now cycles original-background A/B/C foregrounds (#FFFFFF/#999999/#666666) for white-text line badges and the unchanged FGC symbol mask. L12 text stays black. Diagnostic-only registry aliases select symbol colours without production changes; shared renderer/brightness/layout/fonts/three predictions remain unchanged. 74 native tests, formatting/generated fixtures and target-only build passed; no flash/deployment. User reported poor physical symbol recognition; code inspection finds correct pixel mapping but a heavily fragmented 7×5 approximation, suggesting representation/resolution limits. No shape redesign. [Palette/order, current artifact and diagnosis](fgc-display-test.md#foreground-abc-diagnostic-and-symbol-inspection--7-november-2026).
