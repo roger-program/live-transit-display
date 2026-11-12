@@ -1,0 +1,72 @@
+{
+  "preflightAt": "2026-11-12T21:55:35.902970+00:00",
+  "port": "/dev/cu.usbmodem3101",
+  "chip": "ESP32-S3",
+  "flashMB": 32,
+  "secureBootDisabled": true,
+  "flashEncryptionDisabled": true,
+  "partitionTableMatches": true,
+  "firmwareBytes": 954384,
+  "firmwareSha256": "d5d906b98dadca489b34dfd57a5b764741f429ebc6135f932942c85d1713adbb",
+  "applicationOffset": "0x10000",
+  "eraseEndExclusive": "0xfa000",
+  "written": true,
+  "recompiled": false,
+  "writeAt": "2026-11-12T21:56:37.775828+00:00",
+  "esptoolHashVerified": true,
+  "verifiedAt": "2026-11-12T21:57:06.561299+00:00",
+  "applicationReadbackMatches": true,
+  "bootloaderTableWifiAndHelperUnchanged": true,
+  "identityUnchanged": true,
+  "restartAt": "2026-11-12T21:57:06.828693+00:00",
+  "hardResetIssued": true,
+  "bootObservation": {
+    "observedAt": "2026-11-12T21:57:14.392384+00:00",
+    "elapsedSeconds": 7.53,
+    "applicationResponding": true,
+    "wifiConnectedObserved": false,
+    "authenticatedFeedObserved": true,
+    "helpRequestedWithoutConfigurationChange": false,
+    "events": [
+      {
+        "at": "2026-11-12T21:57:07.274517+00:00",
+        "message": "Firmware prototype-0.1.0; flash=33554432; psram=16774755; panel=enabled"
+      },
+      {
+        "at": "2026-11-12T21:57:07.275429+00:00",
+        "message": "BOOT: GPIO0 initial level=HIGH (active low)"
+      },
+      {
+        "at": "2026-11-12T21:57:07.275519+00:00",
+        "message": "Feed state: OFFLINE"
+      },
+      {
+        "at": "2026-11-12T21:57:09.716007+00:00",
+        "message": "Feed state: CLOCK"
+      },
+      {
+        "at": "2026-11-12T21:57:14.390955+00:00",
+        "message": "Feed OK; generatedAt=1794520633961; stops=2; arrivals=14; realtime=11"
+      }
+    ],
+    "rawSerialSaved": false
+  },
+  "codeUnchangedFromPreparedSource": true,
+  "backendModified": false,
+  "wholeChipErased": false,
+  "bootloaderOrTableWritten": false,
+  "wifiOrIdentityWritten": false,
+  "protectedRangesCompared": [
+    [
+      "0x0",
+      "0x10000"
+    ],
+    [
+      "0x410000",
+      "0x416000"
+    ]
+  ],
+  "physicalLedAppearanceValidated": false,
+  "sensitiveRawOutputsSaved": false,
+  "sensitiveFlashReads": "private ignored storage; never printed or included in public evidence"
+}

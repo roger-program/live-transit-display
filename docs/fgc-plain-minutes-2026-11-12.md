@@ -1,5 +1,7 @@
 # FGC: minutos sin indicador S — 12/11/2026
 
+**Actualización de ejecución:** el usuario autorizó y se completó el [flash de aplicación y verificación de arranque del 12/11](fgc-plain-minutes-flash-2026-11-12.md). El texto y JSON siguientes conservan el alcance histórico de preparación.
+
 **Implementado y validado localmente; firmware hub75-live preparado. No flasheado ni validado físicamente.** El usuario solicita ocultar la distinción visual entre salidas FGC programadas y realtime, conservando su procedencia interna y el resto del comportamiento.
 
 ## Cambio mínimo
@@ -32,4 +34,4 @@ Aplicación: `artifacts/firmware/hub75-live-fgc-plain-minutes-2026-11-12/firmwar
 
 [Hashes y evidencia segura](evidence/fgc-plain-minutes-preparation-2026-11-12.json). Fuente base `4cda409f3d11bb11605b894da4dee5d84476522b` más los cinco archivos de código/pruebas modificados, sin staging/commit/push. El tracking central está actualizado en el repositorio hermano.
 
-Siguiente acción: autorización separada para cargar la aplicación y observación física de FGC sin S, verificando también Metro/Bus. Esta preparación no establece recepción del feed, exactitud de horarios ni funcionamiento físico del nuevo binario.
+La carga fue autorizada y ejecutada posteriormente sin recompilar: véase el registro enlazado. El siguiente paso actual es la aceptación visual del usuario; la preparación por sí sola no establecía funcionamiento físico.
