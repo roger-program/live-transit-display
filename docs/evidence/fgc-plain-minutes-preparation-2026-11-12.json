@@ -1,0 +1,40 @@
+{
+  "preparedAt": "2026-11-12T21:46:03.561134+00:00",
+  "sourceBase": "4cda409f3d11bb11605b894da4dee5d84476522b",
+  "configurationSha256": {
+    "platformio.ini": "066c7c460de74ac86d9e61910e2ca2f8b08f803249f2e38d448fbba79605106e",
+    "partitions.csv": "3cb841cdf0112b37ec5af78c6be2eadf08f67fd2eb41ca068513abf179c454e6",
+    "include/app_config.h": "01c15c66ee703b983eabae56a73d1267e90feb923afb09f0d3d3c1f34c31814d"
+  },
+  "sourceSha256": {
+    "lib/transit/src/state.cpp": "9e758379aa81a4c0e69e33073eea45843688317137684e2dd7e5fb33600e736b",
+    "lib/transit/src/state.h": "27ec3f6d0b582b7fd6f007b46a4e7ef2a3f177e8acee538e07143c1c5cc8b979",
+    "lib/transit/src/renderer.cpp": "59a59d3b55bae747e23496e8b0da3f5f46e8191bee9d2899c4733c5748583e83",
+    "lib/transit/src/renderer.h": "19db6f0663fbea2b941351e7334f825b966d824cbee8be77f31bff21ff93ffc4",
+    "test/test_core/test_main.cpp": "b65ebe1fdd5b7c88dac41fcb438071cc9a142a041679985c16776de1c32de22f"
+  },
+  "previousLocalFirmwareSha256": "0d2616754752f90319131e038b3d9f65a3a0c62b0e2d2b96fcb47397c028a1a5",
+  "previousPartitionTableSha256": "da3d0912e41899afd61e40e04b4f8c9f83542e2ed99eee1efa47eb735c734c08",
+  "target": "hub75-live",
+  "firmwareBytes": 954384,
+  "firmwareSha256": "d5d906b98dadca489b34dfd57a5b764741f429ebc6135f932942c85d1713adbb",
+  "partitionTableSha256": "da3d0912e41899afd61e40e04b4f8c9f83542e2ed99eee1efa47eb735c734c08",
+  "partitionTableUnchanged": true,
+  "applicationOffset": "0x10000",
+  "nativeTestsPassed": 76,
+  "flashed": false,
+  "physicalValidation": false,
+  "backendModified": false,
+  "scope": "Local firmware presentation only; FGC hides scheduled marker while retaining native provenance",
+  "formatCheckPassed": true,
+  "generatedFixturesCheckPassed": true,
+  "rasterEqualityResolutions": [
+    "64x32",
+    "128x64"
+  ],
+  "mixedProvenanceAndOverflowChecked": true,
+  "metroBusScheduledMarkerPreserved": true,
+  "applicationBinary": "artifacts/firmware/hub75-live-fgc-plain-minutes-2026-11-12/firmware.bin",
+  "previousLocalApplicationPreserved": true,
+  "sourceCommitted": false
+}

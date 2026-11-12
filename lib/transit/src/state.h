@@ -25,7 +25,7 @@ struct View {
   std::vector<Stop> stops;
   std::string message;
 };
-std::string countdown(const Arrival &arrival, int64_t now);
+std::string countdown(const Arrival &arrival, int64_t now, bool showScheduledMarker = true);
 // Merge mailbox results without extending the lifetime of the last successful feed.
 void applySnapshot(Snapshot &current, Snapshot next);
 View viewAt(const Snapshot &snapshot, int64_t now, uint64_t uptime, bool clockValid);

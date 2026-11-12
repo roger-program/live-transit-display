@@ -94,7 +94,8 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
                                     typography::c2Width(group.line.empty() ? "?" : group.line) + 2);
     const int slotLeft = 1 + badgeWidth + 2;
     const int available = frame.width() - 1 - slotLeft;
-    const std::string arrivals = arrivalText(group, now, available);
+    // Keep provenance in the model; only FGC hides the scheduled minute marker.
+    const std::string arrivals = arrivalText(group, now, available, stop.operatorId != "FGC");
     const int arrivalLeft = std::max(slotLeft, frame.width() - 1 - typography::c2Width(arrivals));
     typography::drawC2(frame, arrivals, arrivalLeft + offset, y, Green,
                        std::max(1, arrivalLeft + offset),
@@ -143,11 +144,11 @@ std::vector<std::string> destinationLines(const std::string &text, int available
   return best;
 }
 
-std::string arrivalText(const Group &group, int64_t now, int available) {
+std::string arrivalText(const Group &group, int64_t now, int available, bool showScheduledMarker) {
   std::string result;
   size_t count = 0;
   for (const auto &arrival : group.arrivals) {
-    const auto label = countdown(arrival, now);
+    const auto label = countdown(arrival, now, showScheduledMarker);
     if (label.empty())
       continue;
     const auto candidate = result.empty() ? label : result + " " + label;
@@ -161,9 +162,10 @@ std::string arrivalText(const Group &group, int64_t now, int available) {
     return result;
   // Retain the existing out-of-range indicator, without clipping a large number.
   for (const auto &arrival : group.arrivals) {
-    if (countdown(arrival, now).empty())
+    if (countdown(arrival, now, showScheduledMarker).empty())
       continue;
-    const std::string prefix = arrival.provenance == Provenance::Scheduled ? "S"
+    const std::string prefix = showScheduledMarker && arrival.provenance == Provenance::Scheduled
+                                   ? "S"
                                : arrival.provenance == Provenance::Unknown ? "?"
                                                                            : "";
     const auto overflow = prefix + "99+'";

@@ -942,8 +942,50 @@ void fgc_local_fixture_uses_normal_state_and_renderer() {
   TEST_ASSERT_TRUE(stale.stops[0].groups.empty());
   TEST_ASSERT_EQUAL_STRING("FGC", stale.stops[0].operatorId.c_str());
 }
+void fgc_scheduled_minutes_preserve_provenance() {
+  constexpr int64_t now = 1000;
+  Arrival scheduled{now + 5 * 60000, Provenance::Scheduled, "service", "native-trip"};
+  TEST_ASSERT_EQUAL_STRING("5'", countdown(scheduled, now, false).c_str());
+  TEST_ASSERT_EQUAL_STRING("S5'", countdown(scheduled, now).c_str());
+  TEST_ASSERT_TRUE(scheduled.provenance == Provenance::Scheduled);
+  Group group;
+  group.line = "L7";
+  group.destination = "Av. Tibidabo";
+  group.arrivals = {scheduled, {now + 12 * 60000, Provenance::Realtime, {}, {}}};
+  TEST_ASSERT_EQUAL_STRING("5' 12'", arrivalText(group, now, 53, false).c_str());
+  TEST_ASSERT_EQUAL_STRING("S5' 12'", arrivalText(group, now, 53).c_str());
+  Group huge = group;
+  huge.arrivals = {{now + 1000000000LL * 60000, Provenance::Scheduled, {}, {}}};
+  TEST_ASSERT_EQUAL_STRING("99+'", arrivalText(huge, now, 30, false).c_str());
+  TEST_ASSERT_EQUAL_STRING("S99+'", arrivalText(huge, now, 30).c_str());
+  TEST_ASSERT_TRUE(countdown(scheduled, scheduled.arrivalAt, false).empty());
+  for (const int height : {32, 64}) {
+    View view;
+    Stop stop;
+    stop.mode = "rail";
+    stop.operatorId = "FGC";
+    stop.status = StopStatus::Scheduled;
+    stop.groups = {group};
+    for (auto &arrival : stop.groups[0].arrivals)
+      arrival.provenance = Provenance::Scheduled;
+    view.stops = {stop};
+    Framebuffer programmed(height * 2, height), realtime(height * 2, height);
+    ArrivalRenderer programmedRenderer, realtimeRenderer;
+    programmedRenderer.render(programmed, view, now, 0);
+    for (const auto &arrival : view.stops[0].groups[0].arrivals)
+      TEST_ASSERT_TRUE(arrival.provenance == Provenance::Scheduled);
+    for (auto &arrival : view.stops[0].groups[0].arrivals)
+      arrival.provenance = Provenance::Realtime;
+    view.stops[0].status = StopStatus::Ok;
+    realtimeRenderer.render(realtime, view, now, 0);
+    for (int y = 0; y < height; ++y)
+      for (int x = 0; x < height * 2; ++x)
+        TEST_ASSERT_EQUAL_HEX32(realtime.pixel(x, y), programmed.pixel(x, y));
+  }
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(fgc_scheduled_minutes_preserve_provenance);
   RUN_TEST(optional_operator_presentation);
   RUN_TEST(generic_operator_symbol_and_fallback);
   RUN_TEST(fgc_local_fixture_uses_normal_state_and_renderer);

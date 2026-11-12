@@ -26,12 +26,12 @@ const char *requestMessage(RequestError error) {
   }
   return "UNAVAIL";
 }
-std::string countdown(const Arrival &arrival, int64_t now) {
+std::string countdown(const Arrival &arrival, int64_t now, bool showScheduledMarker) {
   const int64_t remaining = arrival.arrivalAt - now;
   if (remaining <= 0)
     return {};
   std::string prefix;
-  if (arrival.provenance == Provenance::Scheduled)
+  if (showScheduledMarker && arrival.provenance == Provenance::Scheduled)
     prefix = "S";
   else if (arrival.provenance == Provenance::Unknown)
     prefix = "?";
