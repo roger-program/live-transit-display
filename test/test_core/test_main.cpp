@@ -733,9 +733,10 @@ void reviewed_raster_regression() {
   TEST_ASSERT_TRUE(parseFeed(StatesJson, snapshot.feed) == ParseResult::Ok);
   view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
   renderer.render(frame, view, snapshot.feed.generatedAt, 2 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(8114341266584107742ULL, pixelsHash(frame));
+  // No coverage indicator in the header; markers follow individual arrivals.
+  TEST_ASSERT_EQUAL_UINT64(1992041351887480902ULL, pixelsHash(frame));
   renderer.render(frame, view, snapshot.feed.generatedAt, 3 * PageDurationMs);
-  TEST_ASSERT_EQUAL_UINT64(18245193702606040162ULL, pixelsHash(frame));
+  TEST_ASSERT_EQUAL_UINT64(17576780809417510470ULL, pixelsHash(frame));
 }
 } // namespace
 void interruption_retains_feed_and_recovers() {
@@ -975,50 +976,126 @@ void fgc_local_fixture_uses_normal_state_and_renderer() {
   TEST_ASSERT_TRUE(stale.stops[0].groups.empty());
   TEST_ASSERT_EQUAL_STRING("FGC", stale.stops[0].operatorId.c_str());
 }
-void fgc_scheduled_minutes_preserve_provenance() {
-  constexpr int64_t now = 1000;
-  Arrival scheduled{now + 5 * 60000, Provenance::Scheduled, "service", "native-trip"};
-  TEST_ASSERT_EQUAL_STRING("5'", countdown(scheduled, now, false).c_str());
-  TEST_ASSERT_EQUAL_STRING("S5'", countdown(scheduled, now).c_str());
-  TEST_ASSERT_TRUE(scheduled.provenance == Provenance::Scheduled);
-  Group group;
-  group.line = "L7";
-  group.destination = "Av. Tibidabo";
-  group.arrivals = {scheduled, {now + 12 * 60000, Provenance::Realtime, {}, {}}};
-  TEST_ASSERT_EQUAL_STRING("5' 12'", arrivalText(group, now, 53, false).c_str());
-  TEST_ASSERT_EQUAL_STRING("S5' 12'", arrivalText(group, now, 53).c_str());
-  Group huge = group;
-  huge.arrivals = {{now + 1000000000LL * 60000, Provenance::Scheduled, {}, {}}};
-  TEST_ASSERT_EQUAL_STRING("99+'", arrivalText(huge, now, 30, false).c_str());
-  TEST_ASSERT_EQUAL_STRING("S99+'", arrivalText(huge, now, 30).c_str());
-  TEST_ASSERT_TRUE(countdown(scheduled, scheduled.arrivalAt, false).empty());
+void scheduled_markers_follow_arrivals_for_every_operator() {
   for (const int height : {32, 64}) {
-    View view;
-    Stop stop;
-    stop.mode = "rail";
-    stop.operatorId = "FGC";
-    stop.status = StopStatus::Scheduled;
-    stop.groups = {group};
-    for (auto &arrival : stop.groups[0].arrivals)
-      arrival.provenance = Provenance::Scheduled;
-    view.stops = {stop};
-    Framebuffer programmed(height * 2, height), realtime(height * 2, height);
-    ArrivalRenderer programmedRenderer, realtimeRenderer;
-    programmedRenderer.render(programmed, view, now, 0);
-    for (const auto &arrival : view.stops[0].groups[0].arrivals)
-      TEST_ASSERT_TRUE(arrival.provenance == Provenance::Scheduled);
-    for (auto &arrival : view.stops[0].groups[0].arrivals)
-      arrival.provenance = Provenance::Realtime;
-    view.stops[0].status = StopStatus::Ok;
-    realtimeRenderer.render(realtime, view, now, 0);
-    for (int y = 0; y < height; ++y)
-      for (int x = 0; x < height * 2; ++x)
-        TEST_ASSERT_EQUAL_HEX32(realtime.pixel(x, y), programmed.pixel(x, y));
+    const int width = height * 2;
+    for (const std::string mode : {"metro", "bus", "rail", "tram"}) {
+      Stop stop;
+      stop.mode = mode;
+      stop.operatorId = mode == "rail" ? "FGC" : mode == "tram" ? "TRAM" : "";
+      stop.name = "TEST";
+      stop.nameKnown = true;
+      Group group;
+      group.line = mode == "bus" ? "94" : mode == "rail" ? "L7" : mode == "tram" ? "T3" : "L1";
+      group.destination = "TEST";
+      group.lineColor = "#123456";
+      group.arrivals = {{121000, Provenance::Realtime, {}, {}},
+                        {421000, Provenance::Realtime, {}, {}},
+                        {721000, Provenance::Realtime, {}, {}}};
+      stop.groups = {group};
+      View view;
+      view.stops = {stop};
+      Framebuffer actual(width, height), realtime(width, height);
+      ArrivalRenderer renderer;
+      view.stops[0].status = StopStatus::Ok;
+      renderer.render(realtime, view, 1000, 0);
+      // Global state never supplies arrival provenance, even if it disagrees.
+      for (auto status : {StopStatus::Ok, StopStatus::Partial, StopStatus::Scheduled}) {
+        view.stops[0].status = status;
+        renderer.render(actual, view, 1000, 0);
+        for (int y = 0; y < height; ++y)
+          for (int x = 0; x < width; ++x)
+            TEST_ASSERT_EQUAL_HEX32(realtime.pixel(x, y), actual.pixel(x, y));
+      }
+      for (const bool allScheduled : {false, true}) {
+        view.stops[0].status = allScheduled ? StopStatus::Scheduled : StopStatus::Partial;
+        auto &arrivals = view.stops[0].groups[0].arrivals;
+        arrivals[0].provenance = allScheduled ? Provenance::Scheduled : Provenance::Realtime;
+        arrivals[1].provenance = Provenance::Scheduled;
+        arrivals[2].provenance = allScheduled ? Provenance::Scheduled : Provenance::Realtime;
+        renderer.render(actual, view, 1000, 0);
+        // Independent positions for 2', 7', 12': mixed width 37, scheduled width 45.
+        const std::vector<int> lefts = allScheduled
+                                           ? std::vector<int>{width - 46, width - 31, width - 16}
+                                           : std::vector<int>{width - 27};
+        unsigned amber = 0;
+        for (int y = 0; y < height; ++y)
+          for (int x = 0; x < width; ++x) {
+            if (actual.pixel(x, y) == 0xffaa00)
+              ++amber;
+            if (y < 10)
+              TEST_ASSERT_NOT_EQUAL(0xffaa00, actual.pixel(x, y));
+          }
+        TEST_ASSERT_EQUAL_UINT(lefts.size() * 5, amber);
+        for (int left : lefts)
+          for (int y = 0; y < 3; ++y)
+            for (int x = 0; x < 3; ++x)
+              TEST_ASSERT_EQUAL_HEX32(x == y || x + y == 2 ? 0xffaa00 : 0,
+                                      actual.pixel(left + x, 13 + y));
+      }
+      // Unknown is not inferred as realtime or scheduled; retain its ? text.
+      auto &arrivals = view.stops[0].groups[0].arrivals;
+      arrivals[0].provenance = Provenance::Unknown;
+      arrivals[1].provenance = Provenance::Realtime;
+      arrivals[2].provenance = Provenance::Realtime;
+      renderer.render(actual, view, 1000, 0);
+      for (int y = 0; y < height; ++y)
+        for (int x = 0; x < width; ++x)
+          TEST_ASSERT_NOT_EQUAL(0xffaa00, actual.pixel(x, y));
+      TEST_ASSERT_EQUAL_STRING("?2' 7' 12'",
+                               arrivalText(view.stops[0].groups[0], 1000, 100).c_str());
+      // Expired/invalid views continue to suppress all arrival markers and values.
+      Snapshot snapshot;
+      snapshot.hasFeed = true;
+      snapshot.receivedAtMs = 1000;
+      snapshot.feed.generatedAt = 1000;
+      snapshot.feed.stops = view.stops;
+      for (auto status : {StopStatus::Stale, StopStatus::Unavailable}) {
+        snapshot.feed.stops[0].status = status;
+        const auto hidden = viewAt(snapshot, 1000, 1000, true);
+        TEST_ASSERT_TRUE(hidden.stops[0].groups.empty());
+        renderer.render(actual, hidden, 1000, 0);
+        for (int y = 0; y < height; ++y)
+          for (int x = 0; x < width; ++x)
+            TEST_ASSERT_NOT_EQUAL(0xffaa00, actual.pixel(x, y));
+      }
+    }
   }
+}
+void scheduled_marker_fitting_and_parser_provenance() {
+  Feed feed;
+  const auto json = edited([](JsonDocument &doc) {
+    auto group = doc["stops"][0]["groups"][0];
+    doc["stops"][0]["status"] = "partial";
+    group["arrivals"][0]["provenance"] = "realtime";
+    group["arrivals"][1]["provenance"] = "scheduled";
+  });
+  TEST_ASSERT_TRUE(parseFeed(json, feed) == ParseResult::Ok);
+  TEST_ASSERT_TRUE(feed.stops[0].groups[0].arrivals[0].provenance == Provenance::Realtime);
+  TEST_ASSERT_TRUE(feed.stops[0].groups[0].arrivals[1].provenance == Provenance::Scheduled);
+  const auto legacy = edited([](JsonDocument &doc) {
+    doc["stops"][0]["status"] = "scheduled";
+    doc["stops"][0]["groups"][0]["arrivals"][0].remove("provenance");
+    doc["stops"][0]["groups"][0]["arrivals"][1]["provenance"] = "unknown";
+  });
+  TEST_ASSERT_TRUE(parseFeed(legacy, feed) == ParseResult::Ok);
+  TEST_ASSERT_TRUE(feed.stops[0].groups[0].arrivals[0].provenance == Provenance::Unknown);
+  TEST_ASSERT_TRUE(feed.stops[0].groups[0].arrivals[1].provenance == Provenance::Unknown);
+  Group group;
+  group.arrivals = {{121000, Provenance::Scheduled, {}, {}},
+                    {421000, Provenance::Realtime, {}, {}}};
+  // Marker is reserved atomically with its time: 3 pixels, gap, then 2' (7 pixels).
+  TEST_ASSERT_TRUE(arrivalText(group, 1000, 10).empty());
+  TEST_ASSERT_EQUAL_STRING("2'", arrivalText(group, 1000, 11).c_str());
+  TEST_ASSERT_EQUAL_STRING("2' 7'", arrivalText(group, 1000, 22).c_str());
+  TEST_ASSERT_EQUAL_STRING("5'", arrivalText(group, 121000, 22).c_str());
+  group.arrivals = {{1000000000LL * 60000 + 1000, Provenance::Scheduled, {}, {}}};
+  TEST_ASSERT_EQUAL_STRING("99+'", arrivalText(group, 1000, 30).c_str());
 }
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(fgc_scheduled_minutes_preserve_provenance);
+  RUN_TEST(scheduled_markers_follow_arrivals_for_every_operator);
+  RUN_TEST(scheduled_marker_fitting_and_parser_provenance);
   RUN_TEST(optional_operator_presentation);
   RUN_TEST(generic_operator_symbol_and_fallback);
   RUN_TEST(tram_identity_uses_existing_parser_and_renderer);

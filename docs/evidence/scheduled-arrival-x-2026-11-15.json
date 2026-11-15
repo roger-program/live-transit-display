@@ -1,0 +1,39 @@
+{
+  "at": "2026-11-15T21:10:02.078248+00:00",
+  "scope": "Local implementation and validation only; no flash, serial connection, backend deployment, D1 operation or configuration change",
+  "environment": "hub75-live",
+  "binaryBytes": 955184,
+  "binarySha256": "72f630673d49bb8e18c15a5a65bc9c212380bdac77e5701a35c189ed23c64179",
+  "nativeTests": 78,
+  "nativeTestsPassed": true,
+  "buildPassed": true,
+  "rule": "Per-arrival provenance only; scheduled gets direct 3x3 amber X before its countdown; realtime gets none, including partial stops; unknown retains question-mark text; existing stale/expiry suppression retained",
+  "bitmap": {
+    "rows": [
+      "#.#",
+      ".#.",
+      "#.#"
+    ],
+    "litPixels": 5,
+    "offPixels": 4,
+    "color": "#ffaa00",
+    "relativePosition": "immediately before its own scheduled countdown, vertically centred in 5-row text (y+1)"
+  },
+  "operators": [
+    "Metro",
+    "Bus",
+    "FGC",
+    "TRAM"
+  ],
+  "mixedRowsSupported": true,
+  "headerCoverageIndicatorRemoved": true,
+  "fgcExceptionRemoved": true,
+  "feedV1Changed": false,
+  "sourceHashes": {
+    "lib/transit/src/renderer.cpp": "b24c0047c8f36ec52738aebfefcf26282ec60d8ae823129b83250f70cd6b0c87",
+    "lib/transit/src/renderer.h": "ad29ed48f8c08a1a082d7ca7e85d7d7b45748d627e5766f86f98413bd0dc548c",
+    "test/test_core/test_main.cpp": "6ce383e92d49ac3c2c31f0b14073b1efb9fb272ff58a0c4c62f2962cb58ce606"
+  },
+  "physicalAcceptance": "pending; review semantics/preview before any new flash",
+  "lastInstalledFirmwareSha256FromPriorSession": "b0cdb117f9e9db25a717e57bf71b575ea3f1b44ee4875027811a0f13acf84567"
+}

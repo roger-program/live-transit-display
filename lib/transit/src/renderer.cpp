@@ -45,6 +45,46 @@ void badge(Framebuffer &frame, const std::string &label, int x, int y, Color col
   typography::drawC2(frame, label, x + 1 + offset, y + 1, ink, std::max(1, x + offset),
                      std::min(frame.width() - 1, x + offset + width));
 }
+struct ArrivalLabel {
+  std::string text;
+  bool scheduled;
+  int width;
+};
+// Fit each countdown together with its own provenance marker. Four blank pixels
+// between labels preserve the existing C2 space geometry for realtime arrivals.
+std::vector<ArrivalLabel> arrivalLabels(const Group &group, int64_t now, int available) {
+  std::vector<ArrivalLabel> labels;
+  int width = 0;
+  for (const auto &arrival : group.arrivals) {
+    const auto text = countdown(arrival, now, false);
+    if (text.empty())
+      continue;
+    const bool scheduled = arrival.provenance == Provenance::Scheduled;
+    const int itemWidth = typography::c2Width(text) + (scheduled ? 4 : 0);
+    const int nextWidth = width + (labels.empty() ? 0 : 4) + itemWidth;
+    if (nextWidth > available)
+      break;
+    labels.push_back({text, scheduled, itemWidth});
+    width = nextWidth;
+    if (labels.size() == 3)
+      break;
+  }
+  if (!labels.empty())
+    return labels;
+  for (const auto &arrival : group.arrivals) {
+    if (countdown(arrival, now, false).empty())
+      continue;
+    const std::string text =
+        (arrival.provenance == Provenance::Unknown ? "?" : "") + std::string("99+'");
+    const bool scheduled = arrival.provenance == Provenance::Scheduled;
+    const int itemWidth = typography::c2Width(text) + (scheduled ? 4 : 0);
+    return itemWidth <= available ? std::vector<ArrivalLabel>{{text, scheduled, itemWidth}}
+                                  : std::vector<ArrivalLabel>{};
+  }
+  const int emptyWidth = typography::c2Width("NO PRED");
+  return emptyWidth <= available ? std::vector<ArrivalLabel>{{"NO PRED", false, emptyWidth}}
+                                 : std::vector<ArrivalLabel>{};
+}
 void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t now,
               uint64_t pageTime, uint64_t stopTime, uint64_t destinationTime, int offset,
               bool header, bool content) {
@@ -69,12 +109,10 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
             offset, stop.mode == "bus" ? "#FFFFFF" : "");
     }
     const std::string name = stop.nameKnown ? stop.name : stop.mode + ":" + stop.id;
-    const int right = frame.width() - 1 - (stop.status == StopStatus::Partial ? 6 : 0);
+    const int right = frame.width() - 1;
     typography::drawC2(frame, name, 10 + offset, 2, White, std::max(1, 10 + offset),
                        std::min(frame.width() - 1, right + offset),
                        overflowOffset(typography::c2Width(name), right - 10, stopTime));
-    if (stop.status == StopStatus::Partial)
-      typography::drawC2(frame, "!", right + offset, 2, 0xffaa00, 1, frame.width() - 1);
     frame.rect(1 + offset, 9, frame.width() - 2, 1, 0x384438);
   }
   if (!content)
@@ -94,12 +132,28 @@ void drawPage(Framebuffer &frame, const View &view, const Page &page, int64_t no
                                     typography::c2Width(group.line.empty() ? "?" : group.line) + 2);
     const int slotLeft = 1 + badgeWidth + 2;
     const int available = frame.width() - 1 - slotLeft;
-    // Keep provenance in the model; only FGC hides the scheduled minute marker.
-    const std::string arrivals = arrivalText(group, now, available, stop.operatorId != "FGC");
-    const int arrivalLeft = std::max(slotLeft, frame.width() - 1 - typography::c2Width(arrivals));
-    typography::drawC2(frame, arrivals, arrivalLeft + offset, y, Green,
-                       std::max(1, arrivalLeft + offset),
-                       std::min(frame.width() - 1, frame.width() - 1 + offset));
+    const auto labels = arrivalLabels(group, now, available);
+    int arrivalsWidth = 0;
+    for (const auto &label : labels)
+      arrivalsWidth += label.width + (arrivalsWidth ? 4 : 0);
+    int arrivalLeft = std::max(slotLeft, frame.width() - 1 - arrivalsWidth);
+    const int clipLeft = std::max(1, arrivalLeft + offset);
+    const int clipRight = std::min(frame.width() - 1, frame.width() - 1 + offset);
+    for (const auto &label : labels) {
+      int textLeft = arrivalLeft + offset;
+      if (label.scheduled) {
+        // Bitmap X belongs only to this scheduled arrival, including mixed rows.
+        for (int row = 0; row < 3; ++row)
+          for (int col = 0; col < 3; ++col) {
+            const int px = textLeft + col;
+            if ((row == col || row + col == 2) && px >= clipLeft && px < clipRight)
+              frame.pixel(px, y + 1 + row, 0xffaa00);
+          }
+        textLeft += 4;
+      }
+      typography::drawC2(frame, label.text, textLeft, y, Green, clipLeft, clipRight);
+      arrivalLeft += label.width + 4;
+    }
     const auto lines = destinationLines(group.destination, frame.width() - 2);
     for (size_t line = 0; line < lines.size(); ++line) {
       const int destinationY = y + 8 + static_cast<int>(line) * 6;
@@ -144,35 +198,17 @@ std::vector<std::string> destinationLines(const std::string &text, int available
   return best;
 }
 
-std::string arrivalText(const Group &group, int64_t now, int available, bool showScheduledMarker) {
-  std::string result;
-  size_t count = 0;
-  for (const auto &arrival : group.arrivals) {
-    const auto label = countdown(arrival, now, showScheduledMarker);
-    if (label.empty())
-      continue;
-    const auto candidate = result.empty() ? label : result + " " + label;
-    if (typography::c2Width(candidate) > available)
-      break;
-    result = candidate;
-    if (++count == 3)
-      break;
+// Text-only projection of the fitted labels; bitmap provenance is drawn above.
+std::string arrivalText(const Group &group, int64_t now, int available) {
+  std::string text;
+  for (const auto &label : arrivalLabels(group, now, available)) {
+    if (!text.empty())
+      text += " ";
+    text += label.text;
   }
-  if (!result.empty())
-    return result;
-  // Retain the existing out-of-range indicator, without clipping a large number.
-  for (const auto &arrival : group.arrivals) {
-    if (countdown(arrival, now, showScheduledMarker).empty())
-      continue;
-    const std::string prefix = showScheduledMarker && arrival.provenance == Provenance::Scheduled
-                                   ? "S"
-                               : arrival.provenance == Provenance::Unknown ? "?"
-                                                                           : "";
-    const auto overflow = prefix + "99+'";
-    return typography::c2Width(overflow) <= available ? overflow : "";
-  }
-  return typography::c2Width("NO PRED") <= available ? "NO PRED" : "";
+  return text;
 }
+
 std::string pixelText(const std::string &utf8) {
   // Narrow embedded glyph policy: Catalan/Spanish accents transliterate for 5-row text.
   // Stored normalized labels are untouched. Unknown UTF-8 codepoints become one '?'.
