@@ -1,0 +1,215 @@
+{
+  "date": "2026-11-15",
+  "scope": "Authorised flash of previously validated scheduled-arrival-X hub75-live; no source/backend/configuration changes",
+  "sourceCommit": "7bd16ea",
+  "preflight": {
+    "at": "2026-11-15T21:19:20.711370+00:00",
+    "port": "/dev/cu.usbmodem3101",
+    "chip": "ESP32-S3",
+    "flashBytes": 33554432,
+    "sameChipAsPreviousA": true,
+    "identityMatchesA": true,
+    "secureBootDisabled": true,
+    "flashEncryptionDisabled": true,
+    "partitions": [
+      {
+        "name": "nvs",
+        "type": 1,
+        "subtype": 2,
+        "offset": 36864,
+        "size": 20480,
+        "flags": 0
+      },
+      {
+        "name": "factory",
+        "type": 0,
+        "subtype": 0,
+        "offset": 65536,
+        "size": 4194304,
+        "flags": 0
+      },
+      {
+        "name": "device-auth",
+        "type": 1,
+        "subtype": 2,
+        "offset": 4259840,
+        "size": 24576,
+        "flags": 0
+      }
+    ],
+    "partitionTableMd5Verified": true,
+    "partitionTableMatchesBuild": true,
+    "applicationOffset": 65536,
+    "applicationPartitionBytes": 4194304,
+    "backupBytes": 4194304,
+    "backupSha256": "543f2f4f7b7d0ada49213d7519bcc15e0065b1d17006d31fa488457de401072c",
+    "independentFullReadsMatch": true,
+    "previousApplicationIdentified": "hub75-live TRAM before scheduled-X correction 2026-11-15",
+    "previousKnownImageBytes": 954496,
+    "previousKnownImageSha256": "b0cdb117f9e9db25a717e57bf71b575ea3f1b44ee4875027811a0f13acf84567",
+    "candidateEnvironment": "hub75-live",
+    "candidateBytes": 955184,
+    "candidateSha256": "72f630673d49bb8e18c15a5a65bc9c212380bdac77e5701a35c189ed23c64179",
+    "candidateFits": true,
+    "nativeTestsPassed": 78,
+    "previousValidationReused": true,
+    "recompiled": false,
+    "buildPassed": true,
+    "protectedNvsAndIdentityReadable": true,
+    "written": false,
+    "deviceLeftInDownloaderForAuthorisedWrite": true
+  },
+  "flash": {
+    "writeStartedAt": "2026-11-15T21:20:29.503139+00:00",
+    "writeCompletedAt": "2026-11-15T21:20:41.256247+00:00",
+    "verifiedAt": "2026-11-15T21:21:40.808598+00:00",
+    "port": "/dev/cu.usbmodem3101",
+    "written": true,
+    "offset": 65536,
+    "newImageBytes": 955184,
+    "newImageSha256": "72f630673d49bb8e18c15a5a65bc9c212380bdac77e5701a35c189ed23c64179",
+    "readbackImageSha256": "72f630673d49bb8e18c15a5a65bc9c212380bdac77e5701a35c189ed23c64179",
+    "fullReadbackBytes": 4194304,
+    "fullReadbackSha256": "98090fb3e7defabc78873c8109c91be01f26deb1d5be28560295826f8ad406cc",
+    "applicationTailBeyondErasedSectorsUnchanged": true,
+    "lastSectorPaddingVerified": true,
+    "bootloaderTableWifiHelperUnchanged": true,
+    "identityUnchanged": true,
+    "esptoolWriteHashVerified": true,
+    "wholeChipErased": false,
+    "codeModified": false,
+    "backendModified": false
+  },
+  "boot": {
+    "restartAt": "2026-11-15T21:21:40.813610+00:00",
+    "observedAt": "2026-11-15T21:22:20.751933+00:00",
+    "hardResetIssued": true,
+    "bootSummaryObserved": true,
+    "wifiConnectedObserved": true,
+    "feedSuccesses": 2,
+    "fourStopsObserved": true,
+    "faults": [],
+    "events": [
+      {
+        "at": "2026-11-15T21:21:41.421116+00:00",
+        "message": "Firmware prototype-0.1.0; flash=33554432; psram=16774755; panel=enabled"
+      },
+      {
+        "at": "2026-11-15T21:21:41.428978+00:00",
+        "message": "BOOT: GPIO0 initial level=HIGH (active low)"
+      },
+      {
+        "at": "2026-11-15T21:21:43.483880+00:00",
+        "message": "Feed state: OFFLINE"
+      },
+      {
+        "at": "2026-11-15T21:21:43.484100+00:00",
+        "message": "Wi-Fi connected"
+      },
+      {
+        "at": "2026-11-15T21:21:43.484279+00:00",
+        "message": "Feed state: CLOCK"
+      },
+      {
+        "at": "2026-11-15T21:22:20.750089+00:00",
+        "message": "Feed OK; generatedAt=1794777707721; stops=4; arrivals=17; realtime=14"
+      },
+      {
+        "at": "2026-11-15T21:22:20.750882+00:00",
+        "message": "Feed OK; generatedAt=1794777740562; stops=4; arrivals=17; realtime=14"
+      }
+    ],
+    "rawSerialSaved": false,
+    "monitorClosedDeviceLeftRunning": true,
+    "visualAcceptance": "pending user observation",
+    "configurationRevisionLoggedByFirmware": false
+  },
+  "feedBefore": {
+    "at": "2026-11-15T21:17:58.820Z",
+    "http": 200,
+    "version": 1,
+    "revision": "7",
+    "cache": "private, no-store",
+    "generatedAt": 1794777478778,
+    "selectionSha256": "7128179a6804ff5e8d3c503dac2df3788648dd6b8e15b3594cfaadd7b77146ae",
+    "stops": [
+      {
+        "mode": "rail",
+        "operator": "FGC",
+        "status": "scheduled",
+        "groups": 1,
+        "arrivals": 3,
+        "realtime": 0
+      },
+      {
+        "mode": "bus",
+        "status": "ok",
+        "groups": 6,
+        "arrivals": 9,
+        "realtime": 9
+      },
+      {
+        "mode": "tram",
+        "operator": "TRAM",
+        "status": "stale",
+        "groups": 0,
+        "arrivals": 0,
+        "realtime": 0
+      },
+      {
+        "mode": "tram",
+        "operator": "TRAM",
+        "status": "stale",
+        "groups": 0,
+        "arrivals": 0,
+        "realtime": 0
+      }
+    ]
+  },
+  "feedAfter": {
+    "at": "2026-11-15T21:23:29.761Z",
+    "http": 200,
+    "version": 1,
+    "revision": "7",
+    "cache": "private, no-store",
+    "generatedAt": 1794777809735,
+    "selectionSha256": "7128179a6804ff5e8d3c503dac2df3788648dd6b8e15b3594cfaadd7b77146ae",
+    "stops": [
+      {
+        "mode": "rail",
+        "operator": "FGC",
+        "status": "scheduled",
+        "groups": 1,
+        "arrivals": 3,
+        "realtime": 0
+      },
+      {
+        "mode": "bus",
+        "status": "ok",
+        "groups": 6,
+        "arrivals": 9,
+        "realtime": 9
+      },
+      {
+        "mode": "tram",
+        "operator": "TRAM",
+        "status": "partial",
+        "groups": 2,
+        "arrivals": 2,
+        "realtime": 2
+      },
+      {
+        "mode": "tram",
+        "operator": "TRAM",
+        "status": "partial",
+        "groups": 1,
+        "arrivals": 1,
+        "realtime": 1
+      }
+    ]
+  },
+  "selectionUnchanged": true,
+  "revisionEvidence": "Authenticated server header before/after corroborates revision 7; device serial shows four stops, not a direct revision acknowledgement",
+  "visualAcceptance": "pending user observation",
+  "privateProtectedImagesPublished": false
+}

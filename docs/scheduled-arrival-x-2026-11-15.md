@@ -1,5 +1,7 @@
 # X por llegada programada — validación local, 15 noviembre 2026
 
+**Actualización posterior:** candidato flasheado con autorización explícita; lectura, arranque y feed verificados. [Ejecución separada](scheduled-arrival-x-flash-2026-11-15.md). Lo siguiente conserva el alcance de la preparación local.
+
 **Implementado y probado localmente, no flasheado.** El usuario sustituyó el criterio
 anterior de estado partial antes de cualquier flasheo. No se abrió el puerto serie,
 leyó/escribió flash ni reinició el dispositivo en esta sesión. La enumeración de
