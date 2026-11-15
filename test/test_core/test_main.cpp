@@ -899,6 +899,39 @@ void generic_operator_symbol_and_fallback() {
         TEST_ASSERT_EQUAL_HEX32(baseline.pixel(x, y), symbolFrame.pixel(x, y));
     }
 }
+void tram_identity_uses_existing_parser_and_renderer() {
+  Feed feed;
+  const auto json = edited([](JsonDocument &doc) {
+    doc["stops"][0]["operator"] = "TRAM";
+    doc["stops"][0]["mode"] = "tram";
+    doc["stops"][0]["stop"] = "TBX:ST-172";
+    doc["stops"][0]["groups"][0]["line"] = "T3";
+  });
+  TEST_ASSERT_TRUE(parseFeed(json, feed) == ParseResult::Ok);
+  TEST_ASSERT_EQUAL_STRING("TRAM", feed.stops[0].operatorId.c_str());
+  TEST_ASSERT_EQUAL_STRING("tram", feed.stops[0].mode.c_str());
+  const auto *symbol = operatorSymbolFor("TRAM");
+  TEST_ASSERT_NOT_NULL(symbol);
+  TEST_ASSERT_EQUAL_UINT8(31, symbol->rows[0]);
+  auto snapshot = sample();
+  auto view = viewAt(snapshot, snapshot.feed.generatedAt, 1000, true);
+  view.stops.resize(1);
+  view.stops[0].mode = "tram";
+  ArrivalRenderer renderer;
+  Framebuffer baseline(64, 32), actual(64, 32);
+  renderer.render(baseline, view, snapshot.feed.generatedAt, 0);
+  view.stops[0].operatorId = "TRAM";
+  renderer.render(actual, view, snapshot.feed.generatedAt, 0);
+  for (int y = 0; y < 32; ++y)
+    for (int x = 0; x < 64; ++x) {
+      if (x >= 1 && x < 8 && y >= 1 && y < 8) {
+        const bool ink =
+            x >= 2 && x < 7 && y >= 2 && y < 7 && (symbol->rows[y - 2] & (1U << (6 - x)));
+        TEST_ASSERT_EQUAL_HEX32(ink ? 0xffffff : 0x007e84, actual.pixel(x, y));
+      } else
+        TEST_ASSERT_EQUAL_HEX32(baseline.pixel(x, y), actual.pixel(x, y));
+    }
+}
 void fgc_local_fixture_uses_normal_state_and_renderer() {
   Snapshot snapshot;
   TEST_ASSERT_TRUE(parseFeed(FgcFixtureJson, snapshot.feed) == ParseResult::Ok);
@@ -936,7 +969,7 @@ void fgc_local_fixture_uses_normal_state_and_renderer() {
         TEST_ASSERT_TRUE(arrival.provenance == Provenance::Realtime);
     }
   }
-  TEST_ASSERT_EQUAL(1, sizeof(OperatorSymbols) / sizeof(OperatorSymbols[0]));
+  TEST_ASSERT_EQUAL(2, sizeof(OperatorSymbols) / sizeof(OperatorSymbols[0]));
   const auto stale = viewAt(snapshot, now + StaleAfterMs, 1000 + StaleAfterMs, true);
   TEST_ASSERT_TRUE(stale.stops[0].status == StopStatus::Stale);
   TEST_ASSERT_TRUE(stale.stops[0].groups.empty());
@@ -988,6 +1021,7 @@ int main() {
   RUN_TEST(fgc_scheduled_minutes_preserve_provenance);
   RUN_TEST(optional_operator_presentation);
   RUN_TEST(generic_operator_symbol_and_fallback);
+  RUN_TEST(tram_identity_uses_existing_parser_and_renderer);
   RUN_TEST(fgc_local_fixture_uses_normal_state_and_renderer);
   RUN_TEST(interruption_retains_feed_and_recovers);
   RUN_TEST(interruption_still_expires_predictions);

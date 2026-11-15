@@ -12,7 +12,9 @@ struct OperatorSymbol {
 // Reviewed local assets, not provider routing/colour policy. Add operators as
 // data. FGC is the unchanged 7x5 mask from the private simulator's
 // user-reference study.
+// Provisional TRAM T glyph; line palettes remain supplied by the backend.
 inline constexpr OperatorSymbol OperatorSymbols[] = {
+    {"TRAM", 5, 5, {31, 4, 4, 4, 4, 0, 0}, 0x007e84, 0xffffff},
     {"FGC", 7, 5, {22, 41, 85, 74, 52, 0, 0}, 0x00834a, 0xffffff},
 };
 inline const OperatorSymbol *operatorSymbolFor(const std::string &id) {
