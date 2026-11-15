@@ -1,5 +1,6 @@
 #include "badge_contrast.h"
 #include "brightness.h"
+#include "brightness_preview.h"
 #include "device_identity.h"
 #include "feed_request.h"
 #include "fixture.h"
@@ -1092,8 +1093,54 @@ void scheduled_marker_fitting_and_parser_provenance() {
   group.arrivals = {{1000000000LL * 60000 + 1000, Provenance::Scheduled, {}, {}}};
   TEST_ASSERT_EQUAL_STRING("99+'", arrivalText(group, 1000, 30).c_str());
 }
+void preview_deadlines_supersession_and_disconnect() {
+  transit::BrightnessPreview preview;
+  transit::PreviewCommand command{1, 15000, 0, true};
+  TEST_ASSERT_TRUE(preview.receive(command, 100, 200));
+  TEST_ASSERT_EQUAL(0, preview.brightness(200, 4));
+  TEST_ASSERT_FALSE(preview.receive(command, 1000, 1100));
+  TEST_ASSERT_EQUAL(4, preview.brightness(15100, 4));
+  TEST_ASSERT_FALSE(preview.receive(command, 16000, 16100));
+  TEST_ASSERT_EQUAL(4, preview.brightness(16100, 4));
+  command.generation = 2;
+  command.raw = 8;
+  TEST_ASSERT_TRUE(preview.receive(command, 17000, 17100));
+  TEST_ASSERT_EQUAL(8, preview.brightness(17100, 4));
+  preview.disconnect();
+  TEST_ASSERT_FALSE(preview.receive(command, 18000, 18100));
+  TEST_ASSERT_EQUAL(4, preview.brightness(18100, 4));
+  TEST_ASSERT_FALSE(preview.receive({1, 15000, 16, true}, 19000, 19100));
+  TEST_ASSERT_TRUE(preview.receive({3, 0, 0, false}, 20000, 20100));
+  TEST_ASSERT_EQUAL(4, preview.brightness(20100, 4));
+  TEST_ASSERT_TRUE(preview.receive({4, 100, 16, true}, 21000, 22000));
+  TEST_ASSERT_EQUAL(4, preview.brightness(22000, 4));
+  transit::BrightnessPreview reboot;
+  TEST_ASSERT_EQUAL(4, reboot.brightness(0, 4));
+}
+void preview_parser_is_bounded_and_transactional() {
+  transit::PreviewCommand command;
+  const std::string boot = "0123456789abcdef0123456789abcdef";
+  const std::string json = "{\"boot\":\"" + boot +
+                           "\",\"generation\":1,\"serverNow\":100,\"expiresAt\":15100,\"raw\":16}";
+  TEST_ASSERT_TRUE(transit::parsePreview(json, boot, command));
+  TEST_ASSERT_EQUAL(15000, command.remainingMs);
+  TEST_ASSERT_EQUAL(16, command.raw);
+  TEST_ASSERT_FALSE(transit::parsePreview(json, "wrong", command));
+  TEST_ASSERT_FALSE(transit::parsePreview("{}", boot, command));
+  TEST_ASSERT_FALSE(transit::parsePreview(std::string(1025, 'x'), boot, command));
+  auto bad = json;
+  bad.replace(bad.find("16}"), 3, "17}");
+  TEST_ASSERT_FALSE(transit::parsePreview(bad, boot, command));
+  TEST_ASSERT_EQUAL(16, command.raw);
+  TEST_ASSERT_TRUE(transit::parsePreview(
+      "{\"boot\":\"" + boot + "\",\"generation\":2,\"serverNow\":100,\"expiresAt\":0,\"raw\":null}",
+      boot, command));
+  TEST_ASSERT_FALSE(command.active);
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(preview_deadlines_supersession_and_disconnect);
+  RUN_TEST(preview_parser_is_bounded_and_transactional);
   RUN_TEST(scheduled_markers_follow_arrivals_for_every_operator);
   RUN_TEST(scheduled_marker_fitting_and_parser_provenance);
   RUN_TEST(optional_operator_presentation);

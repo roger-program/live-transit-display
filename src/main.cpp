@@ -3,6 +3,7 @@
 #include "display_driver.h"
 #include "feed_client.h"
 #include "fixture.h"
+#include "preview_client.h"
 #include "renderer.h"
 #include "setup_button.h"
 #include "wifi_setup.h"
@@ -16,6 +17,7 @@
 
 namespace {
 PrototypeDisplay display;
+PreviewClient preview;
 WifiSetup wifiSetup;
 constexpr uint8_t BootButtonPin = 0; // Waveshare's documented active-low BOOT input.
 provisioning::SetupButton bootButton;
@@ -180,6 +182,8 @@ void setup() {
     if (!wifiReady || !mailboxMutex ||
         xTaskCreate(networkTask, "feed", 16384, nullptr, 1, nullptr) != pdPASS)
       snapshot.error = transit::RequestError::Network;
+    if (wifiReady && mailboxMutex && !preview.begin())
+      Serial.println("Experimental preview unavailable");
   } else {
     Serial.println(
         "Diagnostics: 0 red, 1 green, 2 blue, 3 pixels, 4 rows, 5 columns, 6 text, 7 brightness");
@@ -235,6 +239,12 @@ void loop() {
   }
   if (APP_MODE == 0)
     wifiSetup.render(frame);
+  if (APP_MODE == 0) {
+    preview.available(clockValid() && !wifiSetup.active());
+    brightness = preview.brightness(tick, configuredBrightness);
+  }
   display.present(frame, brightness);
+  if (APP_MODE == 0 && panelcfg::Enabled)
+    preview.presented(uptimeMs());
   delay(50); // 20 fps; network/TLS work runs separately from animation.
 }
