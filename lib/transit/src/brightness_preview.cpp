@@ -5,9 +5,9 @@
 
 namespace transit {
 bool parsePreview(std::string_view json, std::string_view boot, PreviewCommand &out) {
-  if (json.size() > 1024)
+  if (json.size() > 4096)
     return false;
-  StaticJsonDocument<1536> doc;
+  StaticJsonDocument<6144> doc;
   if (deserializeJson(doc, json.data(), json.size()) || !doc.is<JsonObject>())
     return false;
   const auto number = [](JsonVariantConst v) {

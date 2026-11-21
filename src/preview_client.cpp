@@ -1,6 +1,7 @@
 #include "preview_client.h"
 #include "feed_client.h"
 #include <ArduinoJson.h>
+#include <Preferences.h>
 #include <WiFi.h>
 #include <esp_system.h>
 #include <esp_timer.h>
@@ -16,10 +17,10 @@ uint64_t nowMs() { return static_cast<uint64_t>(esp_timer_get_time() / 1000); }
 } // namespace
 bool PreviewClient::begin() {
   mutex_ = xSemaphoreCreateMutex();
-  return mutex_ && xTaskCreate(run, "preview", 12288, this, 1, nullptr) == pdPASS;
+  return mutex_ && xTaskCreate(run, "preview", 16384, this, 1, nullptr) == pdPASS;
 }
 void PreviewClient::run(void *self) { static_cast<PreviewClient *>(self)->task(); }
-uint8_t PreviewClient::brightness(uint64_t now, uint8_t baseline) {
+uint8_t PreviewClient::brightness(uint64_t now, uint8_t baseline, bool recovery) {
   if (!mutex_)
     return baseline;
   xSemaphoreTake(mutex_, portMAX_DELAY);
@@ -28,7 +29,13 @@ uint8_t PreviewClient::brightness(uint64_t now, uint8_t baseline) {
   applying_.generation = state_.generation();
   applying_.received = state_.receivedAt();
   applying_.receivedUtc = receivedUtc_;
-  applying_.raw = state_.brightness(now, baseline);
+  const uint8_t normal = recovery ? baseline
+                                  : transit::effectiveBrightness(settings_, utcMs() / 1000,
+                                                                 clockReady_.load(), baseline);
+  applying_.raw = state_.brightness(now, normal);
+  applying_.configurationRevision = settings_.revision;
+  applying_.maximumRaw = settings_.maximumRaw;
+  applying_.configurationReady = settingsReady_;
   applying_.active = state_.active(now);
   applying_.valid = state_.seen();
   xSemaphoreGive(mutex_);
@@ -39,7 +46,10 @@ void PreviewClient::presented(uint64_t now) {
     return;
   xSemaphoreTake(mutex_, portMAX_DELAY);
   if (!ack_.valid || ack_.generation != applying_.generation || ack_.raw != applying_.raw ||
-      ack_.active != applying_.active) {
+      ack_.active != applying_.active ||
+      ack_.configurationRevision != applying_.configurationRevision ||
+      ack_.maximumRaw != applying_.maximumRaw ||
+      ack_.configurationReady != applying_.configurationReady) {
     ack_ = applying_;
     ack_.applied = now;
     ack_.appliedUtc = utcMs();
@@ -53,6 +63,23 @@ void PreviewClient::task() {
     vTaskDelete(nullptr);
     return;
   }
+  Preferences storage;
+  const bool storageReady = storage.begin("transit-light", false);
+  std::string savedRecord;
+  if (storageReady) {
+    const String record = storage.getString("config", "");
+    transit::BrightnessSettings cached;
+    if (transit::parseBrightnessSettings(std::string_view(record.c_str(), record.length()),
+                                         cached)) {
+      savedRecord = transit::brightnessRecord(cached);
+      xSemaphoreTake(mutex_, portMAX_DELAY);
+      settings_ = cached;
+      settingsReady_ = true;
+      xSemaphoreGive(mutex_);
+    }
+  }
+  uint64_t configurationRetryAt = 0, configurationAckAt = 0, sentConfiguration = UINT64_MAX;
+  uint8_t sentMaximum = 0;
   char boot[33];
   for (unsigned i = 0; i < 4; ++i)
     snprintf(boot + i * 8, 9, "%08lx", static_cast<unsigned long>(esp_random()));
@@ -65,8 +92,11 @@ void PreviewClient::task() {
   uint64_t requests = 0, rowsRead = 0, rowsWritten = 0;
   const auto count = [&](const std::string &response) {
     ++requests;
-    StaticJsonDocument<1536> doc;
-    if (!deserializeJson(doc, response) && doc["metrics"]["measured"] == true) {
+    StaticJsonDocument<128> filter;
+    filter["metrics"] = true;
+    StaticJsonDocument<512> doc;
+    if (!deserializeJson(doc, response, DeserializationOption::Filter(filter)) &&
+        doc["metrics"]["measured"] == true) {
       rowsRead += doc["metrics"]["rowsRead"].as<uint64_t>();
       rowsWritten += doc["metrics"]["rowsWritten"].as<uint64_t>();
     }
@@ -96,8 +126,32 @@ void PreviewClient::task() {
       transit::PreviewCommand command;
       if (ok)
         ok = transit::parsePreview(response, boot, command);
+      transit::BrightnessSettings configuration;
+      if (ok && transit::parseBrightnessSettings(response, configuration)) {
+        const auto record = transit::brightnessRecord(configuration);
+        xSemaphoreTake(mutex_, portMAX_DELAY);
+        const bool currentOrNewer = !settingsReady_ || configuration.revision >= settings_.revision;
+        xSemaphoreGive(mutex_);
+        if (currentOrNewer && record != savedRecord && nowMs() >= configurationRetryAt) {
+          // One atomic NVS value, isolated namespace. Never persist preview commands.
+          const bool persisted = storageReady &&
+                                 storage.putString("config", record.c_str()) == record.size() &&
+                                 storage.getString("config", "") == record.c_str();
+          if (persisted) {
+            savedRecord = record;
+            xSemaphoreTake(mutex_, portMAX_DELAY);
+            settings_ = configuration;
+            settingsReady_ = true;
+            state_.disconnect();
+            xSemaphoreGive(mutex_);
+          } else
+            configurationRetryAt = nowMs() + 30000;
+        }
+      }
       bool active = false;
       xSemaphoreTake(mutex_, portMAX_DELAY);
+      if (command.raw > settings_.maximumRaw)
+        command.active = false;
       if (ok && available_.load() && WiFi.status() == WL_CONNECTED) {
         if (state_.receive(command, requestAt, nowMs()))
           receivedUtc_ = utcMs();
@@ -123,9 +177,28 @@ void PreviewClient::task() {
     if (ack.active && !state_.active(nowMs()))
       ack.valid = false;
     xSemaphoreGive(mutex_);
+    if (registered && ack.valid && ack.configurationReady && !ack.active &&
+        nowMs() >= configurationAckAt &&
+        (ack.configurationRevision != sentConfiguration || ack.maximumRaw != sentMaximum)) {
+      StaticJsonDocument<256> document;
+      document["revision"] = ack.configurationRevision;
+      document["maximumRaw"] = ack.maximumRaw;
+      std::string body;
+      serializeJson(document, body);
+      std::string response;
+      uint32_t retryMs = 0;
+      const int status = client.control("/v1/device/control/configuration-ack", "POST", boot, body,
+                                        response, retryMs);
+      count(response);
+      if (status == 200) {
+        sentConfiguration = ack.configurationRevision;
+        sentMaximum = ack.maximumRaw;
+      }
+      configurationAckAt = nowMs() + std::max(status == 200 ? 1000u : 30000u, retryMs);
+    }
     if (registered && ack.valid && nowMs() >= ackAt &&
-        (ack.generation != sentGeneration || ack.raw != sentRaw || ack.active != sentActive ||
-         (ack.active && nowMs() >= activeHeartbeatAt))) {
+        (ack.generation != sentGeneration || (ack.active && ack.raw != sentRaw) ||
+         ack.active != sentActive || (ack.active && nowMs() >= activeHeartbeatAt))) {
       StaticJsonDocument<768> doc;
       doc["generation"] = ack.generation;
       doc["raw"] = ack.raw;

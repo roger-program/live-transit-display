@@ -240,8 +240,9 @@ void loop() {
   if (APP_MODE == 0)
     wifiSetup.render(frame);
   if (APP_MODE == 0) {
+    preview.clockReady(clockValid());
     preview.available(clockValid() && !wifiSetup.active());
-    brightness = preview.brightness(tick, configuredBrightness);
+    brightness = preview.brightness(tick, configuredBrightness, wifiSetup.active());
   }
   display.present(frame, brightness);
   if (APP_MODE == 0 && panelcfg::Enabled)

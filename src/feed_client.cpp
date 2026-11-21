@@ -98,7 +98,7 @@ int FeedClient::control(const char *path, const char *method, const char *boot,
     return 0;
   const auto url = std::string(localcfg::FeedOrigin) + path;
   Response response;
-  response.limit = 1024;
+  response.limit = 4096;
   esp_http_client_config_t config{};
   config.url = url.c_str();
   config.cert_pem = localcfg::RootCa;
@@ -135,7 +135,7 @@ int FeedClient::control(const char *path, const char *method, const char *boot,
     if (valid)
       retryMs = seconds * 1000;
   }
-  if (result != ESP_OK || response.overflow || response.body.size() > 1024)
+  if (result != ESP_OK || response.overflow || response.body.size() > 4096)
     return 0;
   output = std::move(response.body);
   return status;

@@ -1,5 +1,6 @@
 #include "badge_contrast.h"
 #include "brightness.h"
+#include "brightness_configuration.h"
 #include "brightness_preview.h"
 #include "device_identity.h"
 #include "feed_request.h"
@@ -1127,7 +1128,7 @@ void preview_parser_is_bounded_and_transactional() {
   TEST_ASSERT_EQUAL(16, command.raw);
   TEST_ASSERT_FALSE(transit::parsePreview(json, "wrong", command));
   TEST_ASSERT_FALSE(transit::parsePreview("{}", boot, command));
-  TEST_ASSERT_FALSE(transit::parsePreview(std::string(1025, 'x'), boot, command));
+  TEST_ASSERT_FALSE(transit::parsePreview(std::string(4097, 'x'), boot, command));
   auto bad = json;
   bad.replace(bad.find("16}"), 3, "65}");
   TEST_ASSERT_FALSE(transit::parsePreview(bad, boot, command));
@@ -1164,8 +1165,91 @@ void preview_thirty_second_lease_and_calibration_steps() {
   transit::BrightnessPreview reboot;
   TEST_ASSERT_EQUAL(4, reboot.brightness(0, 4));
 }
+void saved_brightness_validation_mapping_and_reboot_cache() {
+  transit::BrightnessSettings settings;
+  TEST_ASSERT_TRUE(
+      transit::parseBrightnessSettings("{\"configurationRevision\":8,\"maximumRaw\":36,"
+                                       "\"brightness\":{\"mode\":\"manual\",\"level\":100}}",
+                                       settings));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(settings, 0, false, 4));
+  TEST_ASSERT_EQUAL(0, transit::brightnessRaw(0, 36));
+  TEST_ASSERT_EQUAL(36, transit::brightnessRaw(100, 36));
+  const auto cache = transit::brightnessRecord(settings);
+  transit::BrightnessSettings reboot;
+  TEST_ASSERT_TRUE(transit::parseBrightnessSettings(cache, reboot));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(reboot, 0, false, 4));
+  TEST_ASSERT_FALSE(transit::parseBrightnessSettings("corrupt", reboot));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(reboot, 0, false, 4));
+  TEST_ASSERT_FALSE(
+      transit::parseBrightnessSettings("{\"configurationRevision\":8,\"maximumRaw\":36,"
+                                       "\"brightness\":{\"mode\":\"manual\",\"level\":101}}",
+                                       settings));
+}
+void daily_brightness_schedule_madrid_dst_and_preview_restore() {
+  transit::BrightnessSettings s;
+  const std::string record = "{\"configurationRevision\":9,\"maximumRaw\":36,\"brightness\":{"
+                             "\"mode\":\"automatic\",\"timezone\":\"Europe/"
+                             "Madrid\",\"entries\":[{\"start\":\"22:00\",\"level\":0},{\"start\":"
+                             "\"07:00\",\"level\":100}]}}";
+  TEST_ASSERT_TRUE(transit::parseBrightnessSettings(record, s));
+  TEST_ASSERT_EQUAL(420, s.entries[0].minute);
+  // 2026-11-21 06:00 UTC = 07:00 Madrid; cached policy operates without a backend.
+  TEST_ASSERT_EQUAL(0, transit::effectiveBrightness(s, 1795237200, true, 4));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(s, 1795240800, true, 4));
+  TEST_ASSERT_EQUAL(4, transit::effectiveBrightness(s, 1795240800, false, 4));
+  TEST_ASSERT_EQUAL(119, transit::madridMinuteAt(1774745940)); // Mar29 00:59 UTC ->01:59
+  TEST_ASSERT_EQUAL(180, transit::madridMinuteAt(1774746000)); // Mar29 01:00 UTC ->03:00
+  TEST_ASSERT_EQUAL(179, transit::madridMinuteAt(1792889940)); // Oct25 00:59 UTC ->02:59
+  TEST_ASSERT_EQUAL(120, transit::madridMinuteAt(1792890000)); // Oct25 01:00 UTC ->02:00
+  transit::BrightnessPreview preview;
+  preview.receive({1, 30000, 0, true}, 0, 10);
+  TEST_ASSERT_EQUAL(0,
+                    preview.brightness(20, transit::effectiveBrightness(s, 1795240800, true, 4)));
+  TEST_ASSERT_EQUAL(
+      36, preview.brightness(30000, transit::effectiveBrightness(s, 1795240800, true, 4)));
+  preview.receive({2, 30000, 10, true}, 31000, 31010);
+  preview.disconnect();
+  TEST_ASSERT_EQUAL(
+      0, preview.brightness(31020, transit::effectiveBrightness(s, 1795237200, true, 4)));
+  transit::BrightnessSettings reboot;
+  TEST_ASSERT_TRUE(transit::parseBrightnessSettings(transit::brightnessRecord(s), reboot));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(reboot, 1795240800, true, 4));
+}
+
+void brightness_schedule_validation_and_dst_policy() {
+  const auto parse = [](const std::string &entries, transit::BrightnessSettings &out) {
+    return transit::parseBrightnessSettings(
+        "{\"configurationRevision\":10,\"maximumRaw\":36,\"brightness\":{\"mode\":\"automatic\","
+        "\"timezone\":\"Europe/Madrid\",\"entries\":[" +
+            entries + "]}}",
+        out);
+  };
+  transit::BrightnessSettings s;
+  std::string entries;
+  for (int i = 0; i < 6; ++i) {
+    if (i)
+      entries += ",";
+    entries += "{\"start\":\"0" + std::to_string(i) + ":00\",\"level\":50}";
+    TEST_ASSERT_EQUAL(i < 5, parse(entries, s));
+  }
+  TEST_ASSERT_FALSE(parse("", s));
+  TEST_ASSERT_FALSE(parse("{\"start\":\"24:00\",\"level\":0}", s));
+  TEST_ASSERT_FALSE(
+      parse("{\"start\":\"01:00\",\"level\":0},{\"start\":\"01:00\",\"level\":1}", s));
+  TEST_ASSERT_TRUE(parse("{\"start\":\"01:00\",\"level\":0},{\"start\":\"02:30\",\"level\":100},{"
+                         "\"start\":\"04:00\",\"level\":50}",
+                         s));
+  TEST_ASSERT_EQUAL(0, transit::effectiveBrightness(s, 1774745940, true, 4));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(s, 1774746000, true, 4));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(s, 1792889940, true, 4));
+  TEST_ASSERT_EQUAL(0, transit::effectiveBrightness(s, 1792890000, true, 4));
+  TEST_ASSERT_EQUAL(36, transit::effectiveBrightness(s, 1792891800, true, 4));
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(brightness_schedule_validation_and_dst_policy);
+  RUN_TEST(saved_brightness_validation_mapping_and_reboot_cache);
+  RUN_TEST(daily_brightness_schedule_madrid_dst_and_preview_restore);
   RUN_TEST(preview_thirty_second_lease_and_calibration_steps);
   RUN_TEST(preview_deadlines_supersession_and_disconnect);
   RUN_TEST(preview_parser_is_bounded_and_transactional);
