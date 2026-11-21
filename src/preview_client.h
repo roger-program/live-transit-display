@@ -16,7 +16,7 @@ private:
   struct Ack {
     uint64_t generation = 0, received = 0, applied = 0, receivedUtc = 0, appliedUtc = 0;
     uint8_t raw = 0;
-    bool valid = false;
+    bool valid = false, active = false;
   };
   static void run(void *self);
   void task();

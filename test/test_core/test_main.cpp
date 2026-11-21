@@ -1129,7 +1129,7 @@ void preview_parser_is_bounded_and_transactional() {
   TEST_ASSERT_FALSE(transit::parsePreview("{}", boot, command));
   TEST_ASSERT_FALSE(transit::parsePreview(std::string(1025, 'x'), boot, command));
   auto bad = json;
-  bad.replace(bad.find("16}"), 3, "17}");
+  bad.replace(bad.find("16}"), 3, "65}");
   TEST_ASSERT_FALSE(transit::parsePreview(bad, boot, command));
   TEST_ASSERT_EQUAL(16, command.raw);
   TEST_ASSERT_TRUE(transit::parsePreview(
@@ -1137,8 +1137,36 @@ void preview_parser_is_bounded_and_transactional() {
       boot, command));
   TEST_ASSERT_FALSE(command.active);
 }
+void preview_thirty_second_lease_and_calibration_steps() {
+  TEST_ASSERT_EQUAL(30000, transit::PreviewTtlMs);
+  TEST_ASSERT_EQUAL(64, transit::PreviewMaximumRaw);
+  transit::BrightnessPreview preview;
+  uint64_t generation = 0;
+  for (const auto raw : {16, 32, 48, 64}) {
+    TEST_ASSERT_TRUE(
+        preview.receive({++generation, 30000, static_cast<uint8_t>(raw), true}, 100, 200));
+    TEST_ASSERT_TRUE(preview.active(30099));
+    TEST_ASSERT_EQUAL(raw, preview.brightness(30099, 4));
+    TEST_ASSERT_FALSE(preview.active(30100));
+    TEST_ASSERT_EQUAL(4, preview.brightness(30100, 4));
+  }
+  // Source matters even when normal and preview both produce raw 4.
+  TEST_ASSERT_TRUE(preview.receive({++generation, 30000, 4, true}, 31000, 31100));
+  TEST_ASSERT_TRUE(preview.active(31100));
+  TEST_ASSERT_EQUAL(4, preview.brightness(31100, 4));
+  preview.disconnect();
+  TEST_ASSERT_FALSE(preview.active(31101));
+  TEST_ASSERT_EQUAL(4, preview.brightness(31101, 4));
+  TEST_ASSERT_TRUE(preview.receive({++generation, 30000, 0, true}, 32000, 32100));
+  TEST_ASSERT_EQUAL(0, preview.brightness(32100, 4));
+  TEST_ASSERT_TRUE(preview.receive({++generation, 0, 0, false}, 33000, 33100));
+  TEST_ASSERT_EQUAL(4, preview.brightness(33100, 4));
+  transit::BrightnessPreview reboot;
+  TEST_ASSERT_EQUAL(4, reboot.brightness(0, 4));
+}
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(preview_thirty_second_lease_and_calibration_steps);
   RUN_TEST(preview_deadlines_supersession_and_disconnect);
   RUN_TEST(preview_parser_is_bounded_and_transactional);
   RUN_TEST(scheduled_markers_follow_arrivals_for_every_operator);

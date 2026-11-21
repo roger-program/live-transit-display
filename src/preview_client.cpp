@@ -29,6 +29,7 @@ uint8_t PreviewClient::brightness(uint64_t now, uint8_t baseline) {
   applying_.received = state_.receivedAt();
   applying_.receivedUtc = receivedUtc_;
   applying_.raw = state_.brightness(now, baseline);
+  applying_.active = state_.active(now);
   applying_.valid = state_.seen();
   xSemaphoreGive(mutex_);
   return applying_.raw;
@@ -37,7 +38,8 @@ void PreviewClient::presented(uint64_t now) {
   if (!mutex_ || !applying_.valid)
     return;
   xSemaphoreTake(mutex_, portMAX_DELAY);
-  if (!ack_.valid || ack_.generation != applying_.generation || ack_.raw != applying_.raw) {
+  if (!ack_.valid || ack_.generation != applying_.generation || ack_.raw != applying_.raw ||
+      ack_.active != applying_.active) {
     ack_ = applying_;
     ack_.applied = now;
     ack_.appliedUtc = utcMs();
@@ -55,9 +57,10 @@ void PreviewClient::task() {
   for (unsigned i = 0; i < 4; ++i)
     snprintf(boot + i * 8, 9, "%08lx", static_cast<unsigned long>(esp_random()));
   bool registered = false;
-  uint64_t pollAt = 0, ackAt = 0;
+  uint64_t pollAt = 0, ackAt = 0, activeHeartbeatAt = 0;
   uint64_t sentGeneration = UINT64_MAX;
   uint8_t sentRaw = 255;
+  bool sentActive = false;
   unsigned failures = 0;
   uint64_t requests = 0, rowsRead = 0, rowsWritten = 0;
   const auto count = [&](const std::string &response) {
@@ -116,12 +119,17 @@ void PreviewClient::task() {
     Ack ack;
     xSemaphoreTake(mutex_, portMAX_DELAY);
     ack = ack_;
+    // Do not renew an active ACK after RAM expiry/disconnection while render catches up.
+    if (ack.active && !state_.active(nowMs()))
+      ack.valid = false;
     xSemaphoreGive(mutex_);
     if (registered && ack.valid && nowMs() >= ackAt &&
-        (ack.generation != sentGeneration || ack.raw != sentRaw)) {
+        (ack.generation != sentGeneration || ack.raw != sentRaw || ack.active != sentActive ||
+         (ack.active && nowMs() >= activeHeartbeatAt))) {
       StaticJsonDocument<768> doc;
       doc["generation"] = ack.generation;
       doc["raw"] = ack.raw;
+      doc["active"] = ack.active;
       doc["receivedMs"] = ack.received;
       doc["appliedMs"] = ack.applied;
       doc["receivedUtcMs"] = ack.receivedUtc;
@@ -139,6 +147,8 @@ void PreviewClient::task() {
       if (status == 200) {
         sentGeneration = ack.generation;
         sentRaw = ack.raw;
+        sentActive = ack.active;
+        activeHeartbeatAt = nowMs() + 5000;
       }
       ackAt = nowMs() + std::max(status == 401 || status == 403 ? 60000u : 1000u, retryMs);
     }

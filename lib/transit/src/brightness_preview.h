@@ -4,8 +4,8 @@
 #include <string_view>
 
 namespace transit {
-inline constexpr uint8_t PreviewMaximumRaw = 16;
-inline constexpr uint64_t PreviewTtlMs = 15000;
+inline constexpr uint8_t PreviewMaximumRaw = 64;
+inline constexpr uint64_t PreviewTtlMs = 30000;
 struct PreviewCommand {
   uint64_t generation = 0;
   uint64_t remainingMs = 0;
