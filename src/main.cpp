@@ -3,6 +3,7 @@
 #include "display_driver.h"
 #include "feed_client.h"
 #include "fixture.h"
+#include "led_preview.h"
 #include "preview_client.h"
 #include "renderer.h"
 #include "setup_button.h"
@@ -18,6 +19,7 @@
 namespace {
 PrototypeDisplay display;
 PreviewClient preview;
+LedPreview ledPreview;
 WifiSetup wifiSetup;
 constexpr uint8_t BootButtonPin = 0; // Waveshare's documented active-low BOOT input.
 provisioning::SetupButton bootButton;
@@ -184,6 +186,8 @@ void setup() {
       snapshot.error = transit::RequestError::Network;
     if (wifiReady && mailboxMutex && !preview.begin())
       Serial.println("Experimental preview unavailable");
+    if (wifiReady && mailboxMutex && !ledPreview.begin())
+      Serial.println("LED frame preview unavailable");
   } else {
     Serial.println(
         "Diagnostics: 0 red, 1 green, 2 blue, 3 pixels, 4 rows, 5 columns, 6 text, 7 brightness");
@@ -240,9 +244,11 @@ void loop() {
   if (APP_MODE == 0)
     wifiSetup.render(frame);
   if (APP_MODE == 0) {
+    ledPreview.available(!wifiSetup.active());
     preview.clockReady(clockValid());
     preview.available(clockValid() && !wifiSetup.active());
     brightness = preview.brightness(tick, configuredBrightness, wifiSetup.active());
+    ledPreview.render(frame, tick, wifiSetup.active());
   }
   display.present(frame, brightness);
   if (APP_MODE == 0 && panelcfg::Enabled)
