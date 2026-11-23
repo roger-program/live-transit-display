@@ -1,5 +1,6 @@
 #include "led_preview.h"
 #include "panel_config.h"
+#include "preview_frame_receiver.h"
 #include <WiFi.h>
 #include <cstring>
 #include <esp_timer.h>
@@ -91,12 +92,11 @@ void LedPreview::FrameHandler::raw(WebServer &server, String, HTTPRaw &raw) {
         server.header("X-LED-Width") == "64" && server.header("X-LED-Height") == "32" &&
         server.header("X-LED-Format") == "RGB888";
   } else if (raw.status == RAW_WRITE && owner_.receiveValid_) {
-    if (raw.totalSize > FrameBytes || raw.currentSize > FrameBytes - raw.totalSize) {
+    if (!preview::copyRawFrameChunk(owner_.staging_.data(), FrameBytes, raw.totalSize,
+                                    raw.currentSize, raw.buf, owner_.received_)) {
       owner_.receiveValid_ = false;
       return;
     }
-    std::memcpy(owner_.staging_.data() + raw.totalSize, raw.buf, raw.currentSize);
-    owner_.received_ = raw.totalSize + raw.currentSize;
   } else if (raw.status == RAW_END) {
     owner_.receiveValid_ = owner_.receiveValid_ && owner_.received_ == FrameBytes;
     owner_.frameComplete_ = owner_.receiveValid_;
